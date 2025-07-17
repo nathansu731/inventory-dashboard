@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import {RefreshCcw} from "lucide-react";
 
 export function TokenGenerator() {
     const [token, setToken] = useState('')
@@ -28,7 +29,8 @@ export function TokenGenerator() {
         <div className="space-y-4">
             <div className="flex justify-end">
             <Button onClick={generateToken} className="gap-2">
-                🔄 Generate a new token
+                <RefreshCcw />
+                Generate a new token
             </Button>
             </div>
             {token && (
