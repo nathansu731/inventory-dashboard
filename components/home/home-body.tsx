@@ -1,7 +1,7 @@
 import {SectionCards} from "@/components/section-cards";
 import {ChartAreaInteractive} from "@/components/chart-area-interactive";
 import {DataTable} from "@/components/data-table";
-import data from "@/app/home/data.json";
+import data from "@/app/overview/data.json";
 
 
 export function HomeBody() {
