@@ -1,5 +1,6 @@
 import {Checkbox} from "@/components/ui/checkbox";
 import {Button} from "@/components/ui/button";
+import {ForecastingSummaryPercentage} from "@/components/forecasting-summary/forecasting-summary-percentage";
 
 type ColumnVisibility = {
     select: boolean;
@@ -20,7 +21,7 @@ type ForecastingSummaryHeaderColumnSelectorsProps = {
 };
 
 
-export function ForecastingSummaryHeaderColumnSelectors({setIsColumnModalOpen, columnVisibility, setColumnVisibility}: ForecastingSummaryHeaderColumnSelectorsProps) {
+export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, columnVisibility, setColumnVisibility}: ForecastingSummaryHeaderColumnSelectorsProps) => {
 
     const handleColumnVisibilityChange = (column: string, visible: boolean) => {
         setColumnVisibility((prev) => ({
@@ -138,19 +139,12 @@ export function ForecastingSummaryHeaderColumnSelectors({setIsColumnModalOpen, c
                         ABC Class
                     </label>
                 </div>
-                <div className="flex items-center space-x-2">
-                    <Checkbox
-                        id="abcPercentage"
-                        checked={columnVisibility.abcPercentage}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("abcPercentage", checked as boolean)}
-                    />
-                    <label
-                        htmlFor="abcPercentage"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                    >
-                        ABC %
-                    </label>
-                </div>
+                <ForecastingSummaryPercentage
+                    columnKey="abcPercentage"
+                    label="XYZ %"
+                    checked={columnVisibility.abcPercentage}
+                    onChange={handleColumnVisibilityChange}
+                />
             </div>
             <div className="flex justify-end space-x-2 pt-4">
                 <Button variant="outline" onClick={() => setIsColumnModalOpen(false)}>

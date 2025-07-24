@@ -3,7 +3,7 @@ import {Button} from "@/components/ui/button";
 import {Filter} from "lucide-react";
 
 
-export function ForecastingSummaryDropdown() {
+export const ForecastingSummaryDropdown = () => {
     return (
         <DropdownMenu>
             <DropdownMenuTrigger asChild>

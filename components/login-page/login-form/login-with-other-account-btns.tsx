@@ -1,7 +1,6 @@
 import {Button} from "@/components/ui/button";
 
-
-export function LoginWithOtherAccountBtns() {
+export const LoginWithOtherAccountBtns = () => {
     return (
         <div className="grid grid-cols-3 gap-4">
             <Button variant="outline" type="button" className="w-full">

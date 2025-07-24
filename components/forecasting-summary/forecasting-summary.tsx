@@ -9,8 +9,9 @@ import {ForecastingSummaryDropdown} from "@/components/forecasting-summary/forec
 import {ForecastingSummaryHeaderColumnSelectors} from "@/components/forecasting-summary/forecasting-summary-header-column-selectors";
 import {ForecastingSummaryFooter} from "@/components/forecasting-summary/forecasting-summary-footer";
 import {ForecastingSummaryTableLazy} from "@/components/forecasting-summary/forecasting-summary-table-lazy";
+import {forecastData, testData} from "@/components/forecasting-summary/test-data";
 
-export default function ForecastingSummary() {
+export const ForecastingSummary = () => {
     const [selectedItems, setSelectedItems] = useState<string[]>([])
     const [selectAll, setSelectAll] = useState(false)
     const [hasMoreData, setHasMoreData] = useState(true);
@@ -36,240 +37,6 @@ export default function ForecastingSummary() {
         abcPercentage: number;
         approved: boolean;
     };
-
-// test data start
-
-        const testData = [
-            {
-                id: "SKU006",
-                store: "Store A",
-                description: "Premium Coffee Beans - Dark Roast",
-                forecastMethod: "ARIMA",
-                abcClass: "A",
-                abcPercentage: 87,
-                approved: true,
-            },
-            {
-                id: "SKU007",
-                store: "Store B",
-                description: "Organic Green Tea Bags",
-                forecastMethod: "Linear Regression",
-                abcClass: "B",
-                abcPercentage: 65,
-                approved: false,
-            },
-            {
-                id: "SKU008",
-                store: "Store A",
-                description: "Artisan Chocolate Bar",
-                forecastMethod: "Exponential Smoothing",
-                abcClass: "A",
-                abcPercentage: 92,
-                approved: true,
-            },
-            {
-                id: "SKU009",
-                store: "Store C",
-                description: "Herbal Tea Collection",
-                forecastMethod: "ARIMA",
-                abcClass: "C",
-                abcPercentage: 45,
-                approved: true,
-            },
-            {
-                id: "SKU010",
-                store: "Store B",
-                description: "Specialty Coffee Filters",
-                forecastMethod: "Moving Average",
-                abcClass: "B",
-                abcPercentage: 58,
-                approved: false,
-            },
-            {
-                id: "SKU006",
-                store: "Store A",
-                description: "Premium Coffee Beans - Dark Roast",
-                forecastMethod: "ARIMA",
-                abcClass: "A",
-                abcPercentage: 87,
-                approved: true
-            },
-            {
-                id: "SKU007",
-                store: "Store B",
-                description: "Organic Green Tea Bags",
-                forecastMethod: "Linear Regression",
-                abcClass: "B",
-                abcPercentage: 65,
-                approved: false
-            },
-            {
-                id: "SKU008",
-                store: "Store A",
-                description: "Artisan Chocolate Bar",
-                forecastMethod: "Exponential Smoothing",
-                abcClass: "A",
-                abcPercentage: 92,
-                approved: true
-            },
-            {
-                id: "SKU009",
-                store: "Store C",
-                description: "Herbal Tea Collection",
-                forecastMethod: "ARIMA",
-                abcClass: "C",
-                abcPercentage: 45,
-                approved: true
-            },
-            {
-                id: "SKU010",
-                store: "Store B",
-                description: "Specialty Coffee Filters",
-                forecastMethod: "Moving Average",
-                abcClass: "B",
-                abcPercentage: 58,
-                approved: false
-            },
-            {
-                id: "SKU011",
-                store: "Store A",
-                description: "Cold Brew Coffee Kit",
-                forecastMethod: "ARIMA",
-                abcClass: "A",
-                abcPercentage: 88,
-                approved: true
-            },
-            {
-                id: "SKU012",
-                store: "Store B",
-                description: "Loose Leaf Black Tea",
-                forecastMethod: "Exponential Smoothing",
-                abcClass: "B",
-                abcPercentage: 70,
-                approved: false
-            },
-            {
-                id: "SKU013",
-                store: "Store C",
-                description: "French Press Coffee Maker",
-                forecastMethod: "Linear Regression",
-                abcClass: "A",
-                abcPercentage: 90,
-                approved: true
-            },
-            {
-                id: "SKU014",
-                store: "Store A",
-                description: "Organic Chamomile Tea",
-                forecastMethod: "Moving Average",
-                abcClass: "C",
-                abcPercentage: 49,
-                approved: true
-            },
-            {
-                id: "SKU015",
-                store: "Store B",
-                description: "Espresso Ground Coffee",
-                forecastMethod: "ARIMA",
-                abcClass: "A",
-                abcPercentage: 85,
-                approved: true
-            },
-            {
-                id: "SKU016",
-                store: "Store C",
-                description: "Matcha Powder",
-                forecastMethod: "Linear Regression",
-                abcClass: "B",
-                abcPercentage: 66,
-                approved: false
-            },
-            {
-                id: "SKU017",
-                store: "Store A",
-                description: "Iced Tea Pitcher",
-                forecastMethod: "Exponential Smoothing",
-                abcClass: "C",
-                abcPercentage: 52,
-                approved: true
-            },
-            {
-                id: "SKU018",
-                store: "Store B",
-                description: "Cinnamon Spice Tea",
-                forecastMethod: "ARIMA",
-                abcClass: "B",
-                abcPercentage: 63,
-                approved: false
-            },
-            {
-                id: "SKU019",
-                store: "Store C",
-                description: "Reusable Coffee Cups",
-                forecastMethod: "Moving Average",
-                abcClass: "C",
-                abcPercentage: 40,
-                approved: false
-            },
-            {
-                id: "SKU020",
-                store: "Store A",
-                description: "Hazelnut Flavored Coffee",
-                forecastMethod: "ARIMA",
-                abcClass: "A",
-                abcPercentage: 93,
-                approved: true
-            },
-        ];
-// test data end
-
-    const forecastData = [
-        {
-            id: "SKU001",
-            store: "Store A",
-            description: "Premium Coffee Beans - Dark Roast",
-            forecastMethod: "ARIMA",
-            abcClass: "A",
-            abcPercentage: 85,
-            approved: true,
-        },
-        {
-            id: "SKU002",
-            store: "Store B",
-            description: "Organic Green Tea Bags",
-            forecastMethod: "Linear Regression",
-            abcClass: "B",
-            abcPercentage: 65,
-            approved: false,
-        },
-        {
-            id: "SKU003",
-            store: "Store A",
-            description: "Artisan Chocolate Bar",
-            forecastMethod: "Exponential Smoothing",
-            abcClass: "A",
-            abcPercentage: 92,
-            approved: true,
-        },
-        {
-            id: "SKU004",
-            store: "Store C",
-            description: "Herbal Tea Collection",
-            forecastMethod: "ARIMA",
-            abcClass: "C",
-            abcPercentage: 45,
-            approved: true,
-        },
-        {
-            id: "SKU005",
-            store: "Store B",
-            description: "Specialty Coffee Filters",
-            forecastMethod: "Moving Average",
-            abcClass: "B",
-            abcPercentage: 58,
-            approved: false,
-        },
-    ]
 
     const [isLoading, setIsLoading] = useState(false);
     const [forecastDataNewTest, setForecastDataNewTest] = useState<ForecastDataItem[]>(forecastData);
@@ -317,11 +84,8 @@ export default function ForecastingSummary() {
 
     return (
         <div className="min-h-screen bg-background">
-            {/* Header matching user profile style */}
             <ForecastingSummaryHeader/>
-            {/* Main content */}
             <div className="container mx-auto px-6 py-6">
-                {/* Controls row */}
                 <div className="flex items-center justify-between mb-6">
                     <ForecastingSummaryDropdown/>
                     <div className="flex items-center space-x-2">
@@ -354,7 +118,6 @@ export default function ForecastingSummary() {
                         </Button>
                     </div>
                 </div>
-                {/* Table */}
                 <ForecastingSummaryTableLazy
                     forecastData={forecastDataNewTest}
                     selectedItems={selectedItems}
@@ -364,7 +127,6 @@ export default function ForecastingSummary() {
                     columnVisibility={columnVisibility}
                     loadMoreItems={loadMoreItems}
                 />
-                {/* Footer info */}
                 <ForecastingSummaryFooter forecastData={forecastDataNewTest} selectedItems={selectedItems}/>
             </div>
         </div>

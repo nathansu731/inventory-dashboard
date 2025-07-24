@@ -38,7 +38,7 @@ type ForecastingSummaryTableLazyProps = {
     loadMoreItems: () => void;
 };
 
-export function ForecastingSummaryTableLazy({
+export const ForecastingSummaryTableLazy = ({
                                             forecastData,
                                             selectedItems,
                                             selectAll,
@@ -46,7 +46,7 @@ export function ForecastingSummaryTableLazy({
                                             handleSelectItem,
                                             columnVisibility,
                                             loadMoreItems
-                                        }: ForecastingSummaryTableLazyProps) {
+                                        }: ForecastingSummaryTableLazyProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
 
     const rowVirtualizer = useVirtualizer({

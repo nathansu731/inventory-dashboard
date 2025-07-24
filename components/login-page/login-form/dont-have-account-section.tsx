@@ -1,5 +1,5 @@
 
-export function DontHaveAccountSection() {
+export const DontHaveAccountSection = () => {
     return (
         <div className="text-center text-sm">
             Don&apos;t have an account?{" "}

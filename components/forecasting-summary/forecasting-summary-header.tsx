@@ -3,7 +3,7 @@ import {Button} from "@/components/ui/button";
 import {Bell} from "lucide-react";
 
 
-export function ForecastingSummaryHeader() {
+export const ForecastingSummaryHeader = () => {
     return (
         <div className="border-b bg-muted/40">
             <div className="container mx-auto px-6 py-4">

@@ -37,7 +37,7 @@ type ForecastingSummaryTableProps = {
 
 // below component is original one, without lazy loading ----- /////
 
-export function ForecastingSummaryTable({forecastData, selectedItems, selectAll, handleSelectAll, handleSelectItem, columnVisibility}: ForecastingSummaryTableProps) {
+export const ForecastingSummaryTable = ({forecastData, selectedItems, selectAll, handleSelectAll, handleSelectItem, columnVisibility}: ForecastingSummaryTableProps) => {
     return (
         <div className="rounded-md border">
             <Table>

@@ -14,7 +14,7 @@ type ForecastingSummaryFooterProps = {
     selectedItems: string[];
 };
 
-export function ForecastingSummaryFooter({forecastData, selectedItems}: ForecastingSummaryFooterProps) {
+export const ForecastingSummaryFooter = ({forecastData, selectedItems}: ForecastingSummaryFooterProps) => {
     return (
         <div className="mt-4 text-sm text-muted-foreground">
             Showing {forecastData.length} of {forecastData.length} items

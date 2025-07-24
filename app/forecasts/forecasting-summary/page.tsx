@@ -4,8 +4,7 @@ import {
     SidebarInset,
     SidebarProvider,
 } from "@/components/ui/sidebar"
-import React from "react";
-import ForecastingSummary from "@/components/forecasting-summary/forecasting-summary";
+import {ForecastingSummary} from "@/components/forecasting-summary/forecasting-summary";
 
 
 export default function Page() {

@@ -1,7 +1,7 @@
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
 
-export function EmailSection() {
+export const EmailSection = () => {
     return (
         <div className="grid gap-3">
             <Label htmlFor="email">Email</Label>
