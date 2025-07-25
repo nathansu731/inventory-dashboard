@@ -1,7 +1,7 @@
 import {Label} from "@/components/ui/label";
 import {Input} from "@/components/ui/input";
 
-export function PasswordSection() {
+export const PasswordSection = () => {
     return (
         <div className="grid gap-3">
             <div className="flex items-center">

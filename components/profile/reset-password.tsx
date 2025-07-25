@@ -5,7 +5,7 @@ import {Button} from "@/components/ui/button";
 import React from "react";
 
 
-export function ResetPassword() {
+export const ResetPassword = () => {
     return (
         <Card>
             <CardHeader>

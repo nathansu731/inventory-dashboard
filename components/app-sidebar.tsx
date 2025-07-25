@@ -50,18 +50,18 @@ const data = {
   navMain: [
     {
       title: "Overview",
-      url: "#",
+      url: "/",
       icon: ChartNoAxesGantt,
       isActive: true,
     },
     {
       title: "Forecasts",
-      url: "#",
+      url: "/forecasts/forecasting-summary",
       icon: TrendingUpDown,
       items: [
         {
           title: "Forecast Navigator",
-          url: "#",
+          url: "/forecasts/forecasting-summary",
         },
         {
           title: "Forecast Edition",

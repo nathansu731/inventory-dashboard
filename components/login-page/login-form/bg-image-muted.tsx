@@ -1,6 +1,6 @@
 
 
-export function BgImageMuted() {
+export const BgImageMuted = () => {
     return (
         <div className="bg-muted relative hidden md:block">
             <img

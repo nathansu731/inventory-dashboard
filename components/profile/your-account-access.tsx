@@ -3,7 +3,7 @@ import {Button} from "@/components/ui/button";
 import React from "react";
 
 
-export function YourAccountAccess() {
+export const YourAccountAccess = () => {
     return (
         <Card>
             <CardHeader>

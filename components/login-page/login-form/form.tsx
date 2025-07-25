@@ -6,7 +6,7 @@ import {ContinueWithSection} from "@/components/login-page/login-form/continue-w
 import {LoginWithOtherAccountBtns} from "@/components/login-page/login-form/login-with-other-account-btns";
 import {DontHaveAccountSection} from "@/components/login-page/login-form/dont-have-account-section";
 
-export function Form() {
+export const Form = () => {
     return (
         <form className="p-6 md:p-8">
             <div className="flex flex-col gap-6">

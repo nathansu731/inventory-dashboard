@@ -3,7 +3,7 @@ import {Checkbox} from "@/components/ui/checkbox";
 import React from "react";
 
 
-export function RegisterTwoFactorAuth() {
+export const RegisterTwoFactorAuth = () => {
     return (
         <Card className="gap-1">
             <CardHeader>

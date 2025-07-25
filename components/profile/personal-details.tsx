@@ -5,7 +5,7 @@ import {Button} from "@/components/ui/button";
 import React from "react";
 
 
-export function PersonalDetails() {
+export const PersonalDetails = () => {
     return (
         <Card>
             <CardHeader>
