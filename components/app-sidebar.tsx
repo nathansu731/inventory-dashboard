@@ -64,8 +64,8 @@ const data = {
           url: "/forecasts/forecast-navigator",
         },
         {
-          title: "Forecast Edition",
-          url: "#",
+          title: "Forecast Editor",
+          url: "/forecasts/forecast-editor",
         },
       ],
     },
