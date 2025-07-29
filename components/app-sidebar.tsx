@@ -61,7 +61,7 @@ const data = {
       items: [
         {
           title: "Forecast Navigator",
-          url: "/forecasts/forecasting-summary",
+          url: "/forecasts/forecast-navigator",
         },
         {
           title: "Forecast Edition",
@@ -82,7 +82,7 @@ const data = {
     },
     {
       title: "Dashboards",
-      url: "#",
+      url: "/dashboard",
       icon: LayoutDashboard,
     },
     {
