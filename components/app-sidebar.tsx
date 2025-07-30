@@ -71,7 +71,7 @@ const data = {
     },
     {
       title: "KPIs",
-      url: "#",
+      url: "/kpis",
       icon: CustomKpiIcon,
       items: [
         {
