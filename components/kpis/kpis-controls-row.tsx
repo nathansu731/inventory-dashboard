@@ -1,9 +1,18 @@
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
-import {ChevronDown, Columns, Download, Eye, Filter, GitBranch, Save} from "lucide-react";
+import {
+    ArrowDownWideNarrow,
+    ChevronDown, CircleQuestionMark,
+    Columns,
+    Filter,
+    HardDriveDownload, House,
+    Network,
+    Save, Scale,
+    Trash2, User
+} from "lucide-react";
 import React, {useState} from "react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
-import {ForecastEditorColumnSelector} from "@/components/forecast-editor/forecast-editor-column-selector";
+import {KpisColumnSelector} from "@/components/kpis/kpis-column-selector";
 
 type ForecastEditorControlsRowProps = {
     aggregationType: string
@@ -12,7 +21,9 @@ type ForecastEditorControlsRowProps = {
     setUnitsType: React.Dispatch<React.SetStateAction<string>>;
 }
 
-export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, unitsType, setUnitsType}: ForecastEditorControlsRowProps) => {
+export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType, setUnitsType}: ForecastEditorControlsRowProps) => {
+    const [accuracy, setAccuracy] = useState("Accuracy");
+    const [lag, setLag] = useState("Lag 0");
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
     const [columnVisibility, setColumnVisibility] = useState({
         select: true,
@@ -27,7 +38,8 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
     })
     return (
         <div className="flex items-center justify-between border-b bg-muted/30 px-6 py-3">
-            <div className="flex items-center gap-4">
+            <div className="flex items-center gap-1 mr-1">
+                <p className="font-medium">Aggregation</p>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -60,8 +72,10 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
 
             <div className="flex items-center gap-2">
                 <Button variant="default" size="sm">
-                    <Save className="h-4 w-4 mr-2"/>
-                    Save
+                    <Save className="h-4 w-4"/>
+                </Button>
+                <Button variant="outline" size="sm">
+                    <Trash2 className="h-4 w-4" />
                 </Button>
                 <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
                     <DialogTrigger asChild>
@@ -74,48 +88,89 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
                         <DialogHeader>
                             <DialogTitle>Choose Columns</DialogTitle>
                         </DialogHeader>
-                        <ForecastEditorColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
-                                                       columnVisibility={columnVisibility}
-                                                       setColumnVisibility={setColumnVisibility}/>
+                        <KpisColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
+                                            columnVisibility={columnVisibility}
+                                            setColumnVisibility={setColumnVisibility}/>
                     </DialogContent>
                 </Dialog>
                 <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-2"/>
-                    View
+                    <ArrowDownWideNarrow />
                 </Button>
-                <Button variant="outline" size="sm">
-                    <GitBranch className="h-4 w-4 mr-2"/>
-                    Hierarchy
-                </Button>
-                <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2"/>
-                    Filter
-                </Button>
+                <div className="flex items-center gap-0 ml-1 mr-1">
+                    <Button variant="outline" size="sm">
+                        <House />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                        <User />
+                    </Button>
+                    <Button variant="outline" size="sm">
+                        <Scale />
+                    </Button>
+                </div>
                 <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
+                <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm">
-                            {unitsType}
+                            {accuracy}
                             <ChevronDown className="h-4 w-4 ml-2"/>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => setUnitsType("USD")}>
-                            USD
+                        <DropdownMenuItem onClick={() => setAccuracy("25%")}>
+                            25%
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setUnitsType("EUR")}>
-                            EUR
+                        <DropdownMenuItem onClick={() => setAccuracy("50%")}>
+                            50%
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setUnitsType("Units")}>
-                            Units
+                        <DropdownMenuItem onClick={() => setAccuracy("75%")}>
+                            75%
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setUnitsType("Percentage")}>
+                        <DropdownMenuItem onClick={() => setAccuracy("Percentage")}>
                             Percentage
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <Button variant="outline" size="sm">
-                    <Download className="h-4 w-4 mr-2"/>
-                    Export
+                    <Network className="h-4 w-4" />
+                </Button>
+                <Button variant="outline" size="sm">
+                    <Filter className="h-4 w-4"/>
+                </Button>
+                <Button variant="outline" size="sm">
+                    Units
+                </Button>
+                <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="sm">
+                            {lag}
+                            <ChevronDown className="h-4 w-4"/>
+                        </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent>
+                        <DropdownMenuItem onClick={() => setLag("Lag 1")}>
+                            Lag 1
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setLag("Lag 2")}>
+                            Lag 2
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setLag("Lag 3")}>
+                            Lag 3
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setLag("Lag 4")}>
+                            Lag 4
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setLag("Lag 5")}>
+                            Lag 5
+                        </DropdownMenuItem>
+                    </DropdownMenuContent>
+                </DropdownMenu>
+                <Button variant="outline" size="sm">
+                    <CircleQuestionMark />
+                </Button>
+                <Button variant="outline" size="sm">
+                    <HardDriveDownload />
+                </Button>
+                <Button variant="outline" size="sm">
+                    10 Elements
                 </Button>
             </div>
         </div>
