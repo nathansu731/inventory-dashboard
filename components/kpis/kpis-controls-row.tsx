@@ -3,7 +3,7 @@ import {Button} from "@/components/ui/button";
 import {
     ArrowDownWideNarrow,
     ChevronDown, CircleQuestionMark,
-    Columns,
+    Columns, DollarSign,
     Filter,
     HardDriveDownload, House,
     Network,
@@ -39,12 +39,13 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
     return (
         <div className="flex items-center justify-between border-b bg-muted/30 px-6 py-3">
             <div className="flex items-center gap-1 mr-1">
-                <p className="font-medium">Aggregation</p>
+                <p className="font-medium text-sm">Aggregation</p>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
                             variant="outline"
-                            className="min-w-[120px] justify-between bg-transparent"
+                            className="min-w-0 min-w-[80px] justify-between bg-transparent"
+                            size="xs"
                         >
                             {aggregationType}
                             <ChevronDown className="h-4 w-4"/>
@@ -70,18 +71,17 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
                 </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-2">
-                <Button variant="default" size="sm">
+            <div className="flex items-center gap-2 gap-responsive-sm">
+                <Button variant="outline" size="xs">
                     <Save className="h-4 w-4"/>
                 </Button>
-                <Button variant="outline" size="sm">
-                    <Trash2 className="h-4 w-4" />
+                <Button variant="outline" size="xs">
+                    <Trash2 className="h-4 w-4"/>
                 </Button>
                 <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
                     <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Columns className="h-4 w-4 mr-2"/>
-                            Columns
+                        <Button variant="outline" size="xs">
+                            <Columns className="h-4 w-4"/>
                         </Button>
                     </DialogTrigger>
                     <DialogContent className="sm:max-w-md">
@@ -93,25 +93,35 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
                                             setColumnVisibility={setColumnVisibility}/>
                     </DialogContent>
                 </Dialog>
-                <Button variant="outline" size="sm">
-                    <ArrowDownWideNarrow />
+                <Button variant="outline" size="xs">
+                    <ArrowDownWideNarrow/>
                 </Button>
-                <div className="flex items-center gap-0 ml-1 mr-1">
-                    <Button variant="outline" size="sm">
-                        <House />
+                <div className="flex items-center gap-2 ml-1 mr-1 hidden md:flex gap-responsive-sm">
+                    <Button variant="outline" size="xs">
+                        <House/>
                     </Button>
-                    <Button variant="outline" size="sm">
-                        <User />
+                    <Button variant="outline" size="xs">
+                        <User/>
                     </Button>
-                    <Button variant="outline" size="sm">
-                        <Scale />
+                    <Button variant="outline" size="xs">
+                        <Scale/>
+                    </Button>
+                    <Button variant="outline" size="xs">
+                        <Network className="h-4 w-4"/>
+                    </Button>
+                    <Button variant="outline" size="xs">
+                        <Filter/>
+                    </Button>
+                    <Button variant="outline" size="xs">
+                        {unitsType}
                     </Button>
                 </div>
+
                 <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
+                    <DropdownMenuTrigger asChild>
+                        <Button variant="outline" size="xs" className="min-w-0 min-w-[85px]">
                             {accuracy}
-                            <ChevronDown className="h-4 w-4 ml-2"/>
+                            <ChevronDown className="h-4 w-4"/>
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
@@ -129,18 +139,10 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="outline" size="sm">
-                    <Network className="h-4 w-4" />
-                </Button>
-                <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4"/>
-                </Button>
-                <Button variant="outline" size="sm">
-                    Units
-                </Button>
+
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
+                        <Button variant="outline" size="xs" className="min-w-0 min-w-[70px]">
                             {lag}
                             <ChevronDown className="h-4 w-4"/>
                         </Button>
@@ -163,15 +165,65 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
-                <Button variant="outline" size="sm">
-                    <CircleQuestionMark />
+                <div className="flex items-center gap-1 ml-1 mr-1 hidden md:flex">
+                <Button variant="outline" size="xs">
+                    <CircleQuestionMark/>
                 </Button>
-                <Button variant="outline" size="sm">
-                    <HardDriveDownload />
+                <Button variant="outline" size="xs">
+                    <HardDriveDownload/>
                 </Button>
-                <Button variant="outline" size="sm">
-                    10 Elements
-                </Button>
+                </div>
+                <div className="ml-1 mr-1 block md:hidden relative">
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="xs">
+                                <ChevronDown className="h-4 w-4"/>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="min-w-0 w-[60px]">
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                <House/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                <User/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                <Scale/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                <Network className="h-4 w-4"/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                <Filter className="h-4 w-4"/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                    <DollarSign/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                    <CircleQuestionMark/>
+                                </Button>
+                            </DropdownMenuItem>
+                            <DropdownMenuItem>
+                                <Button variant="outline" size="xs">
+                                    <HardDriveDownload/>
+                                </Button>
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
+                </div>
             </div>
         </div>
     )
