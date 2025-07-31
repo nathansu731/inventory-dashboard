@@ -142,3 +142,11 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  @media (max-width: 850px) and (min-width: 768px) {
+    .gap-responsive-sm {
+      gap: 0.25rem; /* gap-1 */
+    }
+  }
+}

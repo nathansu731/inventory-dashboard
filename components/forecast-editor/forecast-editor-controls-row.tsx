@@ -1,6 +1,6 @@
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import {Button} from "@/components/ui/button";
-import {ChevronDown, Columns, Columns3, Download, Eye, Filter, GitBranch, Save} from "lucide-react";
+import {ChevronDown, Columns, Download, Eye, Filter, GitBranch, Save} from "lucide-react";
 import React, {useState} from "react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 import {ForecastEditorColumnSelector} from "@/components/forecast-editor/forecast-editor-column-selector";
