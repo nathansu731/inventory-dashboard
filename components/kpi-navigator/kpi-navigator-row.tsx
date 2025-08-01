@@ -2,7 +2,7 @@ import {Card, CardContent} from "@/components/ui/card";
 import {Button} from "@/components/ui/button";
 import {ArrowLeft, ChevronLeft, ChevronRight, Copy, Network, Trash2} from "lucide-react";
 
-export const NavigatorRow = () => {
+export const KpiNavigatorRow = () => {
 
     return (
         <Card className="py-1">

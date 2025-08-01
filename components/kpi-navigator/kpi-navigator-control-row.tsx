@@ -5,9 +5,10 @@ import {Columns3, RefreshCw} from "lucide-react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
 import {ForecastingNaviColumnSelector} from "@/components/forecast-navigator/forecasting-navigator-column-selector";
 import {useState} from "react";
+import {KpiNavigatorColumnSelector} from "@/components/kpi-navigator/kpi-navigator-column-selector";
 
 
-export const ControlRow = () => {
+export const KpiNavigatorControlRow = () => {
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
     const [columnVisibility, setColumnVisibility] = useState({
         select: true,
@@ -64,7 +65,7 @@ export const ControlRow = () => {
                                 <DialogHeader>
                                     <DialogTitle>Choose Columns</DialogTitle>
                                 </DialogHeader>
-                                <ForecastingNaviColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
+                                <KpiNavigatorColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
                                                                columnVisibility={columnVisibility}
                                                                setColumnVisibility={setColumnVisibility}/>
                             </DialogContent>
