@@ -75,8 +75,8 @@ const data = {
       icon: CustomKpiIcon,
       items: [
         {
-          title: "KPIs Navigator",
-          url: "#",
+          title: "KPI Navigator",
+          url: "/kpis/kpi-navigator",
         },
       ],
     },
