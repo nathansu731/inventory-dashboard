@@ -29,7 +29,6 @@ export const ReportsPage = () => {
         status: [] as string[],
     })
 
-    // NEW: track how many rows are shown
     const [displayCount, setDisplayCount] = useState(20)
 
     useEffect(() => {
@@ -52,10 +51,8 @@ export const ReportsPage = () => {
         )
     })
 
-    // NEW: slice data for infinite scroll
     const visibleData = filteredData.slice(0, displayCount)
 
-    // NEW: loadMore handler
     const loadMore = () => {
         if (displayCount < filteredData.length) {
             setDisplayCount((prev) => prev + 20)
@@ -137,7 +134,6 @@ export const ReportsPage = () => {
                 handleColumnToggle={handleColumnToggle}
                 exportToCSV={exportToCSV}
             />
-            {/* Pass visibleData and loadMore */}
             <ReportsDataTable selectedColumns={selectedColumns} filteredData={visibleData} loadMore={loadMore} />
             <ReportsDataTableFooter filteredData={filteredData} />
         </div>

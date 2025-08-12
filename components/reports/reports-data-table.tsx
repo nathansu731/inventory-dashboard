@@ -27,7 +27,7 @@ type FilteredData = {
 type ReportsDataTableProps = {
     selectedColumns: SelectedColumns;
     filteredData: FilteredData[];
-    loadMore: () => void; // callback to fetch more rows
+    loadMore: () => void;
 }
 
 export const ReportsDataTable = ({selectedColumns, filteredData, loadMore}: ReportsDataTableProps) => {
