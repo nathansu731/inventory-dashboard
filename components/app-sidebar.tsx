@@ -87,7 +87,7 @@ const data = {
     },
     {
       title: "Reports",
-      url: "#",
+      url: "/reports",
       icon: FileChartColumn,
       items: [
         {
