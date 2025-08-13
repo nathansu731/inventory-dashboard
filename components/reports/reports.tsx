@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import {useState, useMemo} from "react"
 import { format } from "date-fns"
 
 import { reportData } from "@/components/reports/reports-data";
@@ -31,27 +31,27 @@ export const ReportsPage = () => {
 
     const [displayCount, setDisplayCount] = useState(20)
 
-    useEffect(() => {
-        setDisplayCount(20)
-    }, [columnFilters])
-
-    const uniqueValues = {
+    const uniqueValues = useMemo(() => ({
         region: [...new Set(reportData.map((item) => item.region))],
         product: [...new Set(reportData.map((item) => item.product))],
         forecast: [...new Set(reportData.map((item) => item.forecast))],
         status: [...new Set(reportData.map((item) => item.status))],
-    }
+    }), [reportData])
 
-    const filteredData = reportData.filter((row) => {
-        return (
-            (columnFilters.region.length === 0 || columnFilters.region.includes(row.region)) &&
-            (columnFilters.product.length === 0 || columnFilters.product.includes(row.product)) &&
-            (columnFilters.forecast.length === 0 || columnFilters.forecast.includes(row.forecast)) &&
-            (columnFilters.status.length === 0 || columnFilters.status.includes(row.status))
-        )
-    })
+    const filteredData = useMemo(() => {
+        return reportData.filter((row) => {
+            return (
+                (columnFilters.region.length === 0 || columnFilters.region.includes(row.region)) &&
+                (columnFilters.product.length === 0 || columnFilters.product.includes(row.product)) &&
+                (columnFilters.forecast.length === 0 || columnFilters.forecast.includes(row.forecast)) &&
+                (columnFilters.status.length === 0 || columnFilters.status.includes(row.status))
+            );
+        });
+    }, [columnFilters, reportData]);
 
-    const visibleData = filteredData.slice(0, displayCount)
+    const visibleData = useMemo(() => {
+        return filteredData.slice(0, displayCount);
+    }, [filteredData, displayCount]);
 
     const loadMore = () => {
         if (displayCount < filteredData.length) {
@@ -74,35 +74,32 @@ export const ReportsPage = () => {
             ...prev,
             [column]: prev[column].includes(value) ? prev[column].filter((item) => item !== value) : [...prev[column], value],
         }))
+        setDisplayCount(20);
     }
 
     const exportToCSV = () => {
-        const headers: string[] = [];
-        const rows: (string | number | null)[][] = [];
+        const columns: { key: keyof typeof selectedColumns; label: string }[] = [
+            { key: "date", label: "Date" },
+            { key: "region", label: "Region" },
+            { key: "product", label: "Product" },
+            { key: "revenue", label: "Revenue" },
+            { key: "forecast", label: "Forecast Method" },
+            { key: "accuracy", label: "Accuracy (%)" },
+            { key: "variance", label: "Variance (%)" },
+            { key: "status", label: "Status" },
+        ]
 
-        if (selectedColumns.date) headers.push("Date")
-        if (selectedColumns.region) headers.push("Region")
-        if (selectedColumns.product) headers.push("Product")
-        if (selectedColumns.revenue) headers.push("Revenue")
-        if (selectedColumns.forecast) headers.push("Forecast Method")
-        if (selectedColumns.accuracy) headers.push("Accuracy (%)")
-        if (selectedColumns.variance) headers.push("Variance (%)")
-        if (selectedColumns.status) headers.push("Status")
+        const headers = columns
+            .filter(col => selectedColumns[col.key])
+            .map(col => col.label)
 
-        filteredData.forEach((row) => {
-            const csvRow = []
-            if (selectedColumns.date) csvRow.push(row.date)
-            if (selectedColumns.region) csvRow.push(row.region)
-            if (selectedColumns.product) csvRow.push(row.product)
-            if (selectedColumns.revenue) csvRow.push(row.revenue)
-            if (selectedColumns.forecast) csvRow.push(row.forecast)
-            if (selectedColumns.accuracy) csvRow.push(row.accuracy)
-            if (selectedColumns.variance) csvRow.push(row.variance)
-            if (selectedColumns.status) csvRow.push(row.status)
-            rows.push(csvRow)
-        })
+        const rows = filteredData.map(row =>
+            columns
+                .filter(col => selectedColumns[col.key])
+                .map(col => row[col.key])
+        )
 
-        const csvContent = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
+        const csvContent = [headers.join(","), ...rows.map(row => row.join(","))].join("\n")
 
         const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" })
         const link = document.createElement("a")
