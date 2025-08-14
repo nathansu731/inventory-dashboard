@@ -1,17 +1,9 @@
 "use client"
 
-import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { Download, Play } from "lucide-react"
-import { Input } from "@/components/ui/input"
-import { Checkbox } from "@/components/ui/checkbox"
-import { Search, Trash2 } from "lucide-react"
 import { useState, useMemo } from "react"
 import {SavedReportsSearchBar} from "@/components/saved-reports/saved-reports-search-bar";
 import {SavedReportsTable} from "@/components/saved-reports/saved-reports-table";
 
-// Sample data for saved reports
 const savedReports = [
     {
         id: 1,
