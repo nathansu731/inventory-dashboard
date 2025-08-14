@@ -92,7 +92,7 @@ const data = {
       items: [
         {
           title: "Saved reports",
-          url: "#",
+          url: "/reports/saved-reports",
         },
       ],
     },
