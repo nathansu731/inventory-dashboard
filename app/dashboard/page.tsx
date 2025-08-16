@@ -4,7 +4,7 @@ import {
   SidebarProvider,
 } from "@/components/ui/sidebar"
 import {Header} from "@/components/dashboard/header";
-import {Body} from "@/components/dashboard/body";
+import {DashboardBody} from "@/components/dashboard/dashboard";
 
 export default function Page() {
   return (
@@ -12,7 +12,7 @@ export default function Page() {
       <AppSidebar />
       <SidebarInset>
         <Header/>
-        <Body/>
+          <DashboardBody/>
       </SidebarInset>
     </SidebarProvider>
   )
