@@ -8,12 +8,7 @@ type ForecastingSummaryPercentageProps = {
     onChange: (columnKey: string, checked: boolean) => void;
 }
 
-export const ForecastingSummaryPercentage = ({
-                                                 columnKey,
-                                                 label,
-                                                 checked,
-                                                 onChange,
-                                             }: ForecastingSummaryPercentageProps) => {
+export const ForecastingSummaryPercentage = ({columnKey, label, checked, onChange}: ForecastingSummaryPercentageProps) => {
     return (
         <div className="flex items-center space-x-2">
             <Checkbox
