@@ -7,7 +7,7 @@ import {
   Command,
   GalleryVerticalEnd,
   TrendingUpDown,
-  LayoutDashboard, FileChartColumn, Warehouse,
+  LayoutDashboard, FileChartColumn, Warehouse, Grid2x2Plus,
 } from "lucide-react"
 
 import CustomKpiIcon from "@/components/custom-lucide-icons/kpi-icon";
@@ -100,6 +100,11 @@ const data = {
       title: "Replenishments",
       url: "#",
       icon: Warehouse,
+    },
+    {
+      title: "Data Input",
+      url: "/data-input",
+      icon: Grid2x2Plus,
     },
   ],
 }
