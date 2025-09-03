@@ -111,3 +111,66 @@ export default function SidebarToggle() {
   );
 }
 ```
+
+## How Apollo Works Here
+
+This project uses Apollo Client v4 for GraphQL communication with a backend API. 
+It is fully integrated with Next.js App Router and supports usage in client components for querying and mutating data.
+
+## Libraries Used
+
+@apollo/client – Apollo Client core
+graphql – Required for parsing GraphQL syntax
+
+Folder Structure
+lib/
+├── apollo-client.ts        # Apollo Client instance
+├── apollo-provider.tsx     # ApolloProvider wrapper
+└── graphql/
+    └── queries/
+        └── example-query.ts  # Example GraphQL query
+
+## Query Example
+
+Path: lib/graphql/queries/example-query.ts
+
+```tsx
+import { gql } from '@apollo/client';
+
+export const GET_PRODUCTS = gql`
+  query GetProducts {
+    products {
+      id
+      name
+      price
+    }
+  }
+`;
+```
+
+## Example Component Using the Query
+
+```tsx
+'use client';
+import { useQuery } from '@apollo/client';
+import { GET_PRODUCTS } from '@/lib/graphql/queries/example-query';
+
+export default function ProductList() {
+    const { data, loading, error } = useQuery(GET_PRODUCTS);
+
+    if (loading) return <p>Loading...</p>;
+    if (error) return <p>Error: {error.message}</p>;
+
+    return (
+        <ul>
+            {data.products.map((product: any) => (
+                <li key={product.id}>
+                    {product.name} - ${product.price}
+                </li>
+            ))}
+        </ul>
+    );
+}
+```
+
+
