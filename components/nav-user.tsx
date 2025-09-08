@@ -3,7 +3,7 @@
 import {
   BadgeCheck,
   Bell,
-  ChevronsUpDown,
+  ChevronsUpDown, Cog,
   CreditCard,
   LogOut,
   Sparkles,
@@ -91,6 +91,12 @@ export function NavUser({
               <DropdownMenuItem>
                 <BadgeCheck />
                 Account
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <a href="/configurations">
+                <Cog />
+                Configurations
+                </a>
               </DropdownMenuItem>
               <DropdownMenuItem>
                 <CreditCard />
