@@ -56,7 +56,7 @@ export const DashboardBody = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen bg-background">
             <header className="bg-white border-b border-gray-200 px-6 py-4">
                 <div className="flex items-center justify-between">
                     <div>
@@ -75,7 +75,7 @@ export const DashboardBody = () => {
                     </div>
                 </div>
             </header>
-            <div className="flex">
+            <div className="flex flex-col md:flex-row">
                 <div className="flex-1 p-6">
                     <DashboardMetricsTiles/>
                     <DashboardChartAndTable viewMode={viewMode} setViewMode={setViewMode} searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} openSkuModal={openSkuModal} getRiskBadgeColor={getRiskBadgeColor}/>

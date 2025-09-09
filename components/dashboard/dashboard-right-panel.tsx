@@ -15,7 +15,7 @@ type DashboardRightPanelProps = {
 export const DashboardRightPanel = ({getAlertIcon}: DashboardRightPanelProps) => {
     const [value, setValue] = useState(70);
     return (
-        <div className="w-80 bg-white border-l border-gray-200 p-6">
+        <div className="w-full md:w-80 bg-white border-l border-gray-200 p-6">
             <Tabs defaultValue="filters" className="w-full">
                 <TabsList className="grid w-full grid-cols-2">
                     <TabsTrigger value="filters">Filters</TabsTrigger>
