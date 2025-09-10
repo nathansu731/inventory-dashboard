@@ -26,6 +26,7 @@ type SavedReportsTableProps = {
 
 export const SavedReportsTable = ({isAllSelected, handleSelectAll, isIndeterminate, filteredReports, searchTerm, selectedReports, handleSelectReport, handleDownload, handleRelaunch }: SavedReportsTableProps) => {
     return (
+        <div className="px-6">
         <Card>
             <CardHeader>
                 <CardTitle>Your Reports</CardTitle>
@@ -101,5 +102,6 @@ export const SavedReportsTable = ({isAllSelected, handleSelectAll, isIndetermina
                 </Table>
             </CardContent>
         </Card>
+        </div>
     )
 }

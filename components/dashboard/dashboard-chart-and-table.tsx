@@ -67,7 +67,7 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                                 color: "hsl(var(--chart-3))",
                             },
                         }}
-                        className="h-[400px]"
+                        className="h-[400px] w-full"
                     >
                         <LineChart data={forecastData}>
                             <CartesianGrid strokeDasharray="3 3" />
