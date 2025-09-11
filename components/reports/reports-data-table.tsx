@@ -55,7 +55,7 @@ export const ReportsDataTable = ({selectedColumns, filteredData, loadMore}: Repo
     }, [filteredData, observeLastRow]);
 
     return (
-        <div className="border rounded-lg" style={{ maxHeight: "400px", overflowY: "auto" }}>
+        <div className="border rounded-lg" style={{ maxHeight: "400px", overflowY: "auto", overflowX: "auto" }}>
             <Table>
                 <TableHeader>
                     <TableRow>

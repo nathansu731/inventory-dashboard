@@ -59,8 +59,8 @@ export const DashboardBody = () => {
         <div className="container mx-auto py-8 px-4">
         <div className="min-h-screen bg-background">
             <header className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div>
+                <div className="flex items-center justify-between flex-col sm:flex-row gap-y-2 sm:gap-y-0">
+                    <div className="flex flex-col items-center md:items-start">
                         <h1 className="text-2xl font-bold text-gray-900">SKU Forecasting Dashboard</h1>
                         <p className="text-gray-600">Monitor inventory forecasts and demand patterns</p>
                     </div>

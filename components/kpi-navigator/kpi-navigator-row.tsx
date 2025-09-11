@@ -7,7 +7,7 @@ export const KpiNavigatorRow = () => {
     return (
         <Card className="py-1">
             <CardContent className="p-2">
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-y-2 md:gap-y-0">
                     <div className="flex items-center space-x-4">
                         <Button variant="outline" size="sm">
                             <ArrowLeft className="h-4 w-4 mr-2" />
