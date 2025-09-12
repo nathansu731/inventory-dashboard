@@ -32,11 +32,9 @@ export const ForecastNavigator = () => {
         .reverse()
 
     return (
-        <div className="min-h-screen bg-background">
+        <div className="container mx-auto py-8 px-4">
                 <div className="mx-auto px-6 py-6">
-                 <div className="bg-white rounded-lg shadow-sm p-3">
                     <h1 className="text-2xl font-bold text-gray-900">Forecast Navigator</h1>
-                 </div>
                 </div>
                 <div className="mx-auto px-6 py-6 space-y-4">
                     <NavigatorRow/>

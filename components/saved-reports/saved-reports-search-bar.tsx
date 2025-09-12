@@ -13,7 +13,7 @@ type SavedReportsSearchBarProps = {
 
 export const SavedReportsSearchBar = ({searchTerm, setSearchTerm, selectedReports, handleBulkDownload, handleBulkDelete}: SavedReportsSearchBarProps) => {
     return (
-        <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
+        <div className="mb-6 flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center px-6">
             <div className="relative flex-1 max-w-sm">
                 <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4"/>
                 <Input

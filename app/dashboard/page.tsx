@@ -3,15 +3,15 @@ import {
   SidebarInset,
   SidebarProvider,
 } from "@/components/ui/sidebar"
-import {Header} from "@/components/dashboard/header";
 import {DashboardBody} from "@/components/dashboard/dashboard";
+import {SiteHeader} from "@/components/site-header";
 
 export default function Page() {
   return (
     <SidebarProvider>
       <AppSidebar />
       <SidebarInset>
-        <Header/>
+        <SiteHeader/>
           <DashboardBody/>
       </SidebarInset>
     </SidebarProvider>

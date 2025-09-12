@@ -50,7 +50,7 @@ const data = {
   navMain: [
     {
       title: "Overview",
-      url: "/",
+      url: "/overview",
       icon: ChartNoAxesGantt,
       isActive: true,
     },

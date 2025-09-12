@@ -56,10 +56,11 @@ export const DashboardBody = () => {
     }
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="container mx-auto py-8 px-4">
+        <div className="min-h-screen bg-background">
             <header className="bg-white border-b border-gray-200 px-6 py-4">
-                <div className="flex items-center justify-between">
-                    <div>
+                <div className="flex items-center justify-between flex-col sm:flex-row gap-y-2 sm:gap-y-0">
+                    <div className="flex flex-col items-center md:items-start">
                         <h1 className="text-2xl font-bold text-gray-900">SKU Forecasting Dashboard</h1>
                         <p className="text-gray-600">Monitor inventory forecasts and demand patterns</p>
                     </div>
@@ -75,7 +76,7 @@ export const DashboardBody = () => {
                     </div>
                 </div>
             </header>
-            <div className="flex">
+            <div className="flex flex-col lg:flex-row">
                 <div className="flex-1 p-6">
                     <DashboardMetricsTiles/>
                     <DashboardChartAndTable viewMode={viewMode} setViewMode={setViewMode} searchTerm={searchTerm} setSearchTerm={setSearchTerm} selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory} openSkuModal={openSkuModal} getRiskBadgeColor={getRiskBadgeColor}/>
@@ -88,6 +89,7 @@ export const DashboardBody = () => {
                 selectedSku={selectedSku}
                 getSelectedSkuData={getSelectedSkuData}
             />
+        </div>
         </div>
     )
 }

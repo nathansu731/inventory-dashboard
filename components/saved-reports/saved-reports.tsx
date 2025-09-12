@@ -88,8 +88,8 @@ export const SavedReports = () => {
 
     return (
         <div className="container mx-auto py-8 px-4">
-            <div className="mb-8">
-                <h1 className="text-3xl font-bold tracking-tight">Saved Reports</h1>
+            <div className="mx-auto px-6 py-6 mb-6">
+                <h1 className="text-2xl font-bold tracking-tight">Saved Reports</h1>
                 <p className="text-muted-foreground mt-2">View and manage your saved reports</p>
             </div>
             <SavedReportsSearchBar
