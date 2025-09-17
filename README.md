@@ -125,7 +125,6 @@ graphql – Required for parsing GraphQL syntax
 Folder Structure
 lib/
 ├── apollo-client.ts        # Apollo Client instance
-├── apollo-provider.tsx     # ApolloProvider wrapper
 └── graphql/
     └── queries/
         └── example-query.ts  # Example GraphQL query

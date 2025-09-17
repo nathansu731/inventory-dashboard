@@ -7,6 +7,7 @@ import {Bell} from "lucide-react";
 import {useCallback, useEffect, useState} from "react";
 import {generateMockNotifications} from "@/components/notifications/generate-mock-notifications";
 import {Notification} from "./notifications/notifications-types"
+import {LogoutButton} from "@/components/logout-button";
 
 
 export function SiteHeader() {
@@ -74,6 +75,7 @@ export function SiteHeader() {
               GitHub
             </a>
           </Button>
+            <LogoutButton/>
         </div>
       </div>
     </header>
