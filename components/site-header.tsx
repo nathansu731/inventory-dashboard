@@ -7,6 +7,7 @@ import {Bell} from "lucide-react";
 import {useCallback, useEffect, useState} from "react";
 import {generateMockNotifications} from "@/components/notifications/generate-mock-notifications";
 import {Notification} from "./notifications/notifications-types"
+import {LogoutButton} from "@/components/logout/logout-button";
 
 
 export function SiteHeader() {
@@ -64,6 +65,7 @@ export function SiteHeader() {
           </a>
         </Button>
         <div className="ml-auto flex items-center gap-2">
+          <LogoutButton/>
           <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
             <a
               href="https://github.com/shadcn-ui/ui/tree/main/apps/v4/app/(examples)/dashboard"
