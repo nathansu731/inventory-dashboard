@@ -46,7 +46,7 @@ export const testData = [
         approved: false,
     },
     {
-        id: "SKU006",
+        id: "SKU011",
         store: "Store A",
         description: "Premium Coffee Beans - Dark Roast",
         forecastMethod: "ARIMA",
@@ -55,7 +55,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU007",
+        id: "SKU012",
         store: "Store B",
         description: "Organic Green Tea Bags",
         forecastMethod: "Linear Regression",
@@ -64,7 +64,7 @@ export const testData = [
         approved: false
     },
     {
-        id: "SKU008",
+        id: "SKU013",
         store: "Store A",
         description: "Artisan Chocolate Bar",
         forecastMethod: "Exponential Smoothing",
@@ -73,7 +73,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU009",
+        id: "SKU014",
         store: "Store C",
         description: "Herbal Tea Collection",
         forecastMethod: "ARIMA",
@@ -82,7 +82,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU010",
+        id: "SKU015",
         store: "Store B",
         description: "Specialty Coffee Filters",
         forecastMethod: "Moving Average",
@@ -91,7 +91,7 @@ export const testData = [
         approved: false
     },
     {
-        id: "SKU011",
+        id: "SKU016",
         store: "Store A",
         description: "Cold Brew Coffee Kit",
         forecastMethod: "ARIMA",
@@ -100,7 +100,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU012",
+        id: "SKU017",
         store: "Store B",
         description: "Loose Leaf Black Tea",
         forecastMethod: "Exponential Smoothing",
@@ -109,7 +109,7 @@ export const testData = [
         approved: false
     },
     {
-        id: "SKU013",
+        id: "SKU018",
         store: "Store C",
         description: "French Press Coffee Maker",
         forecastMethod: "Linear Regression",
@@ -118,7 +118,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU014",
+        id: "SKU019",
         store: "Store A",
         description: "Organic Chamomile Tea",
         forecastMethod: "Moving Average",
@@ -127,7 +127,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU015",
+        id: "SKU020",
         store: "Store B",
         description: "Espresso Ground Coffee",
         forecastMethod: "ARIMA",
@@ -136,7 +136,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU016",
+        id: "SKU021",
         store: "Store C",
         description: "Matcha Powder",
         forecastMethod: "Linear Regression",
@@ -145,7 +145,7 @@ export const testData = [
         approved: false
     },
     {
-        id: "SKU017",
+        id: "SKU022",
         store: "Store A",
         description: "Iced Tea Pitcher",
         forecastMethod: "Exponential Smoothing",
@@ -154,7 +154,7 @@ export const testData = [
         approved: true
     },
     {
-        id: "SKU018",
+        id: "SKU023",
         store: "Store B",
         description: "Cinnamon Spice Tea",
         forecastMethod: "ARIMA",
@@ -163,7 +163,7 @@ export const testData = [
         approved: false
     },
     {
-        id: "SKU019",
+        id: "SKU024",
         store: "Store C",
         description: "Reusable Coffee Cups",
         forecastMethod: "Moving Average",
@@ -172,7 +172,7 @@ export const testData = [
         approved: false
     },
     {
-        id: "SKU020",
+        id: "SKU025",
         store: "Store A",
         description: "Hazelnut Flavored Coffee",
         forecastMethod: "ARIMA",

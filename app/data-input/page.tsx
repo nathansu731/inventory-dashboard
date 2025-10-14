@@ -6,6 +6,10 @@ import {
 } from "@/components/ui/sidebar"
 import {DataInputPage} from "@/components/data-input-page/data-input-page";
 
+export const metadata = {
+    title: 'Data Input',
+    description: 'Data Input',
+}
 
 export default function Page() {
     return (
