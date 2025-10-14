@@ -4,6 +4,7 @@ import {Badge} from "@/components/ui/badge";
 import {ArrowRight, Calendar, Check, CreditCard, Lock, Shield, Star} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import type React from "react";
+import {handleSubscribeTeam} from "@/components/handle-subscriptions/handle-subscribe-team";
 
 type PlanDetailsModalProps = {
     isModalOpen: boolean,
@@ -253,7 +254,7 @@ export const PlanDetailsModal = ({
                                         <Button variant="outline" onClick={handleBackToPlan} className="flex-1 bg-transparent">
                                             Back to Plan
                                         </Button>
-                                        <Button className="flex-1">
+                                        <Button className="flex-1" onClick={handleSubscribeTeam}>
                                             {paymentMethod === "paypal" ? "Continue with PayPal" : "Start Free Trial"}
                                         </Button>
                                     </div>

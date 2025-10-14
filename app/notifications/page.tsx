@@ -6,6 +6,10 @@ import {
 import {NotificationsPage} from "@/components/notifications/notifications-page";
 import {SiteHeader} from "@/components/site-header";
 
+export const metadata = {
+    title: 'Notifications',
+    description: 'Notifications',
+}
 
 export default function Page() {
     return (

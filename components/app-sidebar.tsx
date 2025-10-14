@@ -28,11 +28,11 @@ const data = {
   user: {
     name: "shadcn",
     email: "m@example.com",
-    avatar: "/avatars/shadcn.jpg",
+    avatar: "/user-ark.jpg",
   },
   teams: [
     {
-      name: "Acme Inc",
+      name: "ARK Inc",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },

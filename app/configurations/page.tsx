@@ -6,6 +6,10 @@ import {
 } from "@/components/ui/sidebar"
 import {Configurations} from "@/components/configurations/configurations";
 
+export const metadata = {
+    title: "Configurations",
+    description: 'Configurations',
+}
 
 export default function Page() {
     return (

@@ -6,6 +6,10 @@ import {
 } from "@/components/ui/sidebar"
 import {ForecastEditor} from "@/components/forecast-editor/forecast-editor";
 
+export const metadata = {
+    title: 'Forecast editor',
+    description: 'Forecast editor',
+}
 
 export default function Page() {
     return (

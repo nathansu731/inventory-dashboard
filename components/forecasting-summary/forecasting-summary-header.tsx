@@ -10,7 +10,7 @@ export const ForecastingSummaryHeader = () => {
                 <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4">
                         <Avatar className="h-10 w-10">
-                            <AvatarImage src="/placeholder.svg?height=40&width=40"/>
+                            <AvatarImage src="/user-ark.jpg?height=40&width=40"/>
                             <AvatarFallback>FS</AvatarFallback>
                         </Avatar>
                         <div>

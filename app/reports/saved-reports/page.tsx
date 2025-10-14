@@ -6,6 +6,10 @@ import {
 } from "@/components/ui/sidebar"
 import {SavedReports} from "@/components/saved-reports/saved-reports";
 
+export const metadata = {
+    title: 'Saved reports',
+    description: 'Saved reports',
+}
 
 export default function Page() {
     return (
