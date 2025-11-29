@@ -6,6 +6,10 @@ import {
 } from "@/components/ui/sidebar"
 import {KpiNavigator} from "@/components/kpi-navigator/kpi-navigator";
 
+export const metadata = {
+    title: 'KPI Navigator',
+    description: 'KPI Navigator',
+}
 
 export default function Page() {
     return (

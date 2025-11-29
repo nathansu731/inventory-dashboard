@@ -12,6 +12,10 @@ import {PersonalAccessToken} from "@/components/profile/personal-access-token";
 import {PersonalDetails} from "@/components/profile/personal-details";
 import {ResetPassword} from "@/components/profile/reset-password";
 
+export const metadata = {
+    title: 'Profile',
+    description: 'Profile',
+}
 
 export default function Page() {
     return (

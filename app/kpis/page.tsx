@@ -6,6 +6,10 @@ import {
 } from "@/components/ui/sidebar"
 import {Kpis} from "@/components/kpis/kpis";
 
+export const metadata = {
+    title: 'KPIs',
+    description: 'KPIs',
+}
 
 export default function Page() {
     return (
