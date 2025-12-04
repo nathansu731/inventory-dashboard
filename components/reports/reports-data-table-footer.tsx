@@ -19,7 +19,7 @@ type ReportsDataTableFooterProps = {
 
 export const ReportsDataTableFooter = ({filteredData}: ReportsDataTableFooterProps) => {
     return (
-        <div className="flex items-center justify-between text-sm text-muted-foreground">
+        <div className="flex items-center justify-between text-sm text-muted-foreground mt-2">
             <div>
                 Showing {filteredData.length} of {reportData.length} results
             </div>

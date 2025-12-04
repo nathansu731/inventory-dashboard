@@ -113,10 +113,11 @@ export const ReportsPage = () => {
     }
 
     return (
-        <div className="container mx-auto p-6 space-y-6">
-            <div className="border-b pb-4">
-                <h1 className="text-3xl font-bold tracking-tight">Reports</h1>
-                <p className="text-muted-foreground mt-2">View and analyze your forecast reports and performance metrics</p>
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-[2000px] mx-auto px-5 py-8 min-w-0">
+            <div className="mb-8">
+                <h1 className="text-3xl font-bold text-foreground mb-2">Reports</h1>
+                <p className="text-muted-foreground">View and analyze your forecast reports and performance metrics</p>
             </div>
             <ReportsControlRow
                 date={date}
@@ -133,6 +134,7 @@ export const ReportsPage = () => {
             />
             <ReportsDataTable selectedColumns={selectedColumns} filteredData={visibleData} loadMore={loadMore} />
             <ReportsDataTableFooter filteredData={filteredData} />
+            </div>
         </div>
     )
 };

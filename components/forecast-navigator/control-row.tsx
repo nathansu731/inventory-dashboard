@@ -22,10 +22,10 @@ export const ControlRow = () => {
     return (
         <Card className="py-1">
             <CardContent className="p-2">
-                <div className="flex items-center justify-between">
+                <div className="flex items-center justify-between flex-wrap gap-2">
                     <div className="flex items-center space-x-4">
                         <Select defaultValue="monthly">
-                            <SelectTrigger className="w-40">
+                            <SelectTrigger className="w-27 lg:w-40">
                                 <SelectValue placeholder="Time Period" />
                             </SelectTrigger>
                             <SelectContent>
@@ -36,7 +36,7 @@ export const ControlRow = () => {
                         </Select>
 
                         <Select defaultValue="linear">
-                            <SelectTrigger className="w-48">
+                            <SelectTrigger className="w-40 lg:w-48">
                                 <SelectValue placeholder="Forecast Method" />
                             </SelectTrigger>
                             <SelectContent>

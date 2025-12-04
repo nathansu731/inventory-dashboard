@@ -10,8 +10,8 @@ export const ForecastEditorMainContentLeft = () => {
             <div className="border-b bg-muted/50 px-4 py-3">
                 <h2 className="font-medium text-foreground">Forecast Summary</h2>
             </div>
-            <ScrollArea className="h-[calc(100vh-180px)]">
-                <Table>
+            <ScrollArea className="h-[calc(100vh-180px)] !overflow-x-auto">
+                <Table className="min-w-max table-auto !overflow-x-auto">
                     <TableHeader className="sticky top-0 bg-background">
                         <TableRow>
                             <TableHead className="w-[140px]">Metric</TableHead>

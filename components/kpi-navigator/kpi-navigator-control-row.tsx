@@ -3,7 +3,6 @@ import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/c
 import {Button} from "@/components/ui/button";
 import {Columns3, RefreshCw} from "lucide-react";
 import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
-import {ForecastingNaviColumnSelector} from "@/components/forecast-navigator/forecasting-navigator-column-selector";
 import {useState} from "react";
 import {KpiNavigatorColumnSelector} from "@/components/kpi-navigator/kpi-navigator-column-selector";
 
@@ -23,7 +22,7 @@ export const KpiNavigatorControlRow = () => {
     return (
         <Card className="py-1">
             <CardContent className="p-2">
-                <div className="flex flex-col md:flex-row items-center justify-between gap-y-2 md:gap-y-0">
+                <div className="flex flex-col md:flex-row items-center justify-between gap-y-2 md:gap-y-2 flex-wrap">
                     <div className="flex items-center space-x-4">
                         <Select defaultValue="monthly">
                             <SelectTrigger className="md:w-40">
