@@ -22,19 +22,17 @@ export const KpiNavigator = () => {
     const months = generateMonths()
 
     return (
-        <div className="container mx-auto py-8 px-4">
         <div className="min-h-screen bg-background">
-            <div className="mx-auto px-6 py-6">
-                <div className="bg-white rounded-lg shadow-sm p-3">
-                    <h1 className="text-2xl font-bold text-gray-900">KPI Navigator</h1>
-                </div>
+            <div className="container max-w-[2000px] mx-auto px-5 py-8 min-w-0">
+            <div className="mb-8">
+                    <h1 className="text-3xl font-bold text-foreground mb-2">KPI Navigator</h1>
             </div>
-            <div className="mx-auto px-6 py-6 space-y-4">
+            <div className="mx-auto py-6 space-y-4 min-w-0">
                 <KpiNavigatorRow/>
                 <KpiNavigatorControlRow/>
                 <KpiNavigatorTable months={months}/>
             </div>
-        </div>
+            </div>
         </div>
     )
 }
