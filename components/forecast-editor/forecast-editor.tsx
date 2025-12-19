@@ -61,7 +61,7 @@ export const ForecastEditor = () => {
                 <h1 className="text-2xl font-semibold text-foreground">Forecast Editor</h1>
             </div>
             <ForecastEditorControlsRow aggregationType={aggregationType} setAggregationType={setAggregationType} unitsType={unitsType} setUnitsType={setUnitsType}/>
-            <div className="flex flex-1">
+            <div className="flex flex-1 overflow-x-auto">
                 <ForecastEditorMainContentLeft/>
                 <ForecastEditorMainContentRight forecastValues={forecastValues} editingCell={editingCell} editedCells={editedCells} handleCellClick={handleCellClick} tempValue={tempValue} setTempValue={setTempValue} handleCellBlur={handleCellBlur} handleKeyPress={handleKeyPress}/>
             </div>

@@ -37,8 +37,8 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
         aug: true,
     })
     return (
-        <div className="flex items-center justify-between border-b bg-muted/30 px-6 py-3">
-            <div className="flex items-center gap-1 mr-1">
+        <div className="flex items-start justify-between border-b bg-muted/30 px-6 py-3">
+            <div className="flex items-center gap-1 mr-3">
                 <p className="font-medium text-sm">Aggregation</p>
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
@@ -71,7 +71,7 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
                 </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-2 gap-responsive-sm">
+            <div className="flex flex-wrap gap-2 items-center gap-2 gap-responsive-sm">
                 <Button variant="outline" size="xs">
                     <Save className="h-4 w-4"/>
                 </Button>
