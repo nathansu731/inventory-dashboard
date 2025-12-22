@@ -26,8 +26,8 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
         aug: true,
     })
     return (
-        <div className="flex items-center justify-between border-b bg-muted/30 px-6 py-3">
-            <div className="flex items-center gap-4">
+        <div className="flex items-start justify-between border-b bg-muted/30 px-6 py-3">
+            <div className="flex items-center gap-4 mr-3">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -58,7 +58,7 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
                 </DropdownMenu>
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap gap-2 items-center gap-2 gap-responsive-sm">
                 <Button variant="default" size="sm">
                     <Save className="h-4 w-4 mr-2"/>
                     Save

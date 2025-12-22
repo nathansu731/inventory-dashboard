@@ -53,11 +53,11 @@ type ReportsControlRowProps = {
 
 export const ReportsControlRow = ({date, setDate, filterOpen, setFilterOpen, columnFilters, uniqueValues, handleFilterToggle, selectedColumns, handleColumnToggle, exportToCSV}: ReportsControlRowProps) => {
     return (
-        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-center justify-between">
+        <div className="flex flex-col lg:flex-row gap-4 items-start lg:items-start justify-between mb-6">
             <div className="flex flex-wrap gap-4 items-center">
                 {/* Report Type Dropdown */}
                 <Select defaultValue="forecast">
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[150px]">
                         <SelectValue placeholder="Report Type"/>
                     </SelectTrigger>
                     <SelectContent>
@@ -70,7 +70,7 @@ export const ReportsControlRow = ({date, setDate, filterOpen, setFilterOpen, col
 
                 {/* Category Dropdown */}
                 <Select defaultValue="all">
-                    <SelectTrigger className="w-[180px]">
+                    <SelectTrigger className="w-[150px]">
                         <SelectValue placeholder="Category"/>
                     </SelectTrigger>
                     <SelectContent>
@@ -86,7 +86,7 @@ export const ReportsControlRow = ({date, setDate, filterOpen, setFilterOpen, col
                 <Popover>
                     <PopoverTrigger asChild>
                         <Button variant="outline"
-                                className="w-[240px] justify-start text-left font-normal bg-transparent">
+                                className="w-[160px] justify-start text-left font-normal bg-transparent">
                             <CalendarIcon className="mr-2 h-4 w-4"/>
                             {date ? format(date, "PPP") : <span>Pick a date</span>}
                         </Button>

@@ -8,10 +8,10 @@ type KpiTableProps = {
 
 export const KpiNavigatorTable = ({months}: KpiTableProps) => {
     return (
-        <Card className="w-full">
+        <Card className="border rounded-lg min-w-0 px-1" style={{ maxHeight: "500px", overflowY: "auto", overflowX: "auto", width: "100%", maxWidth: "100%" }}>
             <CardContent className="p-0">
                 <div className="overflow-x-auto">
-                    <Table>
+                    <Table className="min-w-max table-auto">
                         <TableHeader>
                             <TableRow className="bg-gray-50 h-8">
                                 <TableHead

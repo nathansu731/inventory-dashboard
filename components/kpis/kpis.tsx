@@ -21,7 +21,7 @@ export const Kpis = () => {
                 <h1 className="text-2xl font-semibold text-foreground">KPIs</h1>
             </div>
             <KpisControlsRow aggregationType={aggregationType} setAggregationType={setAggregationType} unitsType={unitsType} setUnitsType={setUnitsType}/>
-            <div className="flex flex-1 overflow-hidden">
+            <div className="flex flex-1 overflow-x-auto">
                 <KpisMainContentLeft/>
                 <KpisMainContentRight forecastValues={forecastDataKpi}/>
             </div>

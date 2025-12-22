@@ -54,26 +54,34 @@ export function SiteHeader() {
             orientation="vertical"
             className="mx-2 data-[orientation=vertical]:h-4"
         />
-        <Button size="icon" variant="ghost" className="relative">
-          <a href="/notifications">
-          <Bell />
-          {unreadCount > 0 && (
-              <span className="absolute top-1 right-0 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[10px] text-white">
+
+        <div className="ml-auto flex items-center gap-2">
+          <Button size="icon" variant="ghost" className="relative">
+            <a href="/notifications">
+              <Bell />
+              {unreadCount > 0 && (
+                  <span className="absolute top-1 right-0 inline-flex h-3.5 w-3.5 items-center justify-center rounded-full bg-destructive text-[10px] text-white">
            {unreadCount}
               </span>
-          )}
-          </a>
-        </Button>
-        <div className="ml-auto flex items-center gap-2">
+              )}
+            </a>
+          </Button>
+          <Separator
+              orientation="vertical"
+              className="mx-2 data-[orientation=vertical]:h-4"
+          />
           <LogoutButton/>
+          <Separator
+            orientation="vertical"
+            className="mx-2 data-[orientation=vertical]:h-4"
+          />
           <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
             <a
-              href="https://github.com/shadcn-ui/ui/tree/main/apps/v4/app/(examples)/dashboard"
+              href="/data-input"
               rel="noopener noreferrer"
-              target="_blank"
               className="dark:text-foreground"
             >
-              GitHub
+              Connect
             </a>
           </Button>
         </div>
