@@ -1,12 +1,15 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/signup", "/confirm", "/reset-password", "/api/auth"];
+const PUBLIC_PATHS = ["/login", "/signup", "/confirm", "/reset-password", "/api/auth", "/images"];
 
 const isPublicPath = (pathname: string) => {
     if (PUBLIC_PATHS.some((path) => pathname.startsWith(path))) {
         return true;
     }
     if (pathname.startsWith("/_next")) {
+        return true;
+    }
+    if (pathname.startsWith("/images")) {
         return true;
     }
     return pathname === "/favicon.ico";

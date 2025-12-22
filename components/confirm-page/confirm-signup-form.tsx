@@ -10,7 +10,10 @@ export const ConfirmSignupForm = ({ className, ...props }: React.ComponentProps<
             <Card className="overflow-hidden p-0">
                 <CardContent className="grid p-0 md:grid-cols-2">
                     <ConfirmSignupFormFields />
-                    <BgImageMuted />
+                    <BgImageMuted
+                        src="/images/confirm-forecasting.svg"
+                        alt="Forecast approval with reports and validation check"
+                    />
                 </CardContent>
             </Card>
             <TermsAndPrivacyPrompt />

@@ -10,7 +10,10 @@ export const ResetPasswordForm = ({ className, ...props }: React.ComponentProps<
             <Card className="overflow-hidden p-0">
                 <CardContent className="grid p-0 md:grid-cols-2">
                     <ResetPasswordFormFields />
-                    <BgImageMuted />
+                    <BgImageMuted
+                        src="/images/reset-forecasting.svg"
+                        alt="Secure access with inventory analytics"
+                    />
                 </CardContent>
             </Card>
             <TermsAndPrivacyPrompt />

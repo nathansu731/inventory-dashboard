@@ -10,7 +10,10 @@ export const SignupForm = ({ className, ...props }: React.ComponentProps<"div">)
             <Card className="overflow-hidden p-0">
                 <CardContent className="grid p-0 md:grid-cols-2">
                     <SignupFormFields />
-                    <BgImageMuted />
+                    <BgImageMuted
+                        src="/images/signup-forecasting.svg"
+                        alt="Planning session with forecasting boards and data tables"
+                    />
                 </CardContent>
             </Card>
             <TermsAndPrivacyPrompt />

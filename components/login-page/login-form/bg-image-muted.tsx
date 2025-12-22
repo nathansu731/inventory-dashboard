@@ -1,11 +1,18 @@
 
+import { cn } from "@/lib/utils";
 
-export const BgImageMuted = () => {
+type BgImageMutedProps = {
+    src: string;
+    alt?: string;
+    className?: string;
+};
+
+export const BgImageMuted = ({ src, alt = "Inventory forecasting illustration", className }: BgImageMutedProps) => {
     return (
-        <div className="bg-muted relative hidden md:block">
+        <div className={cn("bg-muted relative hidden md:block", className)}>
             <img
-                src="/placeholder.svg"
-                alt="Image"
+                src={src}
+                alt={alt}
                 className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
             />
         </div>
