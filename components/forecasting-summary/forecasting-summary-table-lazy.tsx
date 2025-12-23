@@ -68,7 +68,7 @@ export const ForecastingSummaryTableLazy = ({
 
     return (
         <div className="rounded-md border">
-            <div ref={parentRef} style={{height: 600, overflow: 'auto'}}>
+            <div ref={parentRef} style={{height: 'auto', overflow: 'auto'}}>
                 <Table>
                     <TableHeader>
                         <TableRow>

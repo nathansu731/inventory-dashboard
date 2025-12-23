@@ -57,7 +57,7 @@ export const ForecastChart = ({ data }: ForecastChartProps) => {
                             <Line
                                 type="monotone"
                                 dataKey="demand"
-                                stroke="var(--color-demand)"
+                                stroke="#3b82f6"
                                 name="Demand"
                                 strokeWidth={2}
                                 dot={{ r: 4 }}
@@ -65,7 +65,7 @@ export const ForecastChart = ({ data }: ForecastChartProps) => {
                             <Line
                                 type="monotone"
                                 dataKey="forecastBaseline"
-                                stroke="var(--color-forecastBaseline)"
+                                stroke="#f97316"
                                 name="Forecast Baseline"
                                 strokeWidth={2}
                                 dot={{ r: 4 }}
