@@ -21,7 +21,7 @@ type ForecastTableProps = {
 export const ForecastTable = ({ months, rowData }: ForecastTableProps) => {
     return (
         <Card className="w-full">
-            <CardContent className="p-0">
+            <CardContent className="p-0 pr-1 pl-1">
                 <div className="overflow-x-auto">
                     <Table>
                         <TableHeader>
@@ -45,7 +45,7 @@ export const ForecastTable = ({ months, rowData }: ForecastTableProps) => {
                             {rowData.map((row, index) => (
                                 <TableRow
                                     key={row.label}
-                                    className={`h-8 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/50"}`}
+                                    className={`h-8 ${index % 2 === 0 ? "bg-white" : "bg-gray-50/100"}`}
                                 >
                                     <TableCell className="font-medium text-gray-900 sticky left-0 bg-inherit border-r py-1 px-3 text-sm">
                                         {row.label}
