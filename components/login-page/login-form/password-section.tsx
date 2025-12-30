@@ -7,13 +7,13 @@ export const PasswordSection = () => {
             <div className="flex items-center">
                 <Label htmlFor="password">Password</Label>
                 <a
-                    href="#"
+                    href="/reset-password"
                     className="ml-auto text-sm underline-offset-2 hover:underline"
                 >
                     Forgot your password?
                 </a>
             </div>
-            <Input id="password" type="password" required/>
+            <Input id="password" name="password" type="password" required/>
         </div>
     )
 }

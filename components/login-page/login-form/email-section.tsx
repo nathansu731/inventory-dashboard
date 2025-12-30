@@ -7,6 +7,7 @@ export const EmailSection = () => {
             <Label htmlFor="email">Email</Label>
             <Input
                 id="email"
+                name="username"
                 type="email"
                 placeholder="m@example.com"
                 required

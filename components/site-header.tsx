@@ -7,6 +7,7 @@ import {Bell} from "lucide-react";
 import {useCallback, useEffect, useState} from "react";
 import {generateMockNotifications} from "@/components/notifications/generate-mock-notifications";
 import {Notification} from "./notifications/notifications-types"
+import {LogoutButton} from "@/components/logout/logout-button";
 
 
 export function SiteHeader() {
@@ -68,6 +69,11 @@ export function SiteHeader() {
           <Separator
               orientation="vertical"
               className="mx-2 data-[orientation=vertical]:h-4"
+          />
+          <LogoutButton/>
+          <Separator
+            orientation="vertical"
+            className="mx-2 data-[orientation=vertical]:h-4"
           />
           <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
             <a
