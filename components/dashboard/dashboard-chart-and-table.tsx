@@ -56,15 +56,15 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                         config={{
                             actual: {
                                 label: "Actual",
-                                color: "hsl(var(--chart-1))",
+                                color: "#66B2FF",
                             },
                             forecast: {
                                 label: "Forecast",
-                                color: "hsl(var(--chart-2))",
+                                color: "#339CFF",
                             },
                             demand: {
                                 label: "Demand",
-                                color: "hsl(var(--chart-3))",
+                                color: "#0071CE",
                             },
                         }}
                         className="h-[400px] w-full"
