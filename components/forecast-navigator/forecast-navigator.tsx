@@ -53,6 +53,7 @@ export const ForecastNavigator = () => {
                     return String(data[key]?.[apiKey] ?? "0")
                 }),
             }))
+            console.log("Data-", data)
 
             setRowData(rows)
         }

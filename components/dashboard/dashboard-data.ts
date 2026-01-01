@@ -39,9 +39,9 @@ export const forecastData = [
     { month: "Apr", actual: 3908, forecast: 4100, demand: 4000 },
     { month: "May", actual: 4800, forecast: 4600, demand: 4700 },
     { month: "Jun", actual: 3800, forecast: 3900, demand: 3850 },
-    { month: "Jul", actual: null, forecast: 4200, demand: 4100 },
-    { month: "Aug", actual: null, forecast: 4500, demand: 4300 },
-    { month: "Sep", actual: null, forecast: 4800, demand: 4600 },
+    { month: "Jul", actual: 1100, forecast: 4200, demand: 4100 },
+    { month: "Aug", actual: 12500, forecast: 4500, demand: 4300 },
+    { month: "Sep", actual: 750, forecast: 4800, demand: 4600 },
 ]
 
 export const skuTableData = [

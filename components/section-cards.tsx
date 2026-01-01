@@ -39,6 +39,7 @@ export function SectionCards() {
           typeof json.result === "string"
               ? JSON.parse(json.result)
               : json.result
+      console.log("Data",result)
 
       setData(result)
     }

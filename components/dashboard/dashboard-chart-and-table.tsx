@@ -77,14 +77,14 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                             <Line
                                 type="monotone"
                                 dataKey="actual"
-                                stroke="var(--color-actual)"
+                                stroke="var(--color-forecastBaseline)"
                                 strokeWidth={2}
                                 dot={{ fill: "var(--color-actual)" }}
                             />
                             <Line
                                 type="monotone"
                                 dataKey="forecast"
-                                stroke="var(--color-forecast)"
+                                stroke="var(--color-forecastBaseline)"
                                 strokeWidth={2}
                                 strokeDasharray="5 5"
                                 dot={{ fill: "var(--color-forecast)" }}
