@@ -30,6 +30,7 @@ export const KpiNavigatorTable = ({ months }: KpiTableProps) => {
 
             const { result } = await res.json()
             const data = typeof result === "string" ? JSON.parse(result) : result
+            console.log("Data-",data)
 
             const rows: KpiRow[] = [
                 { key: "demand", label: "Demand" },

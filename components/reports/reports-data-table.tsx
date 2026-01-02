@@ -1,91 +1,184 @@
-import { useRef, useEffect, useCallback } from "react";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
+"use client"
+
+import { useRef, useEffect, useCallback, useState } from "react"
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table"
 
 type SelectedColumns = {
-    date: boolean;
-    region: boolean;
-    product: boolean;
-    revenue: boolean;
-    forecast: boolean;
-    accuracy: boolean;
-    variance: boolean;
-    status: boolean;
+    date: boolean
+    region: boolean
+    product: boolean
+    revenue: boolean
+    forecast: boolean
+    accuracy: boolean
+    variance: boolean
+    status: boolean
 }
 
 type FilteredData = {
-    id: number;
-    date: string;
-    region: string;
-    product: string;
-    revenue: number;
-    forecast: string;
-    accuracy: number;
-    variance: number;
-    status: string;
+    id: number
+    date: string
+    region: string
+    product: string
+    revenue: number
+    forecast: string
+    accuracy: number
+    variance: number
+    status: string
 }
 
 type ReportsDataTableProps = {
-    selectedColumns: SelectedColumns;
-    filteredData: FilteredData[];
-    loadMore: () => void;
+    selectedColumns: SelectedColumns
+    filteredData: FilteredData[] // kept for compatibility
+    loadMore: () => void
 }
 
-export const ReportsDataTable = ({selectedColumns, filteredData, loadMore}: ReportsDataTableProps) => {
-    const lastRowRef = useRef<HTMLTableRowElement | null>(null);
+export const ReportsDataTable = ({
+                                     selectedColumns,
+                                     filteredData,
+                                     loadMore,
+                                 }: ReportsDataTableProps) => {
+    const [data, setData] = useState<FilteredData[]>([])
 
-    const observer = useRef<IntersectionObserver | null>(null);
+    const lastRowRef = useRef<HTMLTableRowElement | null>(null)
+    const observer = useRef<IntersectionObserver | null>(null)
 
-    const observeLastRow = useCallback((node: HTMLTableRowElement | null) => {
-        if (observer.current) observer.current.disconnect();
-        if (!node) return;
+    /* ---------------- API INTEGRATION ---------------- */
 
-        observer.current = new IntersectionObserver(entries => {
-            if (entries[0].isIntersecting) {
-                loadMore();
-            }
-        }, { threshold: 1.0 });
+    useEffect(() => {
+        const loadReportSummary = async () => {
+            const res = await fetch("/api/get-report-summary")
+            if (!res.ok) return
 
-        observer.current.observe(node);
-    }, [loadMore]);
+            const { result } = await res.json()
+            const parsed = typeof result === "string" ? JSON.parse(result) : result
+
+            const rows: FilteredData[] = Object.values(parsed).map(
+                (item: any, index: number) => ({
+                    id: index + 1,
+                    date: item.date,
+                    region: item.region,
+                    product: item.product,
+                    revenue: Number(item.revenue.replace(/[^0-9.-]+/g, "")),
+                    forecast: item.forecast_method,
+                    accuracy: Number(item.accuracy.replace("%", "")),
+                    variance: Number(item.variance),
+                    status: item.status,
+                })
+            )
+
+            setData(rows)
+        }
+
+        loadReportSummary()
+    }, [])
+
+    /* ---------------- INFINITE SCROLL ---------------- */
+
+    const observeLastRow = useCallback(
+        (node: HTMLTableRowElement | null) => {
+            if (observer.current) observer.current.disconnect()
+            if (!node) return
+
+            observer.current = new IntersectionObserver(
+                entries => {
+                    if (entries[0].isIntersecting) {
+                        loadMore()
+                    }
+                },
+                { threshold: 1.0 }
+            )
+
+            observer.current.observe(node)
+        },
+        [loadMore]
+    )
 
     useEffect(() => {
         if (lastRowRef.current) {
-            observeLastRow(lastRowRef.current);
+            observeLastRow(lastRowRef.current)
         }
-    }, [filteredData, observeLastRow]);
+    }, [data, observeLastRow])
+
+    /* ---------------- RENDER ---------------- */
 
     return (
-        <div className="border rounded-lg" style={{ maxHeight: "500px", overflowY: "auto", overflowX: "auto", width: "100%", maxWidth: "100%" }}>
+        <div
+            className="border rounded-lg"
+            style={{
+                maxHeight: "500px",
+                overflowY: "auto",
+                overflowX: "auto",
+                width: "100%",
+                maxWidth: "100%",
+            }}
+        >
             <Table className="min-w-max table-auto">
                 <TableHeader>
                     <TableRow>
                         {selectedColumns.date && <TableHead>Date</TableHead>}
                         {selectedColumns.region && <TableHead>Region</TableHead>}
                         {selectedColumns.product && <TableHead>Product</TableHead>}
-                        {selectedColumns.revenue && <TableHead className="text-right">Revenue</TableHead>}
-                        {selectedColumns.forecast && <TableHead>Forecast Method</TableHead>}
-                        {selectedColumns.accuracy && <TableHead className="text-right">Accuracy (%)</TableHead>}
-                        {selectedColumns.variance && <TableHead className="text-right">Variance (%)</TableHead>}
+                        {selectedColumns.revenue && (
+                            <TableHead className="text-right">Revenue</TableHead>
+                        )}
+                        {selectedColumns.forecast && (
+                            <TableHead>Forecast Method</TableHead>
+                        )}
+                        {selectedColumns.accuracy && (
+                            <TableHead className="text-right">Accuracy (%)</TableHead>
+                        )}
+                        {selectedColumns.variance && (
+                            <TableHead className="text-right">Variance (%)</TableHead>
+                        )}
                         {selectedColumns.status && <TableHead>Status</TableHead>}
                     </TableRow>
                 </TableHeader>
+
                 <TableBody>
-                    {filteredData.map((row, index) => {
-                        const isLast = index === filteredData.length - 1;
+                    {data.map((row, index) => {
+                        const isLast = index === data.length - 1
+
                         return (
                             <TableRow
                                 key={row.id}
                                 ref={isLast ? lastRowRef : null}
                             >
-                                {selectedColumns.date && <TableCell className="font-medium">{row.date}</TableCell>}
-                                {selectedColumns.region && <TableCell>{row.region}</TableCell>}
-                                {selectedColumns.product && <TableCell>{row.product}</TableCell>}
-                                {selectedColumns.revenue && (
-                                    <TableCell className="text-right">${row.revenue.toLocaleString()}</TableCell>
+                                {selectedColumns.date && (
+                                    <TableCell className="font-medium">
+                                        {row.date}
+                                    </TableCell>
                                 )}
-                                {selectedColumns.forecast && <TableCell>{row.forecast}</TableCell>}
-                                {selectedColumns.accuracy && <TableCell className="text-right">{row.accuracy}%</TableCell>}
-                                {selectedColumns.variance && <TableCell className="text-right">{row.variance}%</TableCell>}
+                                {selectedColumns.region && (
+                                    <TableCell>{row.region}</TableCell>
+                                )}
+                                {selectedColumns.product && (
+                                    <TableCell>{row.product}</TableCell>
+                                )}
+                                {selectedColumns.revenue && (
+                                    <TableCell className="text-right">
+                                        ${row.revenue.toLocaleString()}
+                                    </TableCell>
+                                )}
+                                {selectedColumns.forecast && (
+                                    <TableCell>{row.forecast}</TableCell>
+                                )}
+                                {selectedColumns.accuracy && (
+                                    <TableCell className="text-right">
+                                        {row.accuracy}%
+                                    </TableCell>
+                                )}
+                                {selectedColumns.variance && (
+                                    <TableCell className="text-right">
+                                        {row.variance}%
+                                    </TableCell>
+                                )}
                                 {selectedColumns.status && (
                                     <TableCell>
                                         <span
@@ -102,10 +195,10 @@ export const ReportsDataTable = ({selectedColumns, filteredData, loadMore}: Repo
                                     </TableCell>
                                 )}
                             </TableRow>
-                        );
+                        )
                     })}
                 </TableBody>
             </Table>
         </div>
-    );
-};
+    )
+}
