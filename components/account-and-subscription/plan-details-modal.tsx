@@ -16,6 +16,7 @@ type PlanDetailsModalProps = {
     setPaymentMethod: React.Dispatch<React.SetStateAction<"card" | "paypal">>,
     paymentMethod: "card" | "paypal",
     handleBackToPlan: () => void,
+    customerEmail?: string,
 }
 
 export const PlanDetailsModal = ({
@@ -28,6 +29,7 @@ export const PlanDetailsModal = ({
      setPaymentMethod,
      paymentMethod,
      handleBackToPlan,
+     customerEmail,
      }: PlanDetailsModalProps) => {
     return (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -58,9 +60,7 @@ export const PlanDetailsModal = ({
                                         </div>
                                         <div className="text-3xl font-bold text-primary">
                                             {planDetails[selectedPlan].price}
-                                            {selectedPlan !== "custom" && selectedPlan !== "free" && (
-                                                <span className="text-sm font-normal text-muted-foreground">/month</span>
-                                            )}
+                                            <span className="text-sm font-normal text-muted-foreground">/month</span>
                                         </div>
                                     </div>
                                     <div>
@@ -88,8 +88,8 @@ export const PlanDetailsModal = ({
                                         <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
                                             <Calendar className="h-5 w-5 text-primary" />
                                             <div>
-                                                <p className="font-medium text-sm">14-Day Free Trial</p>
-                                                <p className="text-xs text-muted-foreground">No commitment</p>
+                                                <p className="font-medium text-sm">Monthly Billing</p>
+                                                <p className="text-xs text-muted-foreground">Cancel anytime</p>
                                             </div>
                                         </div>
                                         <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
@@ -101,28 +101,18 @@ export const PlanDetailsModal = ({
                                         </div>
                                     </div>
                                     <div className="flex gap-3 pt-4">
-                                        {selectedPlan === "free" ? (
-                                            <Button className="flex-1" disabled>
-                                                Current Plan
-                                            </Button>
-                                        ) : selectedPlan === "custom" ? (
-                                            <Button className="flex-1">Contact Sales Team</Button>
-                                        ) : (
-                                            <Button className="flex-1" onClick={handleProceedToPayment}>
-                                                Continue to Payment
-                                                <ArrowRight className="h-4 w-4 ml-2" />
-                                            </Button>
-                                        )}
+                                        <Button className="flex-1" onClick={handleProceedToPayment}>
+                                            Continue to Payment
+                                            <ArrowRight className="h-4 w-4 ml-2" />
+                                        </Button>
                                         <Button variant="outline" onClick={handleCloseModal}>
                                             Maybe Later
                                         </Button>
                                     </div>
 
-                                    {selectedPlan !== "free" && selectedPlan !== "custom" && (
-                                        <p className="text-xs text-muted-foreground text-center">
-                                            You can upgrade, downgrade, or cancel your subscription at any time from your account settings.
-                                        </p>
-                                    )}
+                                    <p className="text-xs text-muted-foreground text-center">
+                                        You can upgrade, downgrade, or cancel your subscription at any time from your account settings.
+                                    </p>
                                 </div>
                             </>
                         )}
@@ -149,17 +139,12 @@ export const PlanDetailsModal = ({
                         </span>
                                             <span className="font-semibold">{planDetails[selectedPlan].price}/month</span>
                                         </div>
-                                        <div className="flex items-center justify-between text-sm text-muted-foreground mb-3">
-                                            <span>14-day free trial</span>
-                                            <span>$0.00</span>
-                                        </div>
-                                        <hr className="my-3" />
                                         <div className="flex items-center justify-between font-semibold">
                                             <span>Due today</span>
-                                            <span>$0.00</span>
+                                            <span>{planDetails[selectedPlan].price}</span>
                                         </div>
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            After your trial ends, you'll be charged {planDetails[selectedPlan].price}/month
+                                            Billed monthly until you cancel.
                                         </p>
                                     </div>
                                     <div>
@@ -254,8 +239,19 @@ export const PlanDetailsModal = ({
                                         <Button variant="outline" onClick={handleBackToPlan} className="flex-1 bg-transparent">
                                             Back to Plan
                                         </Button>
-                                        <Button className="flex-1" onClick={handleSubscribeTeam}>
-                                            {paymentMethod === "paypal" ? "Continue with PayPal" : "Start Free Trial"}
+                                        <Button
+                                            className="flex-1"
+                                            onClick={() =>
+                                                handleSubscribeTeam({
+                                                    priceId: planDetails[selectedPlan].priceId,
+                                                    customerEmail,
+                                                    metadata: {
+                                                        plan: planDetails[selectedPlan].name,
+                                                    },
+                                                })
+                                            }
+                                        >
+                                            {paymentMethod === "paypal" ? "Continue with PayPal" : "Proceed to Checkout"}
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground text-center">

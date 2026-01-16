@@ -1,13 +1,19 @@
-export const handleSubscribeTeam = async () => {
+export const handleSubscribeTeam = async ({ priceId, customerEmail, metadata = {} }) => {
     try {
+        if (!priceId) {
+            throw new Error("Missing price id");
+        }
+
         const response = await fetch("/api/checkout_sessions", {
             method: "POST",
             headers: {
                 "Content-Type": "application/json",
             },
             body: JSON.stringify({
-                price: "price_1SHNDwEyjMYH6Im3NXJrbCQq",
+                price: priceId,
                 mode: "subscription",
+                customerEmail,
+                metadata,
             }),
         });
 

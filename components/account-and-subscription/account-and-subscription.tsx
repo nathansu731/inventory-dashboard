@@ -2,12 +2,15 @@
 
 import type React from "react"
 import { useState } from "react"
-import {ModalStep, planDetails, PlanType} from "@/components/account-and-subscription/plan-details-types";
+import { useAuth } from "react-oidc-context"
+import {ModalStep, PlanType} from "@/components/account-and-subscription/plan-details-types";
 import {AccountDetailsSection} from "@/components/account-and-subscription/account-details-section";
 import {SubscriptionPlanCards} from "@/components/account-and-subscription/subscription-plan-cards";
 import {PlanDetailsModal} from "@/components/account-and-subscription/plan-details-modal";
 
 export const AccountAndSubscription = () => {
+    const auth = useAuth()
+    const customerEmail = auth.user?.profile?.email as string | undefined
     const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalStep, setModalStep] = useState<ModalStep>("plan-details")
@@ -48,7 +51,7 @@ export const AccountAndSubscription = () => {
                 <SubscriptionPlanCards handlePlanClick={handlePlanClick}/>
                 <div className="mt-8 text-center">
                     <p className="text-sm text-muted-foreground">
-                        All plans include a 14-day free trial. Cancel anytime. Questions?
+                        All plans are billed monthly. Cancel anytime. Questions?
                         <a href="#" className="text-primary hover:underline ml-1">
                             Contact support
                         </a>
@@ -65,6 +68,7 @@ export const AccountAndSubscription = () => {
                 setPaymentMethod={setPaymentMethod}
                 paymentMethod={paymentMethod}
                 handleBackToPlan={handleBackToPlan}
+                customerEmail={customerEmail}
             />
         </div>
     )

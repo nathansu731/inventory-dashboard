@@ -1,13 +1,14 @@
-import {Crown, Star, Zap} from "lucide-react";
+import {Rocket, Star, Zap} from "lucide-react";
 import type React from "react";
 
-export type PlanType = "free" | "team" | "enterprise" | "custom"
+export type PlanType = "launch" | "core" | "professional"
 
 export type ModalStep = "plan-details" | "payment"
 
 type PlanDetailsTypes = {
     name: string
     price: string
+    priceId: string
     description: string
     features: string[]
     icon?: React.ReactNode
@@ -15,24 +16,28 @@ type PlanDetailsTypes = {
 }
 
 export const planDetails: Record<PlanType, PlanDetailsTypes> = {
-    free: {
-        name: "Free",
+    launch: {
+        name: "Launch",
         price: "$0",
+        priceId: "price_1SpN9dEyjMYH6Im3iUDEsRHR",
         description: "Perfect for getting started",
         features: ["Up to 3 projects", "Basic support", "1GB storage", "Community access"],
+        icon: <Rocket className="h-5 w-5" />,
     },
-    team: {
-        name: "Team",
-        price: "$29",
-        description: "Great for small teams",
+    core: {
+        name: "Core",
+        price: "$99",
+        priceId: "price_1SCkQyEyjMYH6Im32jOYEUUR",
+        description: "Great for growing teams",
         features: ["Up to 10 projects", "Priority support", "50GB storage", "Team collaboration", "Advanced analytics"],
         icon: <Star className="h-5 w-5" />,
         popular: true,
     },
-    enterprise: {
-        name: "Enterprise",
-        price: "$99",
-        description: "For growing businesses",
+    professional: {
+        name: "Professional",
+        price: "$299",
+        priceId: "price_1SCgPmEyjMYH6Im3cim0brss",
+        description: "For scale and automation",
         features: [
             "Unlimited projects",
             "24/7 dedicated support",
@@ -42,19 +47,5 @@ export const planDetails: Record<PlanType, PlanDetailsTypes> = {
             "SSO & security",
         ],
         icon: <Zap className="h-5 w-5 text-accent" />,
-    },
-    custom: {
-        name: "Custom",
-        price: "Contact",
-        description: "Tailored to your needs",
-        features: [
-            "Everything in Enterprise",
-            "Custom integrations",
-            "Dedicated account manager",
-            "On-premise deployment",
-            "Custom SLA",
-            "White-label options",
-        ],
-        icon: <Crown className="h-5 w-5 text-accent" />,
     },
 }

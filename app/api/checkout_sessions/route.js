@@ -9,7 +9,7 @@ export async function POST(request) {
         const origin = headersList.get("origin");
 
         const body = await request.json();
-        const { price, mode } = body;
+        const { price, mode, metadata, customerEmail, clientReferenceId } = body;
 
         if (!price || !mode) {
             return NextResponse.json(
@@ -26,6 +26,9 @@ export async function POST(request) {
                 },
             ],
             mode,
+            customer_email: customerEmail || undefined,
+            client_reference_id: clientReferenceId || undefined,
+            metadata: metadata || undefined,
             success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
             cancel_url: `${origin}/?canceled=true`,
         });
