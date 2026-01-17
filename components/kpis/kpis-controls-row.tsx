@@ -112,9 +112,22 @@ export const KpisControlsRow = ({aggregationType, setAggregationType, unitsType,
                     <Button variant="outline" size="xs">
                         <Filter/>
                     </Button>
-                    <Button variant="outline" size="xs">
-                        {unitsType}
-                    </Button>
+                    <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                            <Button variant="outline" size="xs" className="min-w-0 min-w-[70px] justify-between">
+                                {unitsType}
+                                <ChevronDown className="h-4 w-4"/>
+                            </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent>
+                            <DropdownMenuItem onClick={() => setUnitsType("USD")}>
+                                USD
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setUnitsType("Units")}>
+                                Units
+                            </DropdownMenuItem>
+                        </DropdownMenuContent>
+                    </DropdownMenu>
                 </div>
 
                 <DropdownMenu>

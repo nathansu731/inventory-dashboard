@@ -5,6 +5,15 @@
 *
 * */
 export async function GET() {
+  const apiUrl = process.env.APPSYNC_API_URL
+  if (!apiUrl) {
+    return Response.json({ error: "Missing APPSYNC_API_URL" }, { status: 500 })
+  }
+  const apiKey = process.env.APPSYNC_API_KEY
+  if (!apiKey) {
+    return Response.json({ error: "Missing APPSYNC_API_KEY" }, { status: 500 })
+  }
+
   const query = `
     query GetSKUForecasts {
       getSKUForecasts {
@@ -14,11 +23,11 @@ export async function GET() {
     }
   `
 
-  const response = await fetch(process.env.APPSYNC_API_URL, {
+  const response = await fetch(apiUrl, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      "x-api-key": process.env.APPSYNC_API_KEY
+      "x-api-key": apiKey
     },
     body: JSON.stringify({ query })
   })

@@ -23,7 +23,7 @@ export const Configurations = () => {
         minHistoryPeriods: 10,
     })
 
-    const handleConfigChange = (key: string, value: any) => {
+    const handleConfigChange = <K extends keyof Config>(key: K, value: Config[K]) => {
         setConfig((prev) => ({ ...prev, [key]: value }))
     }
 

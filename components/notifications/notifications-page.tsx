@@ -173,7 +173,7 @@ export const NotificationsPage = () => {
 
                     {!hasMore && notifications.length > 0 && (
                         <div className="text-center py-8 text-muted-foreground">
-                            <p>You've reached the end of your notifications</p>
+                            <p>You&apos;ve reached the end of your notifications</p>
                         </div>
                     )}
                 </div>

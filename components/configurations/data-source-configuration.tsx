@@ -8,7 +8,7 @@ import {Config} from "@/components/configurations/configurations-types";
 
 type DataSourceConfigurationProps = {
     config: Config;
-    handleConfigChange: (key: string, value: any) => void;
+    handleConfigChange: <K extends keyof Config>(key: K, value: Config[K]) => void;
 }
 
 export const DataSourceConfiguration = ({config, handleConfigChange}: DataSourceConfigurationProps) => {

@@ -1,4 +1,4 @@
-import {ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart";
+import {ChartContainer, ChartTooltip, ChartTooltipContent, type ChartConfig} from "@/components/ui/chart";
 import {Area, AreaChart, CartesianGrid, XAxis} from "recharts";
 import {Separator} from "@/components/ui/separator";
 import {IconTrendingUp} from "@tabler/icons-react";
@@ -14,9 +14,15 @@ export type SchemaType = z.infer<typeof schema>;
 interface DrawerMiddleProps {
     item: SchemaType;
     isMobile: boolean;
-    chartData: any[];
-    chartConfig: any;
+    chartData: ChartDatum[];
+    chartConfig: ChartConfig;
 }
+
+type ChartDatum = {
+    month: string;
+    desktop: number;
+    mobile: number;
+};
 
 export function DrawerMiddle({ item, isMobile, chartData, chartConfig }: DrawerMiddleProps) {
     return (

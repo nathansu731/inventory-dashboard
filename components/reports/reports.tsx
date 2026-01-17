@@ -36,7 +36,7 @@ export const ReportsPage = () => {
         product: [...new Set(reportData.map((item) => item.product))],
         forecast: [...new Set(reportData.map((item) => item.forecast))],
         status: [...new Set(reportData.map((item) => item.status))],
-    }), [reportData])
+    }), [])
 
     const filteredData = useMemo(() => {
         return reportData.filter((row) => {
@@ -47,7 +47,7 @@ export const ReportsPage = () => {
                 (columnFilters.status.length === 0 || columnFilters.status.includes(row.status))
             );
         });
-    }, [columnFilters, reportData]);
+    }, [columnFilters]);
 
     const visibleData = useMemo(() => {
         return filteredData.slice(0, displayCount);

@@ -66,7 +66,7 @@ export const PlanDetailsModal = ({
                                     <div>
                                         <h3 className="font-semibold mb-4 flex items-center gap-2">
                                             <Check className="h-5 w-5 text-primary" />
-                                            What's included
+                                            What&apos;s included
                                         </h3>
                                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                                             {planDetails[selectedPlan].features.map((feature, index) => (
@@ -227,7 +227,7 @@ export const PlanDetailsModal = ({
                                             </div>
                                             <h3 className="font-semibold mb-2">Pay with PayPal</h3>
                                             <p className="text-sm text-muted-foreground mb-4">
-                                                You'll be redirected to PayPal to complete your payment securely.
+                                                You&apos;ll be redirected to PayPal to complete your payment securely.
                                             </p>
                                         </div>
                                     )}

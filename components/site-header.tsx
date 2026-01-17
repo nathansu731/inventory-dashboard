@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import {Bell} from "lucide-react";
-import {useCallback, useEffect, useState} from "react";
+import {useEffect, useState} from "react";
 import {generateMockNotifications} from "@/components/notifications/generate-mock-notifications";
 import {Notification} from "./notifications/notifications-types"
 import {LogoutButton} from "@/components/logout/logout-button";
@@ -12,32 +12,11 @@ import {LogoutButton} from "@/components/logout/logout-button";
 
 export function SiteHeader() {
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [loading, setLoading] = useState(false)
-  const [hasMore, setHasMore] = useState(true)
-  const [page, setPage] = useState(1)
-
 
   useEffect(() => {
     const initialNotifications = generateMockNotifications(15)
     setNotifications(initialNotifications)
   }, [])
-
-  const loadMore = useCallback(async () => {
-    if (loading || !hasMore) return
-
-    setLoading(true)
-    await new Promise((resolve) => setTimeout(resolve, 1000))
-
-    const newNotifications = generateMockNotifications(8)
-    setNotifications((prev) => [...prev, ...newNotifications])
-    setPage((prev) => prev + 1)
-
-    if (page >= 5) {
-      setHasMore(false)
-    }
-
-    setLoading(false)
-  }, [loading, hasMore, page])
 
   const unreadCount = notifications.filter((n) => !n.read).length
 

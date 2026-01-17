@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/collapsible"
 import {
   SidebarGroup,
-  SidebarGroupLabel,
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
@@ -85,8 +84,6 @@ export function NavMain({
                       <SidebarMenuSub>
                         {item.items?.map((subItem) => {
                           const isSubActive = subItem.url === currentPath
-                          console.log("IS SUB ", isSubActive)
-                          console.log("IS SUB URL ", subItem.url)
                           return (
                               <SidebarMenuSubItem key={subItem.title}>
                                 <SidebarMenuSubButton asChild className={isSubActive ? 'text-blue-600 font-medium bg-sidebar-accent' : ''}>

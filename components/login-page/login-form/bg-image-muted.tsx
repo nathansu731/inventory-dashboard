@@ -1,5 +1,6 @@
 
 import { cn } from "@/lib/utils";
+import Image from "next/image";
 
 type BgImageMutedProps = {
     src: string;
@@ -10,10 +11,12 @@ type BgImageMutedProps = {
 export const BgImageMuted = ({ src, alt = "Inventory forecasting illustration", className }: BgImageMutedProps) => {
     return (
         <div className={cn("bg-muted relative hidden md:block", className)}>
-            <img
+            <Image
                 src={src}
                 alt={alt}
-                className="absolute inset-0 h-full w-full object-cover dark:brightness-[0.2] dark:grayscale"
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover dark:brightness-[0.2] dark:grayscale"
             />
         </div>
     )

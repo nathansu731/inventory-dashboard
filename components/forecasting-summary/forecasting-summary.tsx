@@ -20,6 +20,15 @@ type ForecastDataItem = {
     approved: boolean
 }
 
+type ForecastMetadata = {
+    store: string
+    skuDesc: string
+    forecastMethod: string
+    ABCclass: string
+    ABCpercentage: number
+    isApproved: boolean
+}
+
 const PAGE_SIZE = 5 // number of items to load per scroll
 
 export const ForecastingSummary = () => {
@@ -52,9 +61,9 @@ export const ForecastingSummary = () => {
             if (!res.ok) return
 
             const { result } = await res.json()
-            const data = typeof result === "string" ? JSON.parse(result) : result
+            const data = (typeof result === "string" ? JSON.parse(result) : result) as Record<string, ForecastMetadata>
 
-            const formattedData: ForecastDataItem[] = Object.entries(data).map(([skuId, value]: [string, any]) => ({
+            const formattedData: ForecastDataItem[] = Object.entries(data).map(([skuId, value]) => ({
                 id: skuId,
                 store: value.store,
                 description: value.skuDesc,
