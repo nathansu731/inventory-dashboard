@@ -9,6 +9,7 @@ type PlanDetailsTypes = {
     name: string
     price: string
     priceId: string
+    interval: string
     description: string
     features: string[]
     icon?: React.ReactNode
@@ -20,6 +21,7 @@ export const planDetails: Record<PlanType, PlanDetailsTypes> = {
         name: "Launch",
         price: "$0",
         priceId: "price_1SpN9dEyjMYH6Im3iUDEsRHR",
+        interval: "month",
         description: "Perfect for getting started",
         features: ["Up to 3 projects", "Basic support", "1GB storage", "Community access"],
         icon: <Rocket className="h-5 w-5" />,
@@ -28,6 +30,7 @@ export const planDetails: Record<PlanType, PlanDetailsTypes> = {
         name: "Core",
         price: "$99",
         priceId: "price_1SCkQyEyjMYH6Im32jOYEUUR",
+        interval: "month",
         description: "Great for growing teams",
         features: ["Up to 10 projects", "Priority support", "50GB storage", "Team collaboration", "Advanced analytics"],
         icon: <Star className="h-5 w-5" />,
@@ -37,6 +40,7 @@ export const planDetails: Record<PlanType, PlanDetailsTypes> = {
         name: "Professional",
         price: "$299",
         priceId: "price_1SCgPmEyjMYH6Im3cim0brss",
+        interval: "month",
         description: "For scale and automation",
         features: [
             "Unlimited projects",

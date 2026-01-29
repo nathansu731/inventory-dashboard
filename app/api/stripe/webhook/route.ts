@@ -49,13 +49,17 @@ export async function POST(request: Request) {
             session.customer_details?.email ||
             (typeof session.metadata?.email === "string" ? session.metadata.email : "");
         const plan = typeof session.metadata?.plan === "string" ? session.metadata.plan : "";
+        const planInterval = typeof session.metadata?.plan_interval === "string" ? session.metadata.plan_interval : "";
         const customerId = typeof session.customer === "string" ? session.customer : "";
+        const subscriptionId = typeof session.subscription === "string" ? session.subscription : "";
 
         if (email) {
             try {
                 await updateCognitoUser(email, {
                     "custom:plan": plan || "unknown",
+                    "custom:plan_interval": planInterval || "unknown",
                     "custom:stripe_cus_id": customerId || "unknown",
+                    "custom:stripe_sub_id": subscriptionId || "unknown",
                     "custom:sub_status": "active",
                 });
             } catch (err) {

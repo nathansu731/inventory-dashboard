@@ -17,6 +17,7 @@ type PlanDetailsModalProps = {
     paymentMethod: "card" | "paypal",
     handleBackToPlan: () => void,
     customerEmail?: string,
+    customerId?: string,
 }
 
 export const PlanDetailsModal = ({
@@ -30,6 +31,7 @@ export const PlanDetailsModal = ({
      paymentMethod,
      handleBackToPlan,
      customerEmail,
+     customerId,
      }: PlanDetailsModalProps) => {
     return (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
@@ -245,8 +247,11 @@ export const PlanDetailsModal = ({
                                                 handleSubscribeTeam({
                                                     priceId: planDetails[selectedPlan].priceId,
                                                     customerEmail,
+                                                    clientReferenceId: customerId,
                                                     metadata: {
                                                         plan: planDetails[selectedPlan].name,
+                                                        plan_interval: planDetails[selectedPlan].interval,
+                                                        email: customerEmail || "",
                                                     },
                                                 })
                                             }

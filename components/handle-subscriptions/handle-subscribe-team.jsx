@@ -1,4 +1,4 @@
-export const handleSubscribeTeam = async ({ priceId, customerEmail, metadata = {} }) => {
+export const handleSubscribeTeam = async ({ priceId, customerEmail, clientReferenceId, metadata = {} }) => {
     try {
         if (!priceId) {
             throw new Error("Missing price id");
@@ -13,6 +13,7 @@ export const handleSubscribeTeam = async ({ priceId, customerEmail, metadata = {
                 price: priceId,
                 mode: "subscription",
                 customerEmail,
+                clientReferenceId,
                 metadata,
             }),
         });

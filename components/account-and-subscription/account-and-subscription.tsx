@@ -11,6 +11,7 @@ import {PlanDetailsModal} from "@/components/account-and-subscription/plan-detai
 export const AccountAndSubscription = () => {
     const auth = useAuth()
     const customerEmail = auth.user?.profile?.email as string | undefined
+    const customerId = auth.user?.profile?.sub as string | undefined
     const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalStep, setModalStep] = useState<ModalStep>("plan-details")
@@ -69,6 +70,7 @@ export const AccountAndSubscription = () => {
                 paymentMethod={paymentMethod}
                 handleBackToPlan={handleBackToPlan}
                 customerEmail={customerEmail}
+                customerId={customerId}
             />
         </div>
     )
