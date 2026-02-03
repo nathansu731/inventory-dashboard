@@ -523,7 +523,7 @@ const chartConfig = {
 } satisfies ChartConfig
 
 function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
-  const isMobile = useIsMobile()
+  const isMobile = useIsMobile() === true
 
   return (
     <Drawer direction={isMobile ? "bottom" : "right"}>

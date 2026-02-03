@@ -11,13 +11,26 @@ export const metadata = {
     description: 'Subscribe',
 }
 
-export default function Page() {
+export default async function Page({
+    searchParams,
+}: {
+    searchParams?: Promise<{ upgrade?: string; step?: string }>
+}) {
+    const resolvedSearchParams = (await searchParams) ?? {}
+    const upgrade =
+        typeof resolvedSearchParams.upgrade === "string"
+            ? resolvedSearchParams.upgrade
+            : undefined
+    const step =
+        typeof resolvedSearchParams.step === "string"
+            ? resolvedSearchParams.step
+            : undefined
     return (
         <SidebarProvider>
             <AppSidebar />
             <SidebarInset>
                 <SiteHeader/>
-                <AccountAndSubscription/>
+                <AccountAndSubscription initialUpgradePlan={upgrade} initialStep={step} />
             </SidebarInset>
         </SidebarProvider>
     )

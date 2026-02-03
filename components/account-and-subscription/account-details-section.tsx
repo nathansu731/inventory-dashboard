@@ -1,9 +1,30 @@
+"use client"
+
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Settings} from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 import type React from "react";
+import { useProfile } from "@/hooks/use-profile";
+
+const formatDate = (unixSeconds: number | undefined) => {
+    if (!unixSeconds) return "--"
+    return new Date(unixSeconds * 1000).toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "long",
+    })
+}
 
 export const AccountDetailsSection = () => {
+    const { profile } = useProfile()
+    const givenName = typeof profile?.given_name === "string" ? profile.given_name : ""
+    const familyName = typeof profile?.family_name === "string" ? profile.family_name : ""
+    const name = [givenName, familyName].filter(Boolean).join(" ")
+        || (typeof profile?.name === "string" ? profile.name : "--")
+    const email = typeof profile?.email === "string" ? profile.email : "--"
+    const memberSince = typeof profile?.iat === "number" ? formatDate(profile.iat) : "--"
+    const planRaw = typeof profile?.["custom:plan"] === "string" ? profile["custom:plan"] : ""
+    const plan = planRaw ? planRaw.charAt(0).toUpperCase() + planRaw.slice(1) : "--"
+
     return (
         <Card className="mb-8 bg-card border-border">
             <CardHeader>
@@ -18,13 +39,13 @@ export const AccountDetailsSection = () => {
                         <h3 className="font-semibold text-card-foreground mb-2">Profile Information</h3>
                         <div className="space-y-2 text-sm">
                             <p>
-                                <span className="font-medium">Name:</span> John Doe
+                                <span className="font-medium">Name:</span> {name}
                             </p>
                             <p>
-                                <span className="font-medium">Email:</span> john.doe@example.com
+                                <span className="font-medium">Email:</span> {email}
                             </p>
                             <p>
-                                <span className="font-medium">Member since:</span> January 2024
+                                <span className="font-medium">Member since:</span> {memberSince}
                             </p>
                         </div>
                     </div>
@@ -32,11 +53,11 @@ export const AccountDetailsSection = () => {
                         <h3 className="font-semibold text-card-foreground mb-2">Current Plan</h3>
                         <div className="flex items-center gap-2 mb-2">
                             <Badge variant="secondary" className="bg-secondary text-secondary-foreground">
-                                Team Plan
+                                {plan}
                             </Badge>
-                            <span className="text-sm text-muted-foreground">Active</span>
+                            <span className="text-sm text-muted-foreground">{plan === "--" ? "—" : "Active"}</span>
                         </div>
-                        <p className="text-sm text-muted-foreground">Next billing: March 15, 2024</p>
+                        <p className="text-sm text-muted-foreground">Next billing: --</p>
                     </div>
                 </div>
             </CardContent>

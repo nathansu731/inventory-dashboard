@@ -3,7 +3,6 @@ import {ModalStep, planDetails, PlanType} from "@/components/account-and-subscri
 import {Badge} from "@/components/ui/badge";
 import {ArrowRight, Calendar, Check, CreditCard, Lock, Shield, Star} from "lucide-react";
 import {Button} from "@/components/ui/button";
-import type React from "react";
 import {handleSubscribeTeam} from "@/components/handle-subscriptions/handle-subscribe-team";
 
 type PlanDetailsModalProps = {
@@ -13,8 +12,6 @@ type PlanDetailsModalProps = {
     modalStep: ModalStep,
     handleProceedToPayment: () => void,
     handleCloseModal: () => void,
-    setPaymentMethod: React.Dispatch<React.SetStateAction<"card" | "paypal">>,
-    paymentMethod: "card" | "paypal",
     handleBackToPlan: () => void,
     customerEmail?: string,
     customerId?: string,
@@ -27,8 +24,6 @@ export const PlanDetailsModal = ({
      modalStep,
      handleProceedToPayment,
      handleCloseModal,
-     setPaymentMethod,
-     paymentMethod,
      handleBackToPlan,
      customerEmail,
      customerId,
@@ -149,90 +144,15 @@ export const PlanDetailsModal = ({
                                             Billed monthly until you cancel.
                                         </p>
                                     </div>
-                                    <div>
-                                        <h3 className="font-semibold mb-4">Payment Method</h3>
-                                        <div className="grid grid-cols-2 gap-3 mb-4">
-                                            <button
-                                                onClick={() => setPaymentMethod("card")}
-                                                className={`p-3 border rounded-lg flex items-center gap-2 transition-colors ${
-                                                    paymentMethod === "card"
-                                                        ? "border-primary bg-primary/5"
-                                                        : "border-border hover:border-primary/50"
-                                                }`}
-                                            >
-                                                <CreditCard className="h-4 w-4" />
-                                                <span className="text-sm font-medium">Credit Card</span>
-                                            </button>
-                                            <button
-                                                onClick={() => setPaymentMethod("paypal")}
-                                                className={`p-3 border rounded-lg flex items-center gap-2 transition-colors ${
-                                                    paymentMethod === "paypal"
-                                                        ? "border-primary bg-primary/5"
-                                                        : "border-border hover:border-primary/50"
-                                                }`}
-                                            >
-                                                <div className="w-4 h-4 bg-blue-600 rounded-sm flex items-center justify-center">
-                                                    <span className="text-white text-xs font-bold">P</span>
-                                                </div>
-                                                <span className="text-sm font-medium">PayPal</span>
-                                            </button>
+                                    <div className="p-6 border border-border rounded-lg text-center">
+                                        <div className="w-12 h-12 bg-black rounded-full flex items-center justify-center mx-auto mb-4">
+                                            <CreditCard className="h-5 w-5 text-white" />
                                         </div>
+                                        <h3 className="font-semibold mb-2">Pay with Card</h3>
+                                        <p className="text-sm text-muted-foreground">
+                                            You&apos;ll be redirected to Stripe Checkout to securely enter your card details.
+                                        </p>
                                     </div>
-                                    {paymentMethod === "card" && (
-                                        <div className="space-y-4">
-                                            <div>
-                                                <label className="block text-sm font-medium mb-2">Card Number</label>
-                                                <div className="relative">
-                                                    <input
-                                                        type="text"
-                                                        placeholder="1234 5678 9012 3456"
-                                                        className="w-full p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                    />
-                                                    <div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex gap-1">
-                                                        <div className="w-6 h-4 bg-blue-600 rounded-sm"></div>
-                                                        <div className="w-6 h-4 bg-red-600 rounded-sm"></div>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                            <div className="grid grid-cols-2 gap-4">
-                                                <div>
-                                                    <label className="block text-sm font-medium mb-2">Expiry Date</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="MM/YY"
-                                                        className="w-full p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-sm font-medium mb-2">CVC</label>
-                                                    <input
-                                                        type="text"
-                                                        placeholder="123"
-                                                        className="w-full p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                    />
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <label className="block text-sm font-medium mb-2">Cardholder Name</label>
-                                                <input
-                                                    type="text"
-                                                    placeholder="John Doe"
-                                                    className="w-full p-3 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary"
-                                                />
-                                            </div>
-                                        </div>
-                                    )}
-                                    {paymentMethod === "paypal" && (
-                                        <div className="p-6 border border-border rounded-lg text-center">
-                                            <div className="w-16 h-16 bg-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-                                                <span className="text-white text-2xl font-bold">P</span>
-                                            </div>
-                                            <h3 className="font-semibold mb-2">Pay with PayPal</h3>
-                                            <p className="text-sm text-muted-foreground mb-4">
-                                                You&apos;ll be redirected to PayPal to complete your payment securely.
-                                            </p>
-                                        </div>
-                                    )}
                                     <div className="flex items-center gap-2 p-3 bg-green-50 border border-green-200 rounded-lg">
                                         <Lock className="h-4 w-4 text-green-600" />
                                         <span className="text-sm text-green-800">Your payment information is encrypted and secure</span>
@@ -256,7 +176,7 @@ export const PlanDetailsModal = ({
                                                 })
                                             }
                                         >
-                                            {paymentMethod === "paypal" ? "Continue with PayPal" : "Proceed to Checkout"}
+                                            Proceed to Payment
                                         </Button>
                                     </div>
                                     <p className="text-xs text-muted-foreground text-center">
