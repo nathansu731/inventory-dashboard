@@ -1,14 +1,29 @@
-import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {Button} from "@/components/ui/button";
-import {BarChart3, Package, Search} from "lucide-react";
-import {ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui/chart";
-import {CartesianGrid, Line, LineChart, XAxis, YAxis} from "recharts";
-import {forecastData, skuTableData} from "@/components/dashboard/dashboard-data";
-import {Input} from "@/components/ui/input";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import {Badge} from "@/components/ui/badge";
-import React from "react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { BarChart3, Package, Search } from "lucide-react"
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
+import { CartesianGrid, Line, LineChart, XAxis, YAxis } from "recharts"
+import { Input } from "@/components/ui/input"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Badge } from "@/components/ui/badge"
+import React from "react"
+
+type ForecastChartRow = {
+    month: string
+    actual: number
+    forecast: number
+    revenue: number
+}
+
+type SkuTableRow = {
+    sku: string
+    store: string
+    abcClass: string
+    forecastMethod: string
+    forecastDemand: number
+    riskLevel: string
+}
 
 type DashboardChartAndTableProps = {
     viewMode: "chart" | "table",
@@ -19,16 +34,31 @@ type DashboardChartAndTableProps = {
     setSelectedCategory: React.Dispatch<React.SetStateAction<string>>,
     openSkuModal: (sku: string) => void,
     getRiskBadgeColor: (risk: string) => "destructive" | "default" | "secondary";
+    chartData: ForecastChartRow[]
+    tableData: SkuTableRow[]
+    categories: string[]
 }
 
-export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSearchTerm, selectedCategory, setSelectedCategory, openSkuModal, getRiskBadgeColor}: DashboardChartAndTableProps) => {
+export const DashboardChartAndTable = ({
+    viewMode,
+    setViewMode,
+    searchTerm,
+    setSearchTerm,
+    selectedCategory,
+    setSelectedCategory,
+    openSkuModal,
+    getRiskBadgeColor,
+    chartData,
+    tableData,
+    categories,
+}: DashboardChartAndTableProps) => {
     return (
         <Card className="mb-6">
             <CardHeader>
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle>Demand Forecast Overview</CardTitle>
-                        <p className="text-sm text-gray-600 mt-1">Historical vs forecasted demand trends</p>
+                        <p className="text-sm text-gray-600 mt-1">Actual demand vs forecast baseline</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
@@ -62,14 +92,14 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                                 label: "Forecast",
                                 color: "#339CFF",
                             },
-                            demand: {
-                                label: "Demand",
+                            revenue: {
+                                label: "Revenue",
                                 color: "#0071CE",
                             },
                         }}
                         className="h-[400px] w-full"
                     >
-                        <LineChart data={forecastData}>
+                        <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" />
                             <XAxis dataKey="month" />
                             <YAxis />
@@ -91,10 +121,10 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                             />
                             <Line
                                 type="monotone"
-                                dataKey="demand"
-                                stroke="var(--color-demand)"
+                                dataKey="revenue"
+                                stroke="var(--color-revenue)"
                                 strokeWidth={2}
-                                dot={{ fill: "var(--color-demand)" }}
+                                dot={{ fill: "var(--color-revenue)" }}
                             />
                         </LineChart>
                     </ChartContainer>
@@ -115,9 +145,12 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                                     <SelectValue placeholder="Select category" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="all">All Categories</SelectItem>
-                                    <SelectItem value="electronics">Electronics</SelectItem>
-                                    <SelectItem value="accessories">Accessories</SelectItem>
+                                    <SelectItem value="all">All Stores</SelectItem>
+                                    {categories.map((category) => (
+                                        <SelectItem key={category} value={category}>
+                                            {category}
+                                        </SelectItem>
+                                    ))}
                                 </SelectContent>
                             </Select>
                         </div>
@@ -125,30 +158,28 @@ export const DashboardChartAndTable = ({viewMode, setViewMode, searchTerm, setSe
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>SKU</TableHead>
-                                    <TableHead>Product Name</TableHead>
-                                    <TableHead>Category</TableHead>
-                                    <TableHead>Current Stock</TableHead>
-                                    <TableHead>Forecast Demand</TableHead>
+                                    <TableHead>Store</TableHead>
+                                    <TableHead>ABC Class</TableHead>
+                                    <TableHead>Forecast Method</TableHead>
+                                    <TableHead>30d Forecast</TableHead>
                                     <TableHead>Risk Level</TableHead>
-                                    <TableHead>Accuracy</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {skuTableData.map((item) => (
+                                {tableData.map((item) => (
                                     <TableRow
                                         key={item.sku}
                                         className="cursor-pointer hover:bg-gray-50"
                                         onClick={() => openSkuModal(item.sku)}
                                     >
                                         <TableCell className="font-medium">{item.sku}</TableCell>
-                                        <TableCell>{item.name}</TableCell>
-                                        <TableCell>{item.category}</TableCell>
-                                        <TableCell>{item.currentStock.toLocaleString()}</TableCell>
+                                        <TableCell>{item.store}</TableCell>
+                                        <TableCell>{item.abcClass}</TableCell>
+                                        <TableCell>{item.forecastMethod}</TableCell>
                                         <TableCell>{item.forecastDemand.toLocaleString()}</TableCell>
                                         <TableCell>
                                             <Badge variant={getRiskBadgeColor(item.riskLevel)}>{item.riskLevel}</Badge>
                                         </TableCell>
-                                        <TableCell>{item.accuracy}</TableCell>
                                     </TableRow>
                                 ))}
                             </TableBody>

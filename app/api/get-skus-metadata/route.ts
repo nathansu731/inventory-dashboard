@@ -5,13 +5,13 @@
 *
 * */
 export async function GET() {
-  const apiUrl = process.env.APPSYNC_API_URL
-  if (!apiUrl) {
-    return Response.json({ error: "Missing APPSYNC_API_URL" }, { status: 500 })
-  }
-  const apiKey = process.env.APPSYNC_API_KEY
-  if (!apiKey) {
-    return Response.json({ error: "Missing APPSYNC_API_KEY" }, { status: 500 })
+  const { appsyncRequest } = await import("@/lib/appsync")
+  const { getValidIdToken } = await import("@/lib/server-auth")
+  const { NextResponse } = await import("next/server")
+
+  const { idToken, cookiesToSet } = await getValidIdToken()
+  if (!idToken) {
+    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
   }
 
   const query = `
@@ -23,18 +23,12 @@ export async function GET() {
     }
   `
 
-  const response = await fetch(apiUrl, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "x-api-key": apiKey
-    },
-    body: JSON.stringify({ query })
-  })
-
-  const json = await response.json()
-
-  return Response.json(json.data.getSKUsMetadata)
+  const json = await appsyncRequest(idToken, query)
+  const response = NextResponse.json(json.data.getSKUsMetadata)
+  for (const cookie of cookiesToSet) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options)
+  }
+  return response
 }
 
 /*

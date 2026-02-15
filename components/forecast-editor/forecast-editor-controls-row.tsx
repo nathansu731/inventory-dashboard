@@ -1,18 +1,35 @@
-import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
-import {Button} from "@/components/ui/button";
-import {ChevronDown, Columns, Download, Eye, Filter, GitBranch, Save} from "lucide-react";
-import React, {useState} from "react";
-import {Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger} from "@/components/ui/dialog";
-import {ForecastEditorColumnSelector} from "@/components/forecast-editor/forecast-editor-column-selector";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { Button } from "@/components/ui/button"
+import { ArrowLeft, ArrowRight, ChevronDown, Columns, Download, Eye, Save } from "lucide-react"
+import React, { useState } from "react"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { ForecastEditorColumnSelector } from "@/components/forecast-editor/forecast-editor-column-selector"
 
 type ForecastEditorControlsRowProps = {
     aggregationType: string
     setAggregationType: React.Dispatch<React.SetStateAction<string>>;
-    unitsType: string
-    setUnitsType: React.Dispatch<React.SetStateAction<string>>;
+    storeLabel: string | null
+    skuLabel: string | null
+    skuIndex: number
+    skuCount: number
+    onPrevSku: () => void
+    onNextSku: () => void
+    onSave: () => void
+    isSaving: boolean
 }
 
-export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, unitsType, setUnitsType}: ForecastEditorControlsRowProps) => {
+export const ForecastEditorControlsRow = ({
+    aggregationType,
+    setAggregationType,
+    storeLabel,
+    skuLabel,
+    skuIndex,
+    skuCount,
+    onPrevSku,
+    onNextSku,
+    onSave,
+    isSaving,
+}: ForecastEditorControlsRowProps) => {
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
     const [columnVisibility, setColumnVisibility] = useState({
         select: true,
@@ -26,8 +43,8 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
         aug: true,
     })
     return (
-        <div className="flex items-start justify-between border-b bg-muted/30 px-6 py-3">
-            <div className="flex items-center gap-4 mr-3">
+        <div id="editor-button-panel" className="flex flex-wrap items-center justify-between border-b bg-muted/30 px-6 py-3 gap-3">
+            <div className="flex items-center gap-4 mr-3 flex-wrap">
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button
@@ -56,12 +73,28 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
                         </DropdownMenuItem>
                     </DropdownMenuContent>
                 </DropdownMenu>
+                <div className="flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-xs text-muted-foreground">
+                    <span className="font-semibold text-slate-900">{skuLabel ?? "SKU"}</span>
+                    <span className="text-muted-foreground">·</span>
+                    <span>{storeLabel ?? "Store"}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                    <Button variant="outline" size="icon" className="h-8 w-8 bg-transparent" onClick={onPrevSku} disabled={skuCount <= 1}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" className="h-8 w-8 bg-transparent" onClick={onNextSku} disabled={skuCount <= 1}>
+                        <ArrowRight className="h-4 w-4" />
+                    </Button>
+                    <span className="text-xs text-muted-foreground ml-2">
+                        {skuCount > 0 ? `${skuIndex + 1} of ${skuCount}` : "No SKUs"}
+                    </span>
+                </div>
             </div>
 
-            <div className="flex flex-wrap gap-2 items-center gap-2 gap-responsive-sm">
-                <Button variant="default" size="sm">
+            <div className="flex flex-wrap gap-2 items-center gap-responsive-sm">
+                <Button variant="default" size="sm" onClick={onSave} disabled={isSaving}>
                     <Save className="h-4 w-4 mr-2"/>
-                    Save
+                    {isSaving ? "Saving..." : "Save"}
                 </Button>
                 <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
                     <DialogTrigger asChild>
@@ -83,36 +116,6 @@ export const ForecastEditorControlsRow = ({aggregationType, setAggregationType, 
                     <Eye className="h-4 w-4 mr-2"/>
                     View
                 </Button>
-                <Button variant="outline" size="sm">
-                    <GitBranch className="h-4 w-4 mr-2"/>
-                    Hierarchy
-                </Button>
-                <Button variant="outline" size="sm">
-                    <Filter className="h-4 w-4 mr-2"/>
-                    Filter
-                </Button>
-                <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            {unitsType}
-                            <ChevronDown className="h-4 w-4 ml-2"/>
-                        </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => setUnitsType("USD")}>
-                            USD
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setUnitsType("EUR")}>
-                            EUR
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setUnitsType("Units")}>
-                            Units
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setUnitsType("Percentage")}>
-                            Percentage
-                        </DropdownMenuItem>
-                    </DropdownMenuContent>
-                </DropdownMenu>
                 <Button variant="outline" size="sm">
                     <Download className="h-4 w-4 mr-2"/>
                     Export

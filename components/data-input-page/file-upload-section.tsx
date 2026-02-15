@@ -9,12 +9,25 @@ import type React from "react";
 
 type FileUploadSectionProps = {
     handleFileUpload: (event: React.ChangeEvent<HTMLInputElement>) => void,
+    handleFileDrop: (file: File) => void,
     uploadedFile: File | null,
     isProcessing: boolean,
     uploadProgress: number,
 }
 
-export const FileUploadSection = ({handleFileUpload, uploadedFile, isProcessing, uploadProgress}: FileUploadSectionProps) => {
+export const FileUploadSection = ({handleFileUpload, handleFileDrop, uploadedFile, isProcessing, uploadProgress}: FileUploadSectionProps) => {
+    const onDrop = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault()
+        const file = event.dataTransfer.files?.[0]
+        if (file) {
+            handleFileDrop(file)
+        }
+    }
+
+    const onDragOver = (event: React.DragEvent<HTMLDivElement>) => {
+        event.preventDefault()
+    }
+
     return (
         <Card>
             <CardHeader>
@@ -25,7 +38,12 @@ export const FileUploadSection = ({handleFileUpload, uploadedFile, isProcessing,
                 <CardDescription>Upload your data files for forecasting analysis</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-                <div className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors">
+                <Label htmlFor="file-upload" className="cursor-pointer">
+                    <div
+                        className="border-2 border-dashed border-border rounded-lg p-8 text-center hover:border-primary/50 transition-colors w-full"
+                        onDrop={onDrop}
+                        onDragOver={onDragOver}
+                    >
                     <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <div className="space-y-2">
                         <p className="text-sm font-medium">Drop files here or click to browse</p>
@@ -38,12 +56,11 @@ export const FileUploadSection = ({handleFileUpload, uploadedFile, isProcessing,
                         accept=".csv,.xlsx,.xls,.json"
                         onChange={handleFileUpload}
                     />
-                    <Label htmlFor="file-upload" className="cursor-pointer">
-                        <Button variant="outline" className="mt-4 bg-transparent">
+                        <Button variant="outline" className="invisible mt-4 bg-transparent">
                             Choose Files
                         </Button>
-                    </Label>
-                </div>
+                    </div>
+                </Label>
 
                 {uploadedFile && (
                     <div className="space-y-3">

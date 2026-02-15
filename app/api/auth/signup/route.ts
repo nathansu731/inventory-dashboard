@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CognitoIdentityProviderClient, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
+import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
+import { marshall } from "@aws-sdk/util-dynamodb";
 import crypto from "crypto";
 
 const resolveRegion = (domain: string) => {
@@ -44,6 +46,7 @@ export async function POST(req: NextRequest) {
               .digest("base64")
         : undefined;
 
+    const tenantId = crypto.randomUUID();
     const client = new CognitoIdentityProviderClient({ region });
     const command = new SignUpCommand({
         ClientId: clientId,
@@ -54,11 +57,33 @@ export async function POST(req: NextRequest) {
             { Name: "email", Value: String(email) },
             { Name: "given_name", Value: String(firstName) },
             { Name: "family_name", Value: String(lastName) },
+            { Name: "custom:tenant_id", Value: tenantId },
         ],
     });
 
     try {
         const result = await client.send(command);
+        const tenantsTable = process.env.TENANTS_TABLE || "";
+        if (tenantsTable) {
+            try {
+                const ddb = new DynamoDBClient({ region });
+                const createdAt = new Date().toISOString();
+                await ddb.send(
+                    new PutItemCommand({
+                        TableName: tenantsTable,
+                        Item: marshall({
+                            tenantId,
+                            primaryUserEmail: String(email),
+                            isOnboardingUser: true,
+                            createdAt,
+                        }),
+                        ConditionExpression: "attribute_not_exists(tenantId)",
+                    }),
+                );
+            } catch {
+                // best-effort; do not block signup if DynamoDB write fails
+            }
+        }
         const target = result.UserConfirmed
             ? "/login?signup=success"
             : `/confirm?email=${encodeURIComponent(String(email))}&sent=1`;

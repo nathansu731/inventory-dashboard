@@ -1,31 +1,42 @@
-import {ScrollArea} from "@/components/ui/scroll-area";
-import {Table, TableBody, TableCell, TableHead, TableHeader, TableRow} from "@/components/ui/table";
-import {monthColumns} from "@/components/forecast-editor/sample-data";
-import type React from "react";
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import type React from "react"
 
-type ForecastData = {
-    category: string
-    region: string
-    "01/2024": number
-    "02/2024": number
-    "03/2024": number
-    "04/2024": number
-    "05/2024": number
-    "06/2024": number
-}[]
-
-type ForecastEditorMainContentRightProps = {
-    forecastValues: ForecastData,
-    editingCell: string | null,
-    editedCells: Set<string>,
-    handleCellClick: (rowIndex: number, month: string) => void,
-    tempValue: string,
-    setTempValue: React.Dispatch<React.SetStateAction<string>>,
-    handleCellBlur: (rowIndex: number, month: string) => void,
-    handleKeyPress: (e: React.KeyboardEvent, rowIndex: number, month: string) => void,
+type ForecastRow = {
+    metric: string
+    metricKey: string
+    [key: string]: number | string
 }
 
-export const ForecastEditorMainContentRight = ({forecastValues, editingCell, editedCells, handleCellClick, tempValue, setTempValue, handleCellBlur, handleKeyPress}: ForecastEditorMainContentRightProps) => {
+type ForecastEditorMainContentRightProps = {
+    forecastValues: ForecastRow[]
+    monthColumns: string[]
+    formattedColumns: string[]
+    editableMetrics: string[]
+    editingCell: string | null
+    editedCells: Set<string>
+    handleCellClick: (rowIndex: number, month: string) => void
+    tempValue: string
+    setTempValue: React.Dispatch<React.SetStateAction<string>>
+    handleCellBlur: (rowIndex: number, month: string) => void
+    handleKeyPress: (e: React.KeyboardEvent, rowIndex: number, month: string) => void
+    isLoading: boolean
+}
+
+export const ForecastEditorMainContentRight = ({
+    forecastValues,
+    monthColumns,
+    formattedColumns,
+    editingCell,
+    editedCells,
+    handleCellClick,
+    tempValue,
+    setTempValue,
+    handleCellBlur,
+    handleKeyPress,
+    isLoading,
+    editableMetrics,
+}: ForecastEditorMainContentRightProps) => {
     return (
         <div className="flex-1 bg-background">
             <div className="border-b bg-muted/50 px-4 py-3">
@@ -36,32 +47,42 @@ export const ForecastEditorMainContentRight = ({forecastValues, editingCell, edi
                     <Table>
                         <TableHeader className="sticky top-0 bg-background">
                             <TableRow>
-                                {monthColumns.map((month) => (
+                                <TableHead className="w-[180px] text-left">Metric</TableHead>
+                                {monthColumns.map((month, index) => (
                                     <TableHead key={month} className="w-[100px] text-center">
-                                        {month}
+                                        {formattedColumns[index]}
                                     </TableHead>
                                 ))}
                             </TableRow>
                         </TableHeader>
                         <TableBody>
-                            {forecastValues.map((row, rowIndex) => (
+                            {isLoading && (
+                                <TableRow className="h-12">
+                                    <TableCell colSpan={monthColumns.length + 1} className="text-sm text-muted-foreground">
+                                        Loading forecast values...
+                                    </TableCell>
+                                </TableRow>
+                            )}
+                            {!isLoading && forecastValues.map((row, rowIndex) => (
                                 <TableRow key={rowIndex} className="h-12">
+                                    <TableCell className="font-medium text-sm">
+                                        {row.metric}
+                                    </TableCell>
                                     {monthColumns.map((month) => {
                                         const cellKey = `${rowIndex}-${month}`;
                                         const isEditing = editingCell === cellKey;
                                         const isEdited = editedCells.has(cellKey);
-                                        const cellValue = row[
-                                            month as keyof typeof row
-                                            ] as number;
+                                        const cellValue = Number(row[month] ?? 0);
+                                        const isEditable = month !== "average" && editableMetrics.includes(row.metricKey);
 
                                         return (
                                             <TableCell
                                                 key={month}
-                                                className={`text-center font-mono text-sm cursor-pointer hover:bg-muted/50 ${
+                                                className={`text-center font-mono text-sm ${isEditable ? "cursor-pointer hover:bg-muted/50" : "text-muted-foreground"} ${
                                                     isEdited ? "bg-blue-50 border-blue-200" : ""
                                                 }`}
                                                 onClick={() =>
-                                                    !isEditing && handleCellClick(rowIndex, month)
+                                                    isEditable && !isEditing && handleCellClick(rowIndex, month)
                                                 }
                                             >
                                                 {isEditing ? (
@@ -84,6 +105,13 @@ export const ForecastEditorMainContentRight = ({forecastValues, editingCell, edi
                                     })}
                                 </TableRow>
                             ))}
+                            {!isLoading && forecastValues.length === 0 && (
+                                <TableRow className="h-12">
+                                    <TableCell colSpan={monthColumns.length + 1} className="text-sm text-muted-foreground">
+                                        No forecast data available.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                         </TableBody>
                     </Table>
                 </div>

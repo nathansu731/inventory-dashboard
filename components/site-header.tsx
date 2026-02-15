@@ -3,22 +3,26 @@
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import {Bell} from "lucide-react";
-import {useEffect, useState} from "react";
-import {generateMockNotifications} from "@/components/notifications/generate-mock-notifications";
-import {Notification} from "./notifications/notifications-types"
+import { Bell } from "lucide-react"
+import { useEffect, useState } from "react"
 import {LogoutButton} from "@/components/logout/logout-button";
 
 
 export function SiteHeader() {
-  const [notifications, setNotifications] = useState<Notification[]>([])
+  const [unreadCount, setUnreadCount] = useState(0)
 
   useEffect(() => {
-    const initialNotifications = generateMockNotifications(15)
-    setNotifications(initialNotifications)
-  }, [])
+    const loadNotifications = async () => {
+      const res = await fetch("/api/list-notifications?limit=10")
+      if (!res.ok) return
+      const payload = await res.json()
+      const items = payload?.items ?? []
+      const unread = items.filter((item: { read?: boolean }) => !item.read).length
+      setUnreadCount(unread)
+    }
 
-  const unreadCount = notifications.filter((n) => !n.read).length
+    loadNotifications()
+  }, [])
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">

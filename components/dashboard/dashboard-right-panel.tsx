@@ -1,18 +1,24 @@
-import {Tabs, TabsContent, TabsList, TabsTrigger} from "@/components/ui/tabs";
-import {Label} from "@/components/ui/label";
-import {Select, SelectContent, SelectItem, SelectTrigger, SelectValue} from "@/components/ui/select";
-import {Input} from "@/components/ui/input";
-import {Button} from "@/components/ui/button";
-import {alerts} from "@/components/dashboard/dashboard-data";
-import {Card} from "@/components/ui/card";
-import {AlertTriangle, Package, TrendingUp} from "lucide-react";
-import {useState} from "react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Label } from "@/components/ui/label"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Input } from "@/components/ui/input"
+import { Button } from "@/components/ui/button"
+import { Card } from "@/components/ui/card"
+import { AlertTriangle, Package, TrendingUp } from "lucide-react"
+import { useState } from "react"
+
+type DashboardAlert = {
+    type: string
+    message: string
+    time: string
+}
 
 type DashboardRightPanelProps = {
     getAlertIcon: (type: string) => "🔴" | "🟡" | "🔵" | "ℹ️",
+    alerts: DashboardAlert[],
 }
 
-export const DashboardRightPanel = ({getAlertIcon}: DashboardRightPanelProps) => {
+export const DashboardRightPanel = ({getAlertIcon, alerts}: DashboardRightPanelProps) => {
     const [value, setValue] = useState(70);
     return (
         <div className="w-full lg:w-80 bg-white min-[1300px]:border-l min-[1300px]:border-gray-200 p-6">
