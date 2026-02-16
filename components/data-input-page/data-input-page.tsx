@@ -1,13 +1,14 @@
 "use client"
 
 import type React from "react"
-import { useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { Button } from "@/components/ui/button"
 import {DataSourceSelection} from "@/components/data-input-page/data-source-selection";
 import {FileUploadSection} from "@/components/data-input-page/file-upload-section";
 import {DataConfiguration} from "@/components/data-input-page/data-configuration";
 import {DataQualityIndicator} from "@/components/data-input-page/data-quality-indicator";
 import Link from "next/link";
+import { useProfile } from "@/hooks/use-profile";
 
 type RunSummary = {
     runId?: string
@@ -24,6 +25,44 @@ export const DataInputPage = () => {
     const [uploadedFile, setUploadedFile] = useState<File | null>(null)
     const [isProcessing, setIsProcessing] = useState(false)
     const [runStatus, setRunStatus] = useState<RunSummary | null>(null)
+    const { profile } = useProfile()
+    const [model, setModel] = useState("arima")
+    const [mode, setMode] = useState("local")
+    const [seasonality, setSeasonality] = useState("auto")
+
+    const plan = String(profile?.["custom:plan"] || "free").toLowerCase()
+    const allowGlobal = plan === "professional"
+    const availableModels = useMemo(() => {
+        if (plan === "professional") {
+            return ["arima", "ets", "ses", "theta", "tbats", "dhr_arima", "naive", "snaive", "croston", "pooled_regression"]
+        }
+        if (plan === "core") {
+            return ["arima", "ets", "ses", "theta", "tbats", "dhr_arima", "naive", "snaive", "croston"]
+        }
+        return ["arima"]
+    }, [plan])
+
+    useEffect(() => {
+        if (!availableModels.includes(model)) {
+            setModel(availableModels[0])
+        }
+        if (!allowGlobal && mode === "global") {
+            setMode("local")
+        }
+    }, [availableModels, model, allowGlobal, mode])
+
+    useEffect(() => {
+        const loadDefaults = async () => {
+            const res = await fetch("/api/tenant-settings")
+            if (!res.ok) return
+            const data = await res.json()
+            if (data?.model) setModel(String(data.model))
+            if (data?.mode) setMode(String(data.mode))
+            if (data?.seasonality) setSeasonality(String(data.seasonality))
+        }
+
+        loadDefaults()
+    }, [])
 
     const processSelectedFile = (file: File) => {
         setUploadedFile(file)
@@ -94,6 +133,9 @@ export const DataInputPage = () => {
                     s3Bucket,
                     s3Key,
                     originalFilename: uploadedFile.name,
+                    model,
+                    mode,
+                    seasonality,
                 }),
             })
 
@@ -103,6 +145,12 @@ export const DataInputPage = () => {
                 setIsProcessing(false)
                 return
             }
+
+            await fetch("/api/tenant-settings", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ model, mode, seasonality }),
+            })
 
             setRunStatus({
                 runId: runJson?.run?.runId,
@@ -147,7 +195,17 @@ export const DataInputPage = () => {
                 <DataSourceSelection selectedSource={selectedSource} setSelectedSource={setSelectedSource} selectedFormat={selectedFormat} setSelectedFormat={setSelectedFormat}/>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <FileUploadSection handleFileUpload={handleFileUpload} handleFileDrop={handleFileDrop} uploadedFile={uploadedFile} isProcessing={isProcessing} uploadProgress={uploadProgress}/>
-                    <DataConfiguration/>
+                    <DataConfiguration
+                        plan={plan}
+                        model={model}
+                        setModel={setModel}
+                        mode={mode}
+                        setMode={setMode}
+                        seasonality={seasonality}
+                        setSeasonality={setSeasonality}
+                        availableModels={availableModels}
+                        allowGlobal={allowGlobal}
+                    />
                 </div>
                 <DataQualityIndicator uploadedFile={uploadedFile} isProcessing={isProcessing}/>
                 <div className="flex justify-end gap-4 mt-8">

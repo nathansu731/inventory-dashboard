@@ -1,13 +1,35 @@
-import {Card, CardContent, CardDescription, CardHeader, CardTitle} from "@/components/ui/card";
-import {Calendar} from "lucide-react";
-import {Label} from "@/components/ui/label";
-import {Input} from "@/components/ui/input";
-import {Textarea} from "@/components/ui/textarea";
-import {Separator} from "@/components/ui/separator";
-import type React from "react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Calendar } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Separator } from "@/components/ui/separator"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import type React from "react"
 
+type DataConfigurationProps = {
+    plan: string
+    model: string
+    setModel: React.Dispatch<React.SetStateAction<string>>
+    mode: string
+    setMode: React.Dispatch<React.SetStateAction<string>>
+    seasonality: string
+    setSeasonality: React.Dispatch<React.SetStateAction<string>>
+    availableModels: string[]
+    allowGlobal: boolean
+}
 
-export const DataConfiguration = () => {
+export const DataConfiguration = ({
+    plan,
+    model,
+    setModel,
+    mode,
+    setMode,
+    seasonality,
+    setSeasonality,
+    availableModels,
+    allowGlobal,
+}: DataConfigurationProps) => {
     return (
         <Card>
             <CardHeader>
@@ -40,6 +62,61 @@ export const DataConfiguration = () => {
                 </div>
 
                 <Separator />
+
+                <div className="space-y-3">
+                    <h4 className="text-sm font-medium">Forecasting Options</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label>Plan</Label>
+                            <div className="text-sm text-muted-foreground capitalize">{plan || "free"}</div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Mode</Label>
+                            <Select value={mode} onValueChange={setMode} disabled={!allowGlobal}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select mode" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="local">Local</SelectItem>
+                                    <SelectItem value="global" disabled={!allowGlobal}>
+                                        Global (Pro)
+                                    </SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Model</Label>
+                            <Select value={model} onValueChange={setModel}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Select model" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {availableModels.map((option) => (
+                                        <SelectItem key={option} value={option}>
+                                            {option.toUpperCase()}
+                                        </SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Seasonality</Label>
+                            <Select value={seasonality} onValueChange={setSeasonality}>
+                                <SelectTrigger>
+                                    <SelectValue placeholder="Auto" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="auto">Auto</SelectItem>
+                                    <SelectItem value="daily">Daily</SelectItem>
+                                    <SelectItem value="weekly">Weekly</SelectItem>
+                                    <SelectItem value="monthly">Monthly</SelectItem>
+                                    <SelectItem value="quarterly">Quarterly</SelectItem>
+                                    <SelectItem value="yearly">Yearly</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                    </div>
+                </div>
 
                 <div className="space-y-3">
                     <h4 className="text-sm font-medium">Processing Options</h4>
