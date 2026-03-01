@@ -17,7 +17,7 @@ export async function GET(request: Request) {
             subscription = await stripe.subscriptions.retrieve(subscriptionId, {
                 expand: ["items.data.price"],
             })
-        } catch (error) {
+        } catch {
             subscription = null
         }
     }
@@ -38,7 +38,7 @@ export async function GET(request: Request) {
             customer: customerId,
             subscription: subscription?.id || undefined,
         })
-    } catch (error) {
+    } catch {
         nextInvoice = null
     }
 

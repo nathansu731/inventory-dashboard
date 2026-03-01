@@ -305,7 +305,7 @@ export const ForecastEditor = () => {
             }
 
             setRunMessage("Run in progress. Check notifications for status.")
-        } catch (err) {
+        } catch {
             setRunMessage("Unexpected error while saving adjustments")
         } finally {
             setIsSaving(false)

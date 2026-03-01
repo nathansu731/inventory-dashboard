@@ -82,7 +82,7 @@ export const BillingPage = () => {
                 const response = await fetch(`/api/billing?${params.toString()}`)
                 const payload = await response.json()
                 setData(payload)
-            } catch (error) {
+            } catch {
                 setData(null)
             } finally {
                 setIsLoading(false)
