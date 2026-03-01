@@ -93,7 +93,7 @@ const data = {
     },
     {
       title: "Replenishments",
-      url: "#",
+      url: "/replenishments",
       icon: Warehouse,
     },
     {

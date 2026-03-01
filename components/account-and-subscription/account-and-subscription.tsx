@@ -28,8 +28,11 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
     const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalStep, setModalStep] = useState<ModalStep>("plan-details")
+    const role = typeof profile?.app_role === "string" ? profile.app_role : "admin"
+    const isReadOnly = role === "manager"
 
     const handlePlanClick = (plan: PlanType) => {
+        if (isReadOnly) return
         setSelectedPlan(plan)
         setModalStep("plan-details")
         setIsModalOpen(true)
@@ -50,6 +53,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
     }
 
     useEffect(() => {
+        if (isReadOnly) return
         const normalized = initialUpgradePlan?.toLowerCase()
         if (normalized === "core" || normalized === "launch" || normalized === "professional") {
             const upgradePlan = normalized as PlanType
@@ -57,7 +61,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
             setModalStep(initialStep === "payment" ? "payment" : "plan-details")
             setIsModalOpen(true)
         }
-    }, [initialUpgradePlan, initialStep])
+    }, [initialUpgradePlan, initialStep, isReadOnly])
 
     return (
         <div className="container mx-auto p-6 space-y-6">
@@ -70,8 +74,13 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
                 <div className="mb-6">
                     <h2 className="text-2xl font-bold text-foreground mb-4">Choose Your Plan</h2>
                     <p className="text-muted-foreground mb-8">Select the perfect plan for your needs</p>
+                    {isReadOnly && (
+                        <p className="text-sm text-muted-foreground mb-4">
+                            Managers have read-only access for billing and subscription changes.
+                        </p>
+                    )}
                 </div>
-                <SubscriptionPlanCards handlePlanClick={handlePlanClick} currentPlan={currentPlan} />
+                <SubscriptionPlanCards handlePlanClick={handlePlanClick} currentPlan={currentPlan} isReadOnly={isReadOnly} />
                 <div className="mt-8 text-center">
                     <p className="text-sm text-muted-foreground">
                         All plans are billed monthly. Cancel anytime. Questions?

@@ -9,6 +9,7 @@ export type UserProfile = Record<string, unknown> & {
     family_name?: string;
     picture?: string;
     sub?: string;
+    app_role?: "admin" | "manager";
 };
 
 type UseProfileState = {

@@ -1,11 +1,10 @@
+import Link from "next/link"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Input } from "@/components/ui/input"
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
 import { AlertTriangle, Package, TrendingUp } from "lucide-react"
-import { useState } from "react"
 
 type DashboardAlert = {
     type: string
@@ -14,12 +13,28 @@ type DashboardAlert = {
 }
 
 type DashboardRightPanelProps = {
-    getAlertIcon: (type: string) => "🔴" | "🟡" | "🔵" | "ℹ️",
-    alerts: DashboardAlert[],
+    getAlertIcon: (type: string) => "🔴" | "🟡" | "🔵" | "ℹ️"
+    alerts: DashboardAlert[]
+    categories: string[]
+    timeRange: "1month" | "3months" | "6months" | "1year"
+    setTimeRange: React.Dispatch<React.SetStateAction<"1month" | "3months" | "6months" | "1year">>
+    selectedCategory: string
+    setSelectedCategory: React.Dispatch<React.SetStateAction<string>>
+    riskLevelFilter: "all" | "high" | "medium" | "low"
+    setRiskLevelFilter: React.Dispatch<React.SetStateAction<"all" | "high" | "medium" | "low">>
 }
 
-export const DashboardRightPanel = ({getAlertIcon, alerts}: DashboardRightPanelProps) => {
-    const [value, setValue] = useState(70);
+export const DashboardRightPanel = ({
+    getAlertIcon,
+    alerts,
+    categories,
+    timeRange,
+    setTimeRange,
+    selectedCategory,
+    setSelectedCategory,
+    riskLevelFilter,
+    setRiskLevelFilter,
+}: DashboardRightPanelProps) => {
     return (
         <div className="w-full lg:w-80 bg-white min-[1300px]:border-l min-[1300px]:border-gray-200 p-6">
             <Tabs defaultValue="filters" className="w-full">
@@ -31,9 +46,9 @@ export const DashboardRightPanel = ({getAlertIcon, alerts}: DashboardRightPanelP
                 <TabsContent value="filters" className="space-y-6">
                     <div>
                         <Label className="text-sm font-medium">Time Range</Label>
-                        <Select defaultValue="3months">
+                        <Select value={timeRange} onValueChange={(v: "1month" | "3months" | "6months" | "1year") => setTimeRange(v)}>
                             <SelectTrigger className="mt-2">
-                                <SelectValue/>
+                                <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="1month">Last Month</SelectItem>
@@ -45,24 +60,27 @@ export const DashboardRightPanel = ({getAlertIcon, alerts}: DashboardRightPanelP
                     </div>
 
                     <div>
-                        <Label className="text-sm font-medium">Category</Label>
-                        <Select defaultValue="all">
+                        <Label className="text-sm font-medium">Store</Label>
+                        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                             <SelectTrigger className="mt-2">
-                                <SelectValue/>
+                                <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                                <SelectItem value="all">All Categories</SelectItem>
-                                <SelectItem value="electronics">Electronics</SelectItem>
-                                <SelectItem value="accessories">Accessories</SelectItem>
-                                <SelectItem value="clothing">Clothing</SelectItem>
+                                <SelectItem value="all">All Stores</SelectItem>
+                                {categories.map((category) => (
+                                    <SelectItem key={category} value={category}>
+                                        {category}
+                                    </SelectItem>
+                                ))}
                             </SelectContent>
                         </Select>
                     </div>
+
                     <div>
                         <Label className="text-sm font-medium">Risk Level</Label>
-                        <Select defaultValue="all">
+                        <Select value={riskLevelFilter} onValueChange={(v: "all" | "high" | "medium" | "low") => setRiskLevelFilter(v)}>
                             <SelectTrigger className="mt-2">
-                                <SelectValue/>
+                                <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                                 <SelectItem value="all">All Risk Levels</SelectItem>
@@ -72,54 +90,61 @@ export const DashboardRightPanel = ({getAlertIcon, alerts}: DashboardRightPanelP
                             </SelectContent>
                         </Select>
                     </div>
-                    <div>
-                        <Label className="text-sm font-medium">Forecast Accuracy</Label>
-                        <div className="mt-2 space-y-2">
-                            <div className="flex items-center justify-between text-sm">
-                                <span>Min: 0%</span>
-                                <span>Max: 100%</span>
-                            </div>
-                            <Input
-                                type="range"
-                                min="0"
-                                max="100"
-                                value={value}
-                                onChange={(e) => setValue(Number(e.target.value))}
-                                className="w-full p-0"
-                            />
-                            <span className="text-sm">Selected Accuracy: {value}%</span>
-                        </div>
-                    </div>
-                    <Button className="w-full">Apply Filters</Button>
+
+                    <Button
+                        variant="outline"
+                        className="w-full"
+                        onClick={() => {
+                            setTimeRange("3months")
+                            setSelectedCategory("all")
+                            setRiskLevelFilter("all")
+                        }}
+                    >
+                        Reset Filters
+                    </Button>
                 </TabsContent>
+
                 <TabsContent value="alerts" className="space-y-4">
                     <div className="space-y-3">
-                        {alerts.map((alert, index) => (
-                            <Card key={index} className="p-3">
-                                <div className="flex items-start gap-3">
-                                    <span className="text-lg">{getAlertIcon(alert.type)}</span>
-                                    <div className="flex-1">
-                                        <p className="text-sm font-medium text-gray-900">{alert.message}</p>
-                                        <p className="text-xs text-gray-500 mt-1">{alert.time}</p>
-                                    </div>
-                                </div>
+                        {alerts.length === 0 ? (
+                            <Card className="p-4 bg-muted/30">
+                                <p className="text-sm font-medium text-gray-900">No recent alerts</p>
+                                <p className="text-xs text-gray-500 mt-1">Alerts will appear here when runs are created and updated.</p>
                             </Card>
-                        ))}
+                        ) : (
+                            alerts.map((alert, index) => (
+                                <Card key={index} className="p-3">
+                                    <div className="flex items-start gap-3">
+                                        <span className="text-lg">{getAlertIcon(alert.type)}</span>
+                                        <div className="flex-1">
+                                            <p className="text-sm font-medium text-gray-900">{alert.message}</p>
+                                            <p className="text-xs text-gray-500 mt-1">{alert.time}</p>
+                                        </div>
+                                    </div>
+                                </Card>
+                            ))
+                        )}
                     </div>
                     <div className="pt-4 border-t">
                         <h4 className="text-sm font-medium mb-3">Quick Actions</h4>
                         <div className="space-y-2">
-                            <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                                <AlertTriangle className="w-4 h-4 mr-2"/>
-                                View All Alerts
+                            <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
+                                <Link href="/notifications">
+                                    <AlertTriangle className="w-4 h-4 mr-2" />
+                                    View All Alerts
+                                </Link>
                             </Button>
-                            <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                                <TrendingUp className="w-4 h-4 mr-2"/>
-                                Accuracy Report
+                            <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
+                                <Link href="/kpis">
+                                    <TrendingUp className="w-4 h-4 mr-2" />
+                                    Accuracy Report
+                                </Link>
                             </Button>
-                            <Button variant="outline" size="sm" className="w-full justify-start bg-transparent">
-                                <Package className="w-4 h-4 mr-2"/>
-                                Reorder Suggestions
+                            <Button variant="outline" size="sm" className="w-full justify-start bg-transparent" asChild>
+                                <Link href="/forecasts/forecasting-summary">
+                                    <Package className="w-4 h-4 mr-2" />
+                                    Reorder Suggestions
+                                </Link>
                             </Button>
                         </div>
                     </div>

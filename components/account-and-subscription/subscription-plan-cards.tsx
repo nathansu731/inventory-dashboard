@@ -7,12 +7,13 @@ import {PlanType} from "@/components/account-and-subscription/plan-details-types
 type SubscriptionPlanCardsProps = {
     handlePlanClick: (plan: PlanType) => void
     currentPlan?: PlanType
+    isReadOnly?: boolean
 }
 
-export const SubscriptionPlanCards = ({handlePlanClick, currentPlan }: SubscriptionPlanCardsProps) => {
+export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly = false }: SubscriptionPlanCardsProps) => {
     const isCurrent = (plan: PlanType) => currentPlan === plan
     const handleCardClick = (plan: PlanType) => {
-        if (!isCurrent(plan)) {
+        if (!isReadOnly && !isCurrent(plan)) {
             handlePlanClick(plan)
         }
     }
@@ -57,8 +58,8 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan }: Subscript
                             <span className="text-sm">Community access</span>
                         </li>
                     </ul>
-                    <Button variant="outline" className="mt-auto w-full bg-transparent" disabled={isCurrent("launch")}>
-                        {isCurrent("launch") ? "Current Plan" : "Choose Launch"}
+                    <Button variant="outline" className="mt-auto w-full bg-transparent" disabled={isCurrent("launch") || isReadOnly}>
+                        {isCurrent("launch") ? "Current Plan" : isReadOnly ? "Read Only" : "Choose Launch"}
                     </Button>
                 </CardContent>
             </Card>
@@ -107,8 +108,8 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan }: Subscript
                             <span className="text-sm">Advanced analytics</span>
                         </li>
                     </ul>
-                    <Button className="mt-auto w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isCurrent("core")}>
-                        {isCurrent("core") ? "Current Plan" : "Upgrade to Core"}
+                    <Button className="mt-auto w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isCurrent("core") || isReadOnly}>
+                        {isCurrent("core") ? "Current Plan" : isReadOnly ? "Read Only" : "Upgrade to Core"}
                     </Button>
                 </CardContent>
             </Card>
@@ -158,8 +159,8 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan }: Subscript
                             <span className="text-sm">SSO & security</span>
                         </li>
                     </ul>
-                    <Button variant="outline" className="mt-auto w-full bg-transparent" disabled={isCurrent("professional")}>
-                        {isCurrent("professional") ? "Current Plan" : "Select Professional"}
+                    <Button variant="outline" className="mt-auto w-full bg-transparent" disabled={isCurrent("professional") || isReadOnly}>
+                        {isCurrent("professional") ? "Current Plan" : isReadOnly ? "Read Only" : "Select Professional"}
                     </Button>
                 </CardContent>
             </Card>

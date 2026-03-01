@@ -1,4 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+    getTenantRecord,
+    getTenantsTableName,
+    getTokenUserContext,
+    normalizeUsersMap,
+    putTenantRecord,
+    resolveAwsRegion,
+    type TenantRecord,
+} from "@/lib/tenant-users";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
@@ -36,6 +46,49 @@ export async function GET(req: NextRequest) {
     const tokens = await tokenRes.json();
     if (!tokenRes.ok) {
         return NextResponse.redirect(new URL("/login?error=oauth_failed", req.url));
+    }
+
+    try {
+        const idToken = typeof tokens.id_token === "string" ? tokens.id_token : "";
+        const tokenCtx = idToken ? getTokenUserContext(idToken) : null;
+        const tableName = getTenantsTableName();
+        const region = resolveAwsRegion();
+
+        if (tokenCtx && tableName && region) {
+            const ddb = new DynamoDBClient({ region });
+            const now = new Date().toISOString();
+            const tenantRecord =
+                (await getTenantRecord(ddb, tableName, tokenCtx.tenantId)) ||
+                ({
+                    tenantId: tokenCtx.tenantId,
+                    primaryUserEmail: tokenCtx.email,
+                    createdAt: now,
+                } as TenantRecord);
+
+            const users = normalizeUsersMap(tenantRecord.users);
+            const existing = users[tokenCtx.sub];
+            users[tokenCtx.sub] = {
+                userId: tokenCtx.sub,
+                email: tokenCtx.email || existing?.email || "",
+                firstName: tokenCtx.firstName || existing?.firstName || "",
+                lastName: tokenCtx.lastName || existing?.lastName || "",
+                role: existing?.role || "admin",
+                inviteState: "accepted",
+                isActive: true,
+                isDeleted: false,
+                createdAt: existing?.createdAt || now,
+                updatedAt: now,
+                invitedBySub: existing?.invitedBySub,
+                invitedByEmail: existing?.invitedByEmail,
+                acceptedAt: existing?.acceptedAt || now,
+            };
+
+            tenantRecord.users = users;
+            tenantRecord.updatedAt = now;
+            await putTenantRecord(ddb, tableName, tenantRecord);
+        }
+    } catch {
+        // best effort sync; do not block login redirect
     }
 
     const response = NextResponse.redirect(new URL("/overview", req.url));

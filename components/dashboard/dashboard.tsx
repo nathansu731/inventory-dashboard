@@ -1,8 +1,9 @@
 'use client'
 
 import {useEffect, useMemo, useState} from 'react'
+import {useRouter} from 'next/navigation'
 import {Button} from '@/components/ui/button'
-import {AlertTriangle, Calendar, Filter, Package, TrendingUp} from 'lucide-react'
+import {AlertTriangle, Calendar, Download, Package, Plus, TrendingUp} from 'lucide-react'
 import {DashboardDetailModal, SkuDetail} from '@/components/dashboard/dashboard-detail-modal'
 import {DashboardMetricsTiles} from '@/components/dashboard/dashboard-metrics-tiles'
 import {DashboardChartAndTable} from '@/components/dashboard/dashboard-chart-and-table'
@@ -43,31 +44,45 @@ type DashboardAlert = {
   time: string
 }
 
+type ApiNotification = {
+  notificationId: string
+  runId: string
+  status: string
+  createdAt?: string
+  summary?: string | Record<string, unknown>
+}
+
 export const DashboardBody = () => {
+  const router = useRouter()
   const [viewMode, setViewMode] = useState<"chart" | "table">("chart")
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [searchTerm, setSearchTerm] = useState("")
   const [selectedSku, setSelectedSku] = useState<string | null>(null)
   const [isModalOpen, setIsModalOpen] = useState(false)
+  const [timeRange, setTimeRange] = useState<"1month" | "3months" | "6months" | "1year">("3months")
+  const [riskLevelFilter, setRiskLevelFilter] = useState<"all" | "high" | "medium" | "low">("all")
 
   const [metadata, setMetadata] = useState<Record<string, SkuMetadata>>({})
   const [dailyForecasts, setDailyForecasts] = useState<DailyForecast[]>([])
   const [monthlyForecasts, setMonthlyForecasts] = useState<MonthlyForecasts | null>(null)
   const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null)
+  const [notifications, setNotifications] = useState<ApiNotification[]>([])
 
   useEffect(() => {
     const loadDashboardData = async () => {
-      const [meta, daily, monthly, summary] = await Promise.all([
+      const [meta, daily, monthly, summary, notificationsRes] = await Promise.all([
         fetchForecastResult<Record<string, SkuMetadata>>("/api/get-skus-metadata"),
         fetchForecastResult<DailyForecast[]>("/api/get-daily-forecasts"),
         fetchForecastResult<MonthlyForecasts>("/api/get-sku-forecasts"),
         fetchForecastResult<ReportSummary>("/api/get-report-summary"),
+        fetch("/api/list-notifications?limit=8", { cache: "no-store" }).then((res) => (res.ok ? res.json() : null)),
       ])
 
       if (meta) setMetadata(meta)
       if (Array.isArray(daily)) setDailyForecasts(daily)
       if (monthly) setMonthlyForecasts(monthly)
       if (summary) setReportSummary(summary)
+      setNotifications(((notificationsRes?.items ?? []) as ApiNotification[]))
     }
 
     loadDashboardData()
@@ -168,13 +183,14 @@ export const DashboardBody = () => {
 
     return rows.filter((row) => {
       const matchesCategory = selectedCategory === "all" || row.store === selectedCategory
+      const matchesRisk = riskLevelFilter === "all" || row.riskLevel.toLowerCase() === riskLevelFilter
       const matchesSearch =
         !searchTerm ||
         row.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
         row.store.toLowerCase().includes(searchTerm.toLowerCase())
-      return matchesCategory && matchesSearch
+      return matchesCategory && matchesRisk && matchesSearch
     })
-  }, [metadata, selectedCategory, searchTerm, skuForecastTotals])
+  }, [metadata, selectedCategory, riskLevelFilter, searchTerm, skuForecastTotals])
 
   const skuDetailMap = useMemo(() => {
     const detail: Record<string, SkuDetail> = {}
@@ -240,59 +256,97 @@ export const DashboardBody = () => {
     return [
       {
         title: "Total SKUs",
-        value: totalSkus.toLocaleString(),
-        change: reportSummary ? `as of ${reportSummary.dateEnd}` : "latest",
+        value: totalSkus ? totalSkus.toLocaleString() : "--",
+        change: reportSummary && totalSkus ? `as of ${reportSummary.dateEnd}` : "",
         trend: "up" as const,
         icon: Package,
       },
       {
         title: "Forecast Accuracy",
         value: accuracyPercent ? `${accuracyPercent.toFixed(1)}%` : "--",
-        change: "avg last 12 months",
+        change: accuracyPercent ? "avg last 12 months" : "",
         trend: "up" as const,
         icon: TrendingUp,
       },
       {
         title: "High-Value SKUs",
-        value: riskCount.toLocaleString(),
-        change: "ABC class A",
+        value: totalSkus ? riskCount.toLocaleString() : "--",
+        change: totalSkus ? "ABC class A" : "",
         trend: "up" as const,
         icon: AlertTriangle,
       },
       {
         title: "Forecast Horizon",
         value: horizonDays ? `${horizonDays} days` : "--",
-        change: "next period",
+        change: horizonDays ? "next period" : "",
         trend: "up" as const,
         icon: Calendar,
       },
     ]
   }, [reportSummary, metadata, monthlyForecasts, dailyForecasts])
 
-  const alerts = useMemo<DashboardAlert[]>(() => {
-    if (!reportSummary) {
-      return [
-        {
-          type: "info",
-          message: "No completed forecast runs found yet.",
-          time: "Just now",
-        },
-      ]
+
+
+  const handleExportReport = () => {
+    if (tableData.length === 0) return
+
+    const headers = ["SKU", "Store", "ABC Class", "Forecast Method", "Forecast Demand", "Risk Level"]
+    const rows = tableData.map((row) => [
+      row.sku,
+      row.store,
+      row.abcClass,
+      row.forecastMethod,
+      String(row.forecastDemand),
+      row.riskLevel,
+    ])
+
+    const escapeCell = (value: string) => {
+      if (value.includes(",") || value.includes('"') || value.includes("\n")) {
+        return `"${value.replace(/"/g, '""')}"`
+      }
+      return value
     }
 
-    return [
-      {
-        type: "info",
-        message: `Forecast run completed for ${reportSummary.totalSkus} SKUs.`,
-        time: "Latest run",
-      },
-      {
-        type: "warning",
-        message: `Data range: ${reportSummary.dateStart} to ${reportSummary.dateEnd}.`,
-        time: "Latest run",
-      },
-    ]
-  }, [reportSummary])
+    const csv = [
+      headers.map(escapeCell).join(","),
+      ...rows.map((row) => row.map(escapeCell).join(",")),
+    ].join("\n")
+
+    const blob = new Blob([csv], {type: "text/csv;charset=utf-8;"})
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement("a")
+    link.href = url
+    link.setAttribute("download", "dashboard-report.csv")
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const handleAddSku = () => {
+    router.push('/data-input')
+  }
+
+  const filteredChartData = useMemo(() => {
+    const points = timeRange === "1month" ? 1 : timeRange === "3months" ? 3 : timeRange === "6months" ? 6 : 12
+    if (points <= 0) return chartData
+    return chartData.slice(-points)
+  }, [chartData, timeRange])
+
+  const alerts = useMemo<DashboardAlert[]>(() => {
+    return notifications
+      .slice(0, 5)
+      .map((n) => {
+        const status = (n.status || "").toUpperCase()
+        const type = status === "FAILED" ? "critical" : status === "DONE" ? "info" : "warning"
+        const created = n.createdAt ? new Date(n.createdAt).toLocaleString() : "Latest"
+        return {
+          type,
+          message: `Run ${n.runId} is ${status || "UPDATED"}.`,
+          time: created,
+        }
+      })
+  }, [notifications])
 
   return (
     <div className="min-h-screen bg-background">
@@ -304,12 +358,12 @@ export const DashboardBody = () => {
               <p className="text-gray-600">Monitor inventory forecasts and demand patterns</p>
             </div>
             <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
+              <Button variant="outline" size="sm" onClick={handleExportReport} disabled={tableData.length === 0}>
+                <Download className="w-4 h-4 mr-2" />
                 Export Report
               </Button>
-              <Button size="sm">
-                <Package className="w-4 h-4 mr-2" />
+              <Button size="sm" onClick={handleAddSku}>
+                <Plus className="w-4 h-4 mr-2" />
                 Add SKU
               </Button>
             </div>
@@ -327,12 +381,22 @@ export const DashboardBody = () => {
               setSelectedCategory={setSelectedCategory}
               openSkuModal={openSkuModal}
               getRiskBadgeColor={getRiskBadgeColor}
-              chartData={chartData}
+              chartData={filteredChartData}
               tableData={tableData}
               categories={categories}
             />
           </div>
-          <DashboardRightPanel getAlertIcon={getAlertIcon} alerts={alerts} />
+          <DashboardRightPanel
+            getAlertIcon={getAlertIcon}
+            alerts={alerts}
+            categories={categories}
+            timeRange={timeRange}
+            setTimeRange={setTimeRange}
+            selectedCategory={selectedCategory}
+            setSelectedCategory={setSelectedCategory}
+            riskLevelFilter={riskLevelFilter}
+            setRiskLevelFilter={setRiskLevelFilter}
+          />
         </div>
         <DashboardDetailModal
           isModalOpen={isModalOpen}

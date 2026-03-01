@@ -20,37 +20,68 @@ type ForecastingSummaryHeaderColumnSelectorsProps = {
     setColumnVisibility: React.Dispatch<React.SetStateAction<ColumnVisibility>>;
 };
 
+const CONFIGURABLE_COLUMN_KEYS: Array<Exclude<keyof ColumnVisibility, "select">> = [
+    "view",
+    "approved",
+    "skuId",
+    "store",
+    "description",
+    "forecastMethod",
+    "abcClass",
+    "abcPercentage",
+];
 
 export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, columnVisibility, setColumnVisibility}: ForecastingSummaryHeaderColumnSelectorsProps) => {
 
-    const handleColumnVisibilityChange = (column: string, visible: boolean) => {
+    const handleColumnVisibilityChange = (column: keyof ColumnVisibility, visible: boolean) => {
         setColumnVisibility((prev) => ({
             ...prev,
+            select: true,
             [column]: visible,
         }))
     }
 
+    const handleAllColumnsChange = (checked: boolean) => {
+        setColumnVisibility((prev) => ({
+            ...prev,
+            select: true,
+            view: checked,
+            approved: checked,
+            skuId: checked,
+            store: checked,
+            description: checked,
+            forecastMethod: checked,
+            abcClass: checked,
+            abcPercentage: checked,
+        }))
+    }
+
+    const visibleCount = CONFIGURABLE_COLUMN_KEYS.filter((key) => columnVisibility[key]).length
+    const allSelected = visibleCount === CONFIGURABLE_COLUMN_KEYS.length
+    const partiallySelected = visibleCount > 0 && !allSelected
+
     return (
         <div className="space-y-4 py-4">
             <div className="space-y-3">
-                <div className="flex items-center space-x-2">
+                <div className="flex items-center space-x-2 pb-2 border-b">
                     <Checkbox
-                        id="select"
-                        checked={columnVisibility.select}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("select", checked as boolean)}
+                        id="allColumns"
+                        checked={partiallySelected ? "indeterminate" : allSelected}
+                        onCheckedChange={(checked) => handleAllColumnsChange(checked === true)}
                     />
                     <label
-                        htmlFor="select"
-                        className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                        htmlFor="allColumns"
+                        className="text-sm font-semibold leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                     >
-                        Select All
+                        Select all columns
                     </label>
                 </div>
+
                 <div className="flex items-center space-x-2">
                     <Checkbox
                         id="view"
                         checked={columnVisibility.view}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("view", checked as boolean)}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("view", checked === true)}
                     />
                     <label
                         htmlFor="view"
@@ -63,7 +94,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     <Checkbox
                         id="approved"
                         checked={columnVisibility.approved}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("approved", checked as boolean)}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("approved", checked === true)}
                     />
                     <label
                         htmlFor="approved"
@@ -76,7 +107,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     <Checkbox
                         id="skuId"
                         checked={columnVisibility.skuId}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("skuId", checked as boolean)}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("skuId", checked === true)}
                     />
                     <label
                         htmlFor="skuId"
@@ -89,7 +120,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     <Checkbox
                         id="store"
                         checked={columnVisibility.store}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("store", checked as boolean)}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("store", checked === true)}
                     />
                     <label
                         htmlFor="store"
@@ -102,7 +133,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     <Checkbox
                         id="description"
                         checked={columnVisibility.description}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("description", checked as boolean)}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("description", checked === true)}
                     />
                     <label
                         htmlFor="description"
@@ -115,9 +146,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     <Checkbox
                         id="forecastMethod"
                         checked={columnVisibility.forecastMethod}
-                        onCheckedChange={(checked) =>
-                            handleColumnVisibilityChange("forecastMethod", checked as boolean)
-                        }
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("forecastMethod", checked === true)}
                     />
                     <label
                         htmlFor="forecastMethod"
@@ -130,7 +159,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     <Checkbox
                         id="abcClass"
                         checked={columnVisibility.abcClass}
-                        onCheckedChange={(checked) => handleColumnVisibilityChange("abcClass", checked as boolean)}
+                        onCheckedChange={(checked) => handleColumnVisibilityChange("abcClass", checked === true)}
                     />
                     <label
                         htmlFor="abcClass"
@@ -141,7 +170,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                 </div>
                 <ForecastingSummaryPercentage
                     columnKey="abcPercentage"
-                    label="XYZ %"
+                    label="ABC %"
                     checked={columnVisibility.abcPercentage}
                     onChange={handleColumnVisibilityChange}
                 />

@@ -173,4 +173,58 @@ export default function ProductList() {
 }
 ```
 
+## Data Source Worker Configuration
 
+Set these environment variables for connector sync encryption and background worker execution:
+
+```bash
+# 32-byte key, base64 encoded
+DATA_SOURCE_ENCRYPTION_KEY=...
+# Optional JSON payload alternative. Supports {"DATA_SOURCE_ENCRYPTION_KEY":"..."} or {"key":"..."}
+DATA_SOURCE_ENCRYPTION_KEY_JSON=...
+
+# Internal worker auth token (used by /api/internal/data-sources/* endpoints)
+WORKER_CRON_TOKEN=...
+
+# Shopify
+SHOPIFY_CLIENT_ID=...
+SHOPIFY_CLIENT_SECRET=...
+SHOPIFY_SCOPES=read_orders,read_products,read_inventory
+SHOPIFY_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/shopify/callback
+
+# QuickBooks
+QUICKBOOKS_CLIENT_ID=...
+QUICKBOOKS_CLIENT_SECRET=...
+QUICKBOOKS_SCOPES=com.intuit.quickbooks.accounting
+QUICKBOOKS_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/quickbooks/callback
+
+# BigCommerce
+BIGCOMMERCE_CLIENT_ID=...
+BIGCOMMERCE_CLIENT_SECRET=...
+BIGCOMMERCE_SCOPES=store_v2_orders store_v2_products store_v2_customers
+BIGCOMMERCE_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/bigcommerce/callback
+
+# Amazon SP-API OAuth
+AMAZON_SP_APPLICATION_ID=...
+AMAZON_LWA_CLIENT_ID=...
+AMAZON_LWA_CLIENT_SECRET=...
+AMAZON_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/amazon/callback
+AMAZON_SELLER_CENTRAL_URL=https://sellercentral.amazon.com
+```
+
+Generate a secure token:
+
+```bash
+openssl rand -base64 48
+```
+
+Internal endpoints:
+
+- `POST /api/internal/data-sources/run-due`
+- `POST /api/internal/data-sources/backfill`
+
+Both require the header:
+
+```text
+x-worker-token: <WORKER_CRON_TOKEN>
+```

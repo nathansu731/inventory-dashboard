@@ -11,6 +11,8 @@ type CookieToSet = {
     };
 };
 
+const authCookieNames = ["access_token", "id_token", "refresh_token"] as const;
+
 const decodeJwtPayload = (token: string) => {
     const parts = token.split(".");
     if (parts.length < 2) {
@@ -80,6 +82,14 @@ export const getValidIdToken = async () => {
     const cookieStore = await nextCookies();
     const idToken = cookieStore.get("id_token")?.value;
     const refreshToken = cookieStore.get("refresh_token")?.value;
+    const secure = process.env.NODE_ENV === "production";
+
+    const clearAuthCookies = (): CookieToSet[] =>
+        authCookieNames.map((name) => ({
+            name,
+            value: "",
+            options: { httpOnly: true, secure, path: "/", maxAge: 0 },
+        }));
 
     if (idToken && !isExpired(idToken)) {
         return { idToken, cookiesToSet: [] as CookieToSet[] };
@@ -89,28 +99,35 @@ export const getValidIdToken = async () => {
         return { idToken: null, cookiesToSet: [] as CookieToSet[] };
     }
 
-    const tokens = await refreshTokens(refreshToken);
-    const secure = process.env.NODE_ENV === "production";
-    const cookiesToSet: CookieToSet[] = [
-        {
-            name: "access_token",
-            value: tokens.access_token,
-            options: { httpOnly: true, secure, path: "/" },
-        },
-        {
-            name: "id_token",
-            value: tokens.id_token,
-            options: { httpOnly: true, secure, path: "/" },
-        },
-    ];
+    try {
+        const tokens = await refreshTokens(refreshToken);
+        const cookiesToSet: CookieToSet[] = [
+            {
+                name: "access_token",
+                value: tokens.access_token,
+                options: { httpOnly: true, secure, path: "/" },
+            },
+            {
+                name: "id_token",
+                value: tokens.id_token,
+                options: { httpOnly: true, secure, path: "/" },
+            },
+        ];
 
-    if (tokens.refresh_token) {
-        cookiesToSet.push({
-            name: "refresh_token",
-            value: tokens.refresh_token,
-            options: { httpOnly: true, secure, path: "/" },
-        });
+        if (tokens.refresh_token) {
+            cookiesToSet.push({
+                name: "refresh_token",
+                value: tokens.refresh_token,
+                options: { httpOnly: true, secure, path: "/" },
+            });
+        }
+
+        return { idToken: tokens.id_token, cookiesToSet };
+    } catch {
+        const expiredCookies = clearAuthCookies();
+        for (const cookie of expiredCookies) {
+            cookieStore.set(cookie.name, cookie.value, cookie.options);
+        }
+        return { idToken: null, cookiesToSet: expiredCookies };
     }
-
-    return { idToken: tokens.id_token, cookiesToSet };
 };

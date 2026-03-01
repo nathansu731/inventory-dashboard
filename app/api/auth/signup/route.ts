@@ -76,6 +76,22 @@ export async function POST(req: NextRequest) {
                             primaryUserEmail: String(email),
                             isOnboardingUser: true,
                             createdAt,
+                            users: result.UserSub
+                                ? {
+                                      [result.UserSub]: {
+                                          userId: result.UserSub,
+                                          email: String(email).toLowerCase(),
+                                          firstName: String(firstName),
+                                          lastName: String(lastName),
+                                          role: "admin",
+                                          inviteState: "sent",
+                                          isActive: true,
+                                          isDeleted: false,
+                                          createdAt,
+                                          updatedAt: createdAt,
+                                      },
+                                  }
+                                : {},
                         }),
                         ConditionExpression: "attribute_not_exists(tenantId)",
                     }),

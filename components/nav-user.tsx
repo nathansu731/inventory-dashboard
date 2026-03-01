@@ -7,6 +7,7 @@ import {
   CreditCard,
   LogOut,
   Sparkles,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { useProfile } from "@/hooks/use-profile"
@@ -53,7 +54,8 @@ export function NavUser({
   const planRaw =
     (typeof profile?.["custom:plan"] === "string" && profile["custom:plan"]) || ""
   const plan = (planRaw || "launch").toLowerCase()
-  const showUpgrade = plan !== "core" && plan !== "professional"
+  const appRole = typeof profile?.app_role === "string" ? profile.app_role : "admin"
+  const showUpgrade = appRole !== "manager" && plan !== "core" && plan !== "professional"
 
   const initials = (displayName === "--" ? "" : displayName)
     .split(" ")
@@ -131,6 +133,12 @@ export function NavUser({
                 <Link href="/billing">
                   <CreditCard />
                   Billing
+                </Link>
+              </DropdownMenuItem>
+              <DropdownMenuItem asChild>
+                <Link href="/users">
+                  <Users />
+                  Manage Users
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

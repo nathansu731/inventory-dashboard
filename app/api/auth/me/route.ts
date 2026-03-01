@@ -1,4 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import {
+    getTenantRecord,
+    getTenantsTableName,
+    getTokenUserContext,
+    normalizeRole,
+    normalizeUsersMap,
+    resolveAwsRegion,
+    roleForUser,
+} from "@/lib/tenant-users";
 
 const decodeJwtPayload = (token: string) => {
     const parts = token.split(".");
@@ -22,8 +32,22 @@ export async function GET(req: NextRequest) {
 
     try {
         const profile = decodeJwtPayload(idToken);
+        let appRole: "admin" | "manager" = "admin";
+
+        const tokenCtx = getTokenUserContext(idToken);
+        const tableName = getTenantsTableName();
+        const region = resolveAwsRegion();
+        if (tokenCtx && tableName && region) {
+            const ddb = new DynamoDBClient({ region });
+            const tenantRecord = await getTenantRecord(ddb, tableName, tokenCtx.tenantId);
+            if (tenantRecord) {
+                const users = normalizeUsersMap(tenantRecord.users);
+                appRole = normalizeRole(roleForUser(users, tokenCtx.sub));
+            }
+        }
+
         return NextResponse.json(
-            { profile },
+            { profile: { ...profile, app_role: appRole } },
             {
                 headers: {
                     "Cache-Control": "no-store",

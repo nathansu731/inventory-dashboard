@@ -1,9 +1,12 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import Image from "next/image"
+import { useRouter } from "next/navigation"
 import { IconTrendingDown, IconTrendingUp } from "@tabler/icons-react"
 
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import {
   Card,
   CardAction,
@@ -12,6 +15,8 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useProfile } from "@/hooks/use-profile"
 
 type MonthlyMetric = {
   value: number
@@ -26,25 +31,50 @@ type MonthlyTotalsResult = {
   growthRate?: MonthlyMetric
 }
 
+const EMPTY_STATE_MODAL_KEY = "overview_empty_state_modal_seen"
+
 export function SectionCards() {
+  const router = useRouter()
+  const { profile, isLoading: isProfileLoading } = useProfile()
   const [data, setData] = useState<MonthlyTotalsResult | null>(null)
+  const [showEmptyDataModal, setShowEmptyDataModal] = useState(false)
 
   useEffect(() => {
+    if (isProfileLoading) return
+
     const loadMonthlyTotals = async () => {
       const res = await fetch("/api/get-monthly-totals")
       if (!res.ok) return
 
       const json = await res.json()
+      const status = typeof json?.status === "string" ? json.status.toLowerCase() : ""
       const result =
           typeof json.result === "string"
               ? JSON.parse(json.result)
               : json.result
 
       setData(result)
+
+      const isResultEmptyObject =
+        Boolean(result) && typeof result === "object" && !Array.isArray(result) && Object.keys(result).length === 0
+      const shouldPromptUpload = status === "empty" && isResultEmptyObject
+
+      if (!shouldPromptUpload) return
+
+      const userKeyPart =
+        (typeof profile?.sub === "string" && profile.sub) ||
+        (typeof profile?.email === "string" && profile.email) ||
+        "anonymous"
+      const modalSeenKey = `${EMPTY_STATE_MODAL_KEY}:${userKeyPart}`
+      const hasShownModal = window.localStorage.getItem(modalSeenKey) === "true"
+      if (!hasShownModal) {
+        setShowEmptyDataModal(true)
+        window.localStorage.setItem(modalSeenKey, "true")
+      }
     }
 
     loadMonthlyTotals()
-  }, [])
+  }, [isProfileLoading, profile?.sub, profile?.email])
 
   const formatValue = (value?: number) =>
       value !== undefined ? value.toLocaleString() : "--"
@@ -56,6 +86,7 @@ export function SectionCards() {
       status === "negative" ? <IconTrendingDown /> : <IconTrendingUp />
 
   return (
+      <>
       <div className="*:data-[slot=card]:from-primary/5 *:data-[slot=card]:to-card dark:*:data-[slot=card]:bg-card grid grid-cols-1 gap-4 px-4 *:data-[slot=card]:bg-gradient-to-t *:data-[slot=card]:shadow-xs lg:px-6 @xl/main:grid-cols-2 @5xl/main:grid-cols-4">
         {/* Total Revenue */}
         <Card className="@container/card">
@@ -153,5 +184,34 @@ export function SectionCards() {
           </CardFooter>
         </Card>
       </div>
+      <Dialog open={showEmptyDataModal} onOpenChange={setShowEmptyDataModal}>
+        <DialogContent className="max-w-md" showCloseButton={false}>
+          <div className="space-y-5">
+            <Image
+              src="/images/login-forecasting.svg"
+              alt="Upload inventory data to start forecasting"
+              width={260}
+              height={160}
+              className="mx-auto h-40 w-auto rounded-[30%]"
+            />
+            <DialogHeader className="space-y-3 text-center">
+              <DialogTitle className="text-xl">No Forecast Data Yet</DialogTitle>
+              <DialogDescription className="text-sm leading-6">
+                If you have not added any SKUs yet, upload your data first to see forecasting trends and insights.
+              </DialogDescription>
+            </DialogHeader>
+            <Button
+              className="h-11 w-full bg-blue-600 text-white hover:bg-blue-700"
+              onClick={() => {
+                setShowEmptyDataModal(false)
+                router.push("/data-input")
+              }}
+            >
+              Upload Data
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+      </>
   )
 }
