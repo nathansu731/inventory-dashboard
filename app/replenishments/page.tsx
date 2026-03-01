@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { ReplenishmentsPage } from "@/components/replenishments/replenishments-page"
 import { SiteHeader } from "@/components/site-header"
@@ -14,7 +15,9 @@ export default function Page() {
       <AppSidebar />
       <SidebarInset>
         <SiteHeader />
-        <ReplenishmentsPage />
+        <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading replenishments...</div>}>
+          <ReplenishmentsPage />
+        </Suspense>
       </SidebarInset>
     </SidebarProvider>
   )

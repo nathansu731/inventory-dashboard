@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -17,7 +18,9 @@ export default function Page() {
             <AppSidebar/>
             <SidebarInset>
                 <SiteHeader />
-                <ReportsPage/>
+                <Suspense fallback={<div className="p-4 text-sm text-muted-foreground">Loading reports...</div>}>
+                    <ReportsPage/>
+                </Suspense>
             </SidebarInset>
         </SidebarProvider>
     )

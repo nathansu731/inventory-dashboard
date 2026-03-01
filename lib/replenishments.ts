@@ -112,7 +112,7 @@ export const buildReplenishmentRows = (
   const tomorrow = addDays(today, 1)
   const horizonEnd = addDays(tomorrow, Math.max(1, horizonDays) - 1)
 
-  const rows = Object.entries(metadata).map(([sku, meta]) => {
+  const rows: ReplenishmentRow[] = Object.entries(metadata).map(([sku, meta]) => {
     const abcClass = normalizeClass(meta.ABCclass)
     const leadTimeDays = LEAD_TIME_BY_CLASS[abcClass] ?? LEAD_TIME_BY_CLASS.C
     const safetyStockDays = SAFETY_DAYS_BY_CLASS[abcClass] ?? SAFETY_DAYS_BY_CLASS.C

@@ -326,7 +326,7 @@ const discoverByProvider = async (source: DataSourceRecord, secretEntry: Record<
   if (source.provider === "shopify") return discoverShopify(source, secretEntry)
   if (source.provider === "quickbooks") return discoverQuickBooks(source, secretEntry)
   if (source.provider === "bigcommerce") return discoverBigCommerce(source, secretEntry)
-  if (source.provider === "amazon") return discoverAmazon()
+  if (source.provider === "amazon") return discoverAmazon(source, secretEntry)
   return discoverOther()
 }
 

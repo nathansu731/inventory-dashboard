@@ -139,30 +139,33 @@ export const normalizeSourcesMap = (value: unknown): Record<string, DataSourceRe
 
 export const normalizeAuditEvents = (value: unknown): DataSourceAuditEvent[] => {
   const input = Array.isArray(value) ? value : []
-  return input
-    .map((raw) => {
-      const item = typeof raw === "object" && raw ? (raw as Record<string, unknown>) : null
-      if (!item) return null
-      const id = sanitizeText(item.id)
-      const type = sanitizeText(item.type)
-      const actor = sanitizeText(item.actor)
-      const actorType = item.actorType === "system" ? "system" : "user"
-      const message = sanitizeText(item.message)
-      const createdAt = sanitizeText(item.createdAt)
-      if (!id || !type || !actor || !message || !createdAt) return null
-      return {
-        id,
-        type,
-        actor,
-        actorType,
-        sourceId: sanitizeText(item.sourceId) || undefined,
-        provider: normalizeProvider(item.provider),
-        message,
-        createdAt,
-      } satisfies DataSourceAuditEvent
+  const events: DataSourceAuditEvent[] = []
+
+  for (const raw of input) {
+    const item = typeof raw === "object" && raw ? (raw as Record<string, unknown>) : null
+    if (!item) continue
+
+    const id = sanitizeText(item.id)
+    const type = sanitizeText(item.type)
+    const actor = sanitizeText(item.actor)
+    const actorType = item.actorType === "system" ? "system" : "user"
+    const message = sanitizeText(item.message)
+    const createdAt = sanitizeText(item.createdAt)
+    if (!id || !type || !actor || !message || !createdAt) continue
+
+    events.push({
+      id,
+      type,
+      actor,
+      actorType,
+      sourceId: sanitizeText(item.sourceId) || undefined,
+      provider: normalizeProvider(item.provider),
+      message,
+      createdAt,
     })
-    .filter((item): item is DataSourceAuditEvent => Boolean(item))
-    .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  }
+
+  return events.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
 }
 
 export const readTenantRecord = async (
