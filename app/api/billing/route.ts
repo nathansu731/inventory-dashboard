@@ -34,7 +34,7 @@ export async function GET(request: Request) {
 
     let nextInvoice = null
     try {
-        nextInvoice = await stripe.invoices.retrieveUpcoming({
+        nextInvoice = await stripe.invoices.createPreview({
             customer: customerId,
             subscription: subscription?.id || undefined,
         })
@@ -50,6 +50,7 @@ export async function GET(request: Request) {
     const lastPayment = lastPaymentList.data[0] || null
 
     const price = subscription?.items?.data?.[0]?.price
+    const currentPeriodEnd = subscription?.items?.data?.[0]?.current_period_end ?? null
 
     return NextResponse.json({
         subscription: subscription
@@ -57,7 +58,7 @@ export async function GET(request: Request) {
                   subscription_id: subscription.id,
                   customer_id: subscription.customer,
                   status: subscription.status,
-                  current_period_end: subscription.current_period_end,
+                  current_period_end: currentPeriodEnd,
                   cancel_at_period_end: subscription.cancel_at_period_end,
                   unit_amount: price?.unit_amount ?? null,
                   currency: price?.currency ?? null,
