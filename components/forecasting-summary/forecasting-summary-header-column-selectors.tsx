@@ -172,7 +172,7 @@ export const ForecastingSummaryHeaderColumnSelectors = ({setIsColumnModalOpen, c
                     columnKey="abcPercentage"
                     label="ABC %"
                     checked={columnVisibility.abcPercentage}
-                    onChange={handleColumnVisibilityChange}
+                    onChange={(columnKey, checked) => handleColumnVisibilityChange(columnKey as keyof ColumnVisibility, checked)}
                 />
             </div>
             <div className="flex justify-end space-x-2 pt-4">
