@@ -4,7 +4,7 @@ import { marshall } from "@aws-sdk/util-dynamodb"
 import type { DataSourceRecord } from "@/lib/data-sources"
 
 const resolveRegion = () =>
-  process.env.AWS_REGION || process.env.COGNITO_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION || ""
+  process.env.AWS_REGION || process.env.COGNITO_REGION || ""
 
 export const emitConnectorNotification = async ({
   tenantId,

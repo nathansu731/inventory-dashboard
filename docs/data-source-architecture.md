@@ -153,6 +153,19 @@ Dedicated scale table:
 - `SHOPIFY_CLIENT_SECRET`
 - `SHOPIFY_SCOPES` (optional)
 - `SHOPIFY_REDIRECT_URI`
+- `QUICKBOOKS_CLIENT_ID`
+- `QUICKBOOKS_CLIENT_SECRET`
+- `QUICKBOOKS_SCOPES` (optional; default present)
+- `QUICKBOOKS_REDIRECT_URI`
+- `BIGCOMMERCE_CLIENT_ID`
+- `BIGCOMMERCE_CLIENT_SECRET`
+- `BIGCOMMERCE_SCOPES` (optional; default present)
+- `BIGCOMMERCE_REDIRECT_URI`
+- `AMAZON_SP_APPLICATION_ID`
+- `AMAZON_LWA_CLIENT_ID`
+- `AMAZON_LWA_CLIENT_SECRET`
+- `AMAZON_REDIRECT_URI`
+- `AMAZON_SELLER_CENTRAL_URL` (optional; default https://sellercentral.amazon.com)
 
 Also required for broader existing app features:
 - Cognito variables (`COGNITO_*`, `NEXT_PUBLIC_COGNITO_*`)

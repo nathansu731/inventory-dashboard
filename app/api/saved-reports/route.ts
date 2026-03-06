@@ -22,7 +22,7 @@ type SavedReportDefinition = {
 }
 
 const resolveRegion = () => {
-  return process.env.AWS_REGION || process.env.COGNITO_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION || ""
+  return process.env.AWS_REGION || process.env.COGNITO_REGION || ""
 }
 
 const decodeNextToken = (token: string | null) => {

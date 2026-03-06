@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { s3Bucket, s3Key, originalFilename, adjustmentsKey, sku, store, frequency } = body || {};
+    const { s3Bucket, s3Key, originalFilename, adjustmentsKey, sku, store, frequency, model, mode, seasonality } = body || {};
     if (!s3Bucket || !s3Key) {
         return NextResponse.json({ error: "missing_s3" }, { status: 400 });
     }
@@ -41,6 +41,9 @@ export async function POST(req: Request) {
                 sku,
                 store,
                 frequency,
+                model,
+                mode,
+                seasonality,
             },
         });
 

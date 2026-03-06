@@ -11,6 +11,7 @@ import { DataConfiguration } from "@/components/data-input-page/data-configurati
 import { DataQualityIndicator } from "@/components/data-input-page/data-quality-indicator"
 import { useProfile } from "@/hooks/use-profile"
 import type { AdapterTemplate, DataSourceAdapterConfig } from "@/lib/data-source-adapters"
+import { ForecastAssistantOnboarding } from "@/components/data-input-page/forecast-assistant-onboarding"
 
 type RunSummary = {
   runId?: string
@@ -116,6 +117,7 @@ export const DataInputPage = () => {
   const [uploadedFile, setUploadedFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
   const [runStatus, setRunStatus] = useState<RunSummary | null>(null)
+  const [latestRunId, setLatestRunId] = useState<string | null>(null)
   const [pageError, setPageError] = useState<string | null>(null)
 
   const { profile } = useProfile()
@@ -189,6 +191,14 @@ export const DataInputPage = () => {
     setHealthProviders(Array.isArray(payload.providers) ? payload.providers : [])
   }
 
+  const loadLatestRun = async () => {
+    const res = await fetch("/api/list-forecast-runs?limit=1", { cache: "no-store" })
+    if (!res.ok) return
+    const payload = (await res.json()) as { items?: Array<{ runId?: string }> }
+    const runId = payload?.items?.[0]?.runId
+    setLatestRunId(runId || null)
+  }
+
   useEffect(() => {
     if (!availableModels.includes(model)) setModel(availableModels[0])
     if (!allowGlobal && mode === "global") setMode("local")
@@ -202,6 +212,7 @@ export const DataInputPage = () => {
           loadConnectorState(),
           loadAdapterTemplates(),
           loadProviderCatalog(),
+          loadLatestRun(),
         ])
         await loadHealth()
         if (settingsRes.ok) {
@@ -489,6 +500,7 @@ export const DataInputPage = () => {
         updatedAt: runJson?.run?.updatedAt,
         message: runJson?.message,
       })
+      setLatestRunId(runJson?.run?.runId || null)
     } catch {
       setRunStatus({ message: "Unexpected error starting forecast" })
     } finally {
@@ -522,6 +534,8 @@ export const DataInputPage = () => {
           <h1 className="mb-2 text-3xl font-bold text-foreground">Data Input</h1>
           <p className="text-muted-foreground">Upload and configure your forecasting data sources</p>
         </div>
+
+        <ForecastAssistantOnboarding runId={runStatus?.runId || latestRunId} />
 
         {pageError && (
           <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">

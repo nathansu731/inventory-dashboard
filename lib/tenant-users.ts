@@ -36,7 +36,7 @@ export type TokenUserContext = {
 }
 
 export const resolveAwsRegion = () =>
-  process.env.AWS_REGION || process.env.COGNITO_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION || ""
+  process.env.AWS_REGION || process.env.COGNITO_REGION || ""
 
 export const normalizeRole = (role: unknown): TenantUserRole => {
   const value = typeof role === "string" ? role.trim().toLowerCase() : ""

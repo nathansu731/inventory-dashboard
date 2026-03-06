@@ -51,7 +51,7 @@ export type TenantRecord = Record<string, unknown> & {
 }
 
 export const resolveAwsRegion = () =>
-  process.env.AWS_REGION || process.env.COGNITO_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION || ""
+  process.env.AWS_REGION || process.env.COGNITO_REGION || ""
 
 export const getTenantsTableName = () => process.env.TENANTS_TABLE || ""
 

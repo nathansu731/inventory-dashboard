@@ -11,7 +11,7 @@ export async function POST(req: NextRequest) {
         return NextResponse.redirect(new URL("/login?error=missing_credentials", req.url));
     }
 
-    const clientId = process.env.COGNITO_CLIENT_ID || "";
+    const clientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
     const clientSecret = process.env.COGNITO_CLIENT_SECRET || "";
     const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
 

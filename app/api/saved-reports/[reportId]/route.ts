@@ -3,7 +3,7 @@ import { DeleteItemCommand, DynamoDBClient, GetItemCommand } from "@aws-sdk/clie
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
 
 const resolveRegion = () => {
-  return process.env.AWS_REGION || process.env.COGNITO_REGION || process.env.NEXT_PUBLIC_COGNITO_REGION || ""
+  return process.env.AWS_REGION || process.env.COGNITO_REGION || ""
 }
 
 type SavedReportCriteria = {
