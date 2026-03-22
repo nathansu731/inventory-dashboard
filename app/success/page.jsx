@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
 import { stripe } from "../../lib/stripe";
+import Link from "next/link";
+import { AutoRedirect } from "./auto-redirect";
 
 export default async function Success({ searchParams }) {
     const { session_id } = await searchParams;
@@ -21,6 +23,7 @@ export default async function Success({ searchParams }) {
     if (status === "complete") {
         return (
             <section className="w-full min-h-screen flex items-center justify-center py-20 md:py-32 bg-muted/30 relative overflow-hidden">
+                <AutoRedirect delayMs={5000} />
                 <div className="container px-4 md:px-6 relative max-w-2xl mx-auto text-center">
                     <div className="bg-black text-white rounded-xl shadow-lg p-8 md:p-12 border border-neutral-800">
                         <h1 className="text-2xl md:text-3xl font-semibold mb-4">
@@ -31,11 +34,17 @@ export default async function Success({ searchParams }) {
                             {customerEmail}. If you have any questions, please email{" "}
                         </p>
                         <a
-                            href="mailto:orders@example.com"
+                            href="mailto:info@arkforecasting.com.au"
                             className="inline-block text-sm md:text-base font-medium text-primary hover:underline"
                         >
-                            orders@ark.com
+                            info@arkforecasting.com.au
                         </a>
+                        <div className="mt-8">
+                            <p className="text-sm text-white/70 mb-3">Your subscription is active. Redirecting to overview...</p>
+                            <Link href="/overview" className="inline-block text-sm md:text-base font-medium text-primary hover:underline">
+                                Go to Overview Now
+                            </Link>
+                        </div>
                     </div>
                 </div>
             </section>

@@ -258,6 +258,43 @@ export const DataInputPage = () => {
     setSyncStartDate("")
   }, [activeSource])
 
+  useEffect(() => {
+    const runId = runStatus?.runId
+    if (!runId) return
+
+    const stream = new EventSource(`/api/forecast/status-stream?runId=${encodeURIComponent(runId)}`)
+    stream.onmessage = (event) => {
+      try {
+        const payload = JSON.parse(event.data) as { run?: RunSummary; error?: string }
+        if (payload.error) {
+          setRunStatus((prev) => ({ ...(prev || {}), message: payload.error }))
+          stream.close()
+          return
+        }
+        if (payload.run) {
+          setRunStatus((prev) => ({
+            ...(prev || {}),
+            ...payload.run,
+            message: prev?.message || payload.run.message,
+          }))
+          const normalizedStatus = String(payload.run.status || "").toUpperCase()
+          if (normalizedStatus === "DONE" || normalizedStatus === "FAILED") {
+            stream.close()
+          }
+        }
+      } catch {
+        setRunStatus((prev) => ({ ...(prev || {}), message: "status_stream_parse_error" }))
+        stream.close()
+      }
+    }
+    stream.onerror = () => {
+      setRunStatus((prev) => ({ ...(prev || {}), message: prev?.message || "status_stream_disconnected" }))
+      stream.close()
+    }
+
+    return () => stream.close()
+  }, [runStatus?.runId])
+
   const processSelectedFile = (file: File) => {
     setUploadedFile(file)
     setIsProcessing(true)

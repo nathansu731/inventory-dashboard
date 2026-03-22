@@ -73,8 +73,11 @@ export async function POST(req: NextRequest) {
                         TableName: tenantsTable,
                         Item: marshall({
                             tenantId,
+                            name: `${String(firstName)} ${String(lastName)}`.trim(),
                             primaryUserEmail: String(email),
                             isOnboardingUser: true,
+                            status: "onboarding",
+                            plan: "free",
                             createdAt,
                             users: result.UserSub
                                 ? {

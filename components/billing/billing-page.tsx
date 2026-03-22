@@ -64,6 +64,7 @@ export const BillingPage = () => {
     }, [profile])
     const [data, setData] = useState<BillingData | null>(null)
     const [isLoading, setIsLoading] = useState(false)
+    const [isOpeningPortal, setIsOpeningPortal] = useState(false)
 
     useEffect(() => {
         const loadBilling = async () => {
@@ -96,6 +97,28 @@ export const BillingPage = () => {
     const nextInvoice = data?.next_invoice
     const lastPayment = data?.last_payment
 
+    const openPortal = async () => {
+        if (!customerId || isOpeningPortal) return
+        setIsOpeningPortal(true)
+        try {
+            const response = await fetch("/api/billing/portal", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    customerId,
+                    returnUrl: `${window.location.origin}/billing`,
+                }),
+            })
+            const payload = (await response.json()) as { url?: string; error?: string }
+            if (!response.ok || !payload.url) {
+                throw new Error(payload.error || `portal_error_${response.status}`)
+            }
+            window.location.assign(payload.url)
+        } finally {
+            setIsOpeningPortal(false)
+        }
+    }
+
     return (
         <div className="container mx-auto p-6 space-y-6">
             <div className="container mx-auto px-4 py-8 max-w-6xl">
@@ -103,6 +126,14 @@ export const BillingPage = () => {
                     <h1 className="text-3xl font-bold text-foreground mb-2">Billing</h1>
                     <p className="text-muted-foreground">View your subscription, invoices, and upcoming payments</p>
                 </div>
+
+                {!isLoading && customerId && subscription && (
+                    <div className="mb-6 flex justify-end">
+                        <Button onClick={openPortal} disabled={isOpeningPortal}>
+                            {isOpeningPortal ? "Opening..." : "Manage Subscription"}
+                        </Button>
+                    </div>
+                )}
 
                 {isLoading && (
                     <div className="rounded-lg border border-border bg-muted/30 p-8 text-center">

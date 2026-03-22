@@ -61,7 +61,10 @@ export async function GET(req: NextRequest) {
                 (await getTenantRecord(ddb, tableName, tokenCtx.tenantId)) ||
                 ({
                     tenantId: tokenCtx.tenantId,
+                    name: `${tokenCtx.firstName} ${tokenCtx.lastName}`.trim(),
                     primaryUserEmail: tokenCtx.email,
+                    status: "active",
+                    plan: "free",
                     createdAt: now,
                 } as TenantRecord);
 
