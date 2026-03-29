@@ -13,7 +13,7 @@ import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { encryptSecret } from "@/lib/data-source-secrets"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 const SHOPIFY_STATE_COOKIE = "shopify_oauth_state"
 
@@ -74,6 +74,7 @@ export async function GET(request: NextRequest) {
     tenantId: string
     requesterSub: string
     shop: string
+    availableTables: string[]
     selectedTables: string[]
     createdAt: number
   } | null = null
@@ -83,6 +84,7 @@ export async function GET(request: NextRequest) {
       tenantId?: string
       requesterSub?: string
       shop?: string
+      availableTables?: unknown
       selectedTables?: unknown
       createdAt?: number
     }
@@ -98,6 +100,7 @@ export async function GET(request: NextRequest) {
         tenantId: parsed.tenantId,
         requesterSub: parsed.requesterSub,
         shop: parsed.shop,
+        availableTables: sanitizeAvailableObjects("shopify", parsed.availableTables),
         selectedTables: sanitizeSelectedObjects("shopify", parsed.selectedTables),
         createdAt: parsed.createdAt,
       }
@@ -155,6 +158,7 @@ export async function GET(request: NextRequest) {
     accountId: shop,
     state: "connected",
     connectedAt: now,
+    availableTables: sanitizeAvailableObjects("shopify", statePayload.availableTables ?? existing?.availableTables),
     selectedTables: sanitizeSelectedObjects("shopify", statePayload.selectedTables ?? existing?.selectedTables),
     syncMode: existing?.syncMode || "manual",
     syncStartDate: existing?.syncStartDate || "",

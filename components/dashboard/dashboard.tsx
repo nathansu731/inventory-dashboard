@@ -350,25 +350,23 @@ export const DashboardBody = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <div className="container max-w-[2000px] mx-auto px-5 py-8 min-w-0">
-        <header className="bg-white border-b border-gray-200 px-6 py-4">
-          <div className="flex items-center justify-between flex-col sm:flex-row gap-y-2 sm:gap-y-0">
-            <div className="flex flex-col items-center md:items-start">
-              <h1 className="text-2xl font-bold text-gray-900">SKU Forecasting Dashboard</h1>
-              <p className="text-gray-600">Monitor inventory forecasts and demand patterns</p>
-            </div>
-            <div className="flex items-center gap-4">
-              <Button variant="outline" size="sm" onClick={handleExportReport} disabled={tableData.length === 0}>
-                <Download className="w-4 h-4 mr-2" />
-                Export Report
-              </Button>
-              <Button size="sm" onClick={handleAddSku}>
-                <Plus className="w-4 h-4 mr-2" />
-                Add SKU
-              </Button>
-            </div>
+      <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+        <div className="flex items-center justify-between flex-col sm:flex-row gap-y-2 sm:gap-y-0">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">SKU Forecasting Dashboard</h1>
+            <p className="text-muted-foreground mt-1">Monitor inventory forecasts and demand patterns.</p>
           </div>
-        </header>
+          <div className="flex items-center gap-4">
+            <Button variant="outline" size="sm" onClick={handleExportReport} disabled={tableData.length === 0}>
+              <Download className="w-4 h-4 mr-2" />
+              Export Report
+            </Button>
+            <Button size="sm" onClick={handleAddSku}>
+              <Plus className="w-4 h-4 mr-2" />
+              Add SKU
+            </Button>
+          </div>
+        </div>
         <div className="flex flex-col min-[1300px]:flex-row overflow-x-auto">
           <div className="flex-1 p-6">
             <DashboardMetricsTiles metrics={metricsData} />

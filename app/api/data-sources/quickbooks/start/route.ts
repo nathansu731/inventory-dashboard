@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextRequest, NextResponse } from "next/server"
 import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion } from "@/lib/data-sources"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 const QUICKBOOKS_STATE_COOKIE = "quickbooks_oauth_state"
 
@@ -52,6 +52,10 @@ export async function GET(request: NextRequest) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
+  const availableTablesRaw = (request.nextUrl.searchParams.get("allTables") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
   const scopes = process.env.QUICKBOOKS_SCOPES || "com.intuit.quickbooks.accounting"
   const redirectUri =
     process.env.QUICKBOOKS_REDIRECT_URI ||
@@ -69,6 +73,7 @@ export async function GET(request: NextRequest) {
       state,
       tenantId: tokenCtx.tenantId,
       requesterSub: tokenCtx.sub,
+      availableTables: sanitizeAvailableObjects("quickbooks", availableTablesRaw),
       selectedTables: sanitizeSelectedObjects("quickbooks", selectedTablesRaw),
       createdAt: Date.now(),
     }),

@@ -38,7 +38,7 @@ export const Form = () => {
     const errorMessage = useMemo(() => getLoginErrorMessage(searchParams.get("error")), [searchParams]);
 
     return (
-        <form className="p-6 md:p-8" action="/api/auth/login" method="post">
+        <form className="p-6 md:p-8" action="/api/auth/login" method="post" noValidate>
             <div className="flex flex-col gap-6">
                 <WelcomeMessage/>
                 <EmailSection/>

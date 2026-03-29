@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextRequest, NextResponse } from "next/server"
 import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion } from "@/lib/data-sources"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 const BIGCOMMERCE_STATE_COOKIE = "bigcommerce_oauth_state"
 
@@ -52,6 +52,10 @@ export async function GET(request: NextRequest) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
+  const availableTablesRaw = (request.nextUrl.searchParams.get("allTables") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
   const scopes = process.env.BIGCOMMERCE_SCOPES || "store_v2_orders store_v2_products store_v2_customers"
   const redirectUri =
     process.env.BIGCOMMERCE_REDIRECT_URI ||
@@ -69,6 +73,7 @@ export async function GET(request: NextRequest) {
       state,
       tenantId: tokenCtx.tenantId,
       requesterSub: tokenCtx.sub,
+      availableTables: sanitizeAvailableObjects("bigcommerce", availableTablesRaw),
       selectedTables: sanitizeSelectedObjects("bigcommerce", selectedTablesRaw),
       createdAt: Date.now(),
     }),

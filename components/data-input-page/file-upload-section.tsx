@@ -47,13 +47,13 @@ export const FileUploadSection = ({handleFileUpload, handleFileDrop, uploadedFil
                     <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <div className="space-y-2">
                         <p className="text-sm font-medium">Drop files here or click to browse</p>
-                        <p className="text-xs text-muted-foreground">Supports CSV, Excel, JSON files up to 50MB</p>
+                        <p className="text-xs text-muted-foreground">Supports CSV files up to 10MB</p>
                     </div>
                     <Input
                         type="file"
                         className="hidden"
                         id="file-upload"
-                        accept=".csv,.xlsx,.xls,.json"
+                        accept=".csv,text/csv"
                         onChange={handleFileUpload}
                     />
                         <Button variant="outline" className="invisible mt-4 bg-transparent">

@@ -6,7 +6,6 @@ import { Download, RefreshCw, Columns } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { ForecastingSummaryHeader } from "@/components/forecasting-summary/forecasting-summary-header"
 import { ForecastingSummaryHeaderColumnSelectors } from "@/components/forecasting-summary/forecasting-summary-header-column-selectors"
 import { ForecastingSummaryFooter } from "@/components/forecasting-summary/forecasting-summary-footer"
 import { ForecastingSummaryTable } from "@/components/forecasting-summary/forecasting-summary-table"
@@ -183,8 +182,11 @@ export const ForecastingSummary = () => {
 
     return (
         <div className="min-h-screen bg-background">
-            <ForecastingSummaryHeader />
-            <div className="container mx-auto px-6 py-6 space-y-4">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Forecasting Summary</h1>
+                    <p className="text-muted-foreground mt-1">Manage and review your demand forecasting results.</p>
+                </div>
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div className="flex flex-1 flex-wrap items-center gap-2 min-w-[280px]">
                         <Input

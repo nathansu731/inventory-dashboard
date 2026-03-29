@@ -124,52 +124,54 @@ export const SavedReports = () => {
     const isIndeterminate = selectedInView.length > 0 && selectedInView.length < filteredReports.length
 
     return (
-        <div className="container mx-auto py-8 px-4">
-            <div className="mx-auto px-6 py-6 mb-2 flex items-start justify-between gap-3 flex-wrap">
-                <div>
-                    <h1 className="text-2xl font-bold tracking-tight">Saved Reports</h1>
-                    <p className="text-muted-foreground mt-2">Saved criteria templates. Open one to regenerate with the latest forecast runs.</p>
-                </div>
-                <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => void loadReports()} disabled={isLoading}>Refresh</Button>
-                    <Button asChild variant="outline">
-                        <Link href="/reports">Create Report</Link>
-                    </Button>
-                </div>
-            </div>
-
-            {error ? (
-                <div className="px-6 mb-4">
-                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-                        Failed to load saved reports. {error}
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+                <div className="px-6 flex items-start justify-between gap-3 flex-wrap">
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground">Saved Reports</h1>
+                        <p className="text-muted-foreground mt-1">Saved criteria templates. Open one to regenerate with the latest forecast runs.</p>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" onClick={() => void loadReports()} disabled={isLoading}>Refresh</Button>
+                        <Button asChild variant="outline">
+                            <Link href="/reports">Create Report</Link>
+                        </Button>
                     </div>
                 </div>
-            ) : null}
 
-            <SavedReportsSearchBar
-                searchTerm={searchTerm}
-                setSearchTerm={setSearchTerm}
-                selectedReports={selectedReports}
-                handleBulkDownload={handleBulkDownload}
-                handleBulkDelete={() => void handleBulkDelete()}
-            />
+                {error ? (
+                    <div className="px-6">
+                        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                            Failed to load saved reports. {error}
+                        </div>
+                    </div>
+                ) : null}
 
-            {isLoading && reports.length === 0 ? (
-                <div className="px-6 text-sm text-muted-foreground">Loading saved reports...</div>
-            ) : (
-                <SavedReportsTable
-                    isAllSelected={isAllSelected}
-                    isIndeterminate={isIndeterminate}
-                    filteredReports={filteredReports}
+                <SavedReportsSearchBar
                     searchTerm={searchTerm}
+                    setSearchTerm={setSearchTerm}
                     selectedReports={selectedReports}
-                    handleSelectAll={handleSelectAll}
-                    handleSelectReport={handleSelectReport}
-                    handleDownload={handleDownloadCriteria}
-                    handleRunNow={handleRunNow}
-                    handleDeleteOne={(id) => void handleDeleteOne(id)}
+                    handleBulkDownload={handleBulkDownload}
+                    handleBulkDelete={() => void handleBulkDelete()}
                 />
-            )}
+
+                {isLoading && reports.length === 0 ? (
+                    <div className="px-6 text-sm text-muted-foreground">Loading saved reports...</div>
+                ) : (
+                    <SavedReportsTable
+                        isAllSelected={isAllSelected}
+                        isIndeterminate={isIndeterminate}
+                        filteredReports={filteredReports}
+                        searchTerm={searchTerm}
+                        selectedReports={selectedReports}
+                        handleSelectAll={handleSelectAll}
+                        handleSelectReport={handleSelectReport}
+                        handleDownload={handleDownloadCriteria}
+                        handleRunNow={handleRunNow}
+                        handleDeleteOne={(id) => void handleDeleteOne(id)}
+                    />
+                )}
+            </div>
         </div>
     )
 }

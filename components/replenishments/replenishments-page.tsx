@@ -248,218 +248,220 @@ export const ReplenishmentsPage = () => {
   }, [filteredRows])
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-      <div className="space-y-1">
-        <h1 className="text-2xl font-semibold">Replenishments</h1>
-        <p className="text-sm text-muted-foreground">
-          Advisory-only stock outage visibility based on forecast demand. Automated purchasing is not enabled.
-        </p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Replenishments</h1>
+          <p className="text-muted-foreground mt-1">
+            Advisory-only stock outage visibility based on forecast demand. Automated purchasing is not enabled.
+          </p>
+        </div>
 
-      <Card className="border-blue-100 bg-blue-50/70">
-        <CardContent className="flex flex-col gap-2 p-4 text-sm text-blue-900 md:flex-row md:items-center md:justify-between">
-          <div className="flex items-start gap-2">
-            <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>
-              {hasProvidedInventory
-                ? "Live inventory inputs are connected for this tenant. Replenishment signals are based on stock-on-hand and forecast demand."
-                : "Inventory on-hand is missing for some SKUs. Forecast-derived proxy values are used where live stock is unavailable."}
-            </p>
-          </div>
-          <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
-            <Link href="/data-input">Upload Data</Link>
-          </Button>
-        </CardContent>
-      </Card>
-
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>At-Risk SKUs</CardDescription>
-            <CardTitle className="text-2xl">{summary.atRisk}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Critical + High + Medium risk rows</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Critical Risk</CardDescription>
-            <CardTitle className="text-2xl text-red-700">{summary.critical}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Immediate replenishment attention</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Stockouts in 7 Days</CardDescription>
-            <CardTitle className="text-2xl">{summary.stockoutIn7Days}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Based on projected days of cover</CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="pb-2">
-            <CardDescription>Total SKUs Reviewed</CardDescription>
-            <CardTitle className="text-2xl">{summary.totalSkus}</CardTitle>
-          </CardHeader>
-          <CardContent className="text-xs text-muted-foreground">Current filter scope</CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-        <Card>
-          <CardHeader className="space-y-4">
-            <div>
-              <CardTitle className="text-lg">Outage Risk Table</CardTitle>
-              <CardDescription>Prioritized by risk severity and nearest projected stockout date.</CardDescription>
+        <Card className="border-blue-100 bg-blue-50/70">
+          <CardContent className="flex flex-col gap-2 p-4 text-sm text-blue-900 md:flex-row md:items-center md:justify-between">
+            <div className="flex items-start gap-2">
+              <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
+              <p>
+                {hasProvidedInventory
+                  ? "Live inventory inputs are connected for this tenant. Replenishment signals are based on stock-on-hand and forecast demand."
+                  : "Inventory on-hand is missing for some SKUs. Forecast-derived proxy values are used where live stock is unavailable."}
+              </p>
             </div>
-            <div className="grid gap-3 md:grid-cols-4">
-              <div className="md:col-span-2">
-                <Label htmlFor="replenishment-search" className="sr-only">
-                  Search SKU
-                </Label>
-                <div className="relative">
-                  <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
-                  <Input
-                    id="replenishment-search"
-                    placeholder="Search SKU or description"
-                    className="pl-9"
-                    value={searchTerm}
-                    onChange={(event) => setSearchTerm(event.target.value)}
-                  />
-                </div>
-              </div>
-              <Select value={selectedStore} onValueChange={setSelectedStore}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Store" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Stores</SelectItem>
-                  {stores.map((store) => (
-                    <SelectItem key={store} value={store}>
-                      {store}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select
-                value={selectedRisk}
-                onValueChange={(value: "all" | ReplenishmentRiskTier) => setSelectedRisk(value)}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Risk" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">All Risk</SelectItem>
-                  <SelectItem value="Critical">Critical</SelectItem>
-                  <SelectItem value="High">High</SelectItem>
-                  <SelectItem value="Medium">Medium</SelectItem>
-                  <SelectItem value="Healthy">Healthy</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="w-full md:w-60">
-              <Label className="mb-2 block text-xs text-muted-foreground">Forecast Horizon</Label>
-              <Select value={horizonDays} onValueChange={(value: "14" | "30" | "60") => setHorizonDays(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="14">14 days</SelectItem>
-                  <SelectItem value="30">30 days</SelectItem>
-                  <SelectItem value="60">60 days</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="py-10 text-sm text-muted-foreground">Loading replenishment signals...</div>
-            ) : error ? (
-              <div className="py-8 text-sm text-red-700">{error}</div>
-            ) : filteredRows.length === 0 ? (
-              <div className="py-8 text-sm text-muted-foreground">
-                No SKUs found for current filters. Upload data or change filter values.
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Store</TableHead>
-                      <TableHead className="text-right">Avg Daily</TableHead>
-                      <TableHead className="text-right">On Hand</TableHead>
-                      <TableHead className="text-right">Days Cover</TableHead>
-                      <TableHead>Stockout</TableHead>
-                      <TableHead className="text-right">Reorder Qty</TableHead>
-                      <TableHead>Reorder By</TableHead>
-                      <TableHead>Risk</TableHead>
-                      <TableHead className="text-right">Details</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {filteredRows.map((row) => (
-                      <TableRow key={row.sku}>
-                        <TableCell className="font-medium">{row.sku}</TableCell>
-                        <TableCell>{row.store}</TableCell>
-                        <TableCell className="text-right">{formatNumber(Math.round(row.avgDailyDemand))}</TableCell>
-                        <TableCell className="text-right">
-                          {formatNumber(row.estimatedOnHand)}
-                          {row.onHandSource === "estimated" && (
-                            <span className="ml-1 text-[10px] text-muted-foreground">(est.)</span>
-                          )}
-                        </TableCell>
-                        <TableCell className="text-right">{row.daysOfCover.toFixed(1)}</TableCell>
-                        <TableCell>{formatDate(row.predictedStockoutDate)}</TableCell>
-                        <TableCell className="text-right">{formatNumber(row.recommendedReorderQty)}</TableCell>
-                        <TableCell>{formatDate(row.reorderByDate)}</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className={riskClassName(row.risk)}>
-                            {row.risk}
-                          </Badge>
-                        </TableCell>
-                        <TableCell className="text-right">
-                          <Button variant="ghost" size="sm" onClick={() => setSelectedRow(row)}>
-                            View
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
+            <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
+              <Link href="/data-input">Upload Data</Link>
+            </Button>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-lg">
-              <ClipboardList className="h-4 w-4" />
-              Reorder Suggestions
-            </CardTitle>
-            <CardDescription>Top advisory actions by urgency (no auto-ordering).</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {topSuggestions.length === 0 ? (
-              <div className="text-sm text-muted-foreground">No urgent reorder actions in this view.</div>
-            ) : (
-              <div className="space-y-3">
-                {topSuggestions.map((row) => (
-                  <div key={`${row.sku}-suggestion`} className="rounded-lg border p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <div className="text-sm font-medium">{row.sku}</div>
-                      <Badge variant="outline" className={riskClassName(row.risk)}>
-                        {row.risk}
-                      </Badge>
-                    </div>
-                    <div className="mt-2 text-xs text-muted-foreground">
-                      Order {formatNumber(row.recommendedReorderQty)} units by {formatDate(row.reorderByDate)}
-                    </div>
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>At-Risk SKUs</CardDescription>
+              <CardTitle className="text-2xl">{summary.atRisk}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">Critical + High + Medium risk rows</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Critical Risk</CardDescription>
+              <CardTitle className="text-2xl text-red-700">{summary.critical}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">Immediate replenishment attention</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Stockouts in 7 Days</CardDescription>
+              <CardTitle className="text-2xl">{summary.stockoutIn7Days}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">Based on projected days of cover</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Total SKUs Reviewed</CardDescription>
+              <CardTitle className="text-2xl">{summary.totalSkus}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">Current filter scope</CardContent>
+          </Card>
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+          <Card>
+            <CardHeader className="space-y-4">
+              <div>
+                <CardTitle className="text-lg">Outage Risk Table</CardTitle>
+                <CardDescription>Prioritized by risk severity and nearest projected stockout date.</CardDescription>
+              </div>
+              <div className="grid gap-3 md:grid-cols-4">
+                <div className="md:col-span-2">
+                  <Label htmlFor="replenishment-search" className="sr-only">
+                    Search SKU
+                  </Label>
+                  <div className="relative">
+                    <Search className="text-muted-foreground pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2" />
+                    <Input
+                      id="replenishment-search"
+                      placeholder="Search SKU or description"
+                      className="pl-9"
+                      value={searchTerm}
+                      onChange={(event) => setSearchTerm(event.target.value)}
+                    />
                   </div>
-                ))}
+                </div>
+                <Select value={selectedStore} onValueChange={setSelectedStore}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Store" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Stores</SelectItem>
+                    {stores.map((store) => (
+                      <SelectItem key={store} value={store}>
+                        {store}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <Select
+                  value={selectedRisk}
+                  onValueChange={(value: "all" | ReplenishmentRiskTier) => setSelectedRisk(value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Risk" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Risk</SelectItem>
+                    <SelectItem value="Critical">Critical</SelectItem>
+                    <SelectItem value="High">High</SelectItem>
+                    <SelectItem value="Medium">Medium</SelectItem>
+                    <SelectItem value="Healthy">Healthy</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
-            )}
-          </CardContent>
-        </Card>
+              <div className="w-full md:w-60">
+                <Label className="mb-2 block text-xs text-muted-foreground">Forecast Horizon</Label>
+                <Select value={horizonDays} onValueChange={(value: "14" | "30" | "60") => setHorizonDays(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="14">14 days</SelectItem>
+                    <SelectItem value="30">30 days</SelectItem>
+                    <SelectItem value="60">60 days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </CardHeader>
+            <CardContent>
+              {loading ? (
+                <div className="py-10 text-sm text-muted-foreground">Loading replenishment signals...</div>
+              ) : error ? (
+                <div className="py-8 text-sm text-red-700">{error}</div>
+              ) : filteredRows.length === 0 ? (
+                <div className="py-8 text-sm text-muted-foreground">
+                  No SKUs found for current filters. Upload data or change filter values.
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>SKU</TableHead>
+                        <TableHead>Store</TableHead>
+                        <TableHead className="text-right">Avg Daily</TableHead>
+                        <TableHead className="text-right">On Hand</TableHead>
+                        <TableHead className="text-right">Days Cover</TableHead>
+                        <TableHead>Stockout</TableHead>
+                        <TableHead className="text-right">Reorder Qty</TableHead>
+                        <TableHead>Reorder By</TableHead>
+                        <TableHead>Risk</TableHead>
+                        <TableHead className="text-right">Details</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {filteredRows.map((row) => (
+                        <TableRow key={row.sku}>
+                          <TableCell className="font-medium">{row.sku}</TableCell>
+                          <TableCell>{row.store}</TableCell>
+                          <TableCell className="text-right">{formatNumber(Math.round(row.avgDailyDemand))}</TableCell>
+                          <TableCell className="text-right">
+                            {formatNumber(row.estimatedOnHand)}
+                            {row.onHandSource === "estimated" && (
+                              <span className="ml-1 text-[10px] text-muted-foreground">(est.)</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-right">{row.daysOfCover.toFixed(1)}</TableCell>
+                          <TableCell>{formatDate(row.predictedStockoutDate)}</TableCell>
+                          <TableCell className="text-right">{formatNumber(row.recommendedReorderQty)}</TableCell>
+                          <TableCell>{formatDate(row.reorderByDate)}</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className={riskClassName(row.risk)}>
+                              {row.risk}
+                            </Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <Button variant="ghost" size="sm" onClick={() => setSelectedRow(row)}>
+                              View
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 text-lg">
+                <ClipboardList className="h-4 w-4" />
+                Reorder Suggestions
+              </CardTitle>
+              <CardDescription>Top advisory actions by urgency (no auto-ordering).</CardDescription>
+            </CardHeader>
+            <CardContent>
+              {topSuggestions.length === 0 ? (
+                <div className="text-sm text-muted-foreground">No urgent reorder actions in this view.</div>
+              ) : (
+                <div className="space-y-3">
+                  {topSuggestions.map((row) => (
+                    <div key={`${row.sku}-suggestion`} className="rounded-lg border p-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="text-sm font-medium">{row.sku}</div>
+                        <Badge variant="outline" className={riskClassName(row.risk)}>
+                          {row.risk}
+                        </Badge>
+                      </div>
+                      <div className="mt-2 text-xs text-muted-foreground">
+                        Order {formatNumber(row.recommendedReorderQty)} units by {formatDate(row.reorderByDate)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <Dialog open={Boolean(selectedRow)} onOpenChange={(open) => !open && setSelectedRow(null)}>

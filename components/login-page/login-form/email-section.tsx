@@ -8,7 +8,9 @@ export const EmailSection = () => {
             <Input
                 id="email"
                 name="username"
-                type="email"
+                type="text"
+                inputMode="email"
+                autoComplete="email"
                 placeholder="m@example.com"
                 required
             />

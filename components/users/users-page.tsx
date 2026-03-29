@@ -75,6 +75,10 @@ export const UsersPage = () => {
   }, [loadUsers])
 
   const adminCount = useMemo(() => users.filter((user) => user.role === "admin").length, [users])
+  const isProtectedFinalAdmin = useCallback(
+    (user: UserRow | null) => Boolean(user && user.role === "admin" && user.isActive && adminCount <= 1),
+    [adminCount]
+  )
 
   const openEdit = (user: UserRow) => {
     setSelectedUser(user)
@@ -83,6 +87,7 @@ export const UsersPage = () => {
   }
 
   const openDelete = (user: UserRow) => {
+    if (isProtectedFinalAdmin(user)) return
     setSelectedUser(user)
     setShowDeleteDialog(true)
   }
@@ -139,6 +144,9 @@ export const UsersPage = () => {
     setSaving(true)
     setError(null)
     try {
+      if (isProtectedFinalAdmin(selectedUser)) {
+        throw new Error("last_admin_cannot_be_deleted")
+      }
       const res = await fetch(`/api/users/${encodeURIComponent(selectedUser.userId)}`, {
         method: "DELETE",
       })
@@ -150,7 +158,8 @@ export const UsersPage = () => {
       setSelectedUser(null)
       await loadUsers()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed_to_delete_user")
+      const message = err instanceof Error ? err.message : "failed_to_delete_user"
+      setError(message === "last_admin_cannot_be_deleted" ? "You cannot delete the final active admin." : message)
     } finally {
       setSaving(false)
     }
@@ -176,110 +185,115 @@ export const UsersPage = () => {
   }
 
   return (
-    <div className="flex flex-1 flex-col gap-4 p-4 lg:p-6">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <h1 className="text-2xl font-semibold">Manage Users</h1>
-          <p className="text-sm text-muted-foreground">
-            Invite and manage tenant users. Managers have read-only access.
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h1 className="text-3xl font-bold text-foreground">Manage Users</h1>
+            <p className="text-muted-foreground mt-1">
+              Invite and manage tenant users. Managers have read-only access.
+            </p>
+          </div>
+          <Button onClick={() => setShowAddDialog(true)} disabled={isManager}>
+            <UserPlus className="mr-2 h-4 w-4" />
+            Add User
+          </Button>
         </div>
-        <Button onClick={() => setShowAddDialog(true)} disabled={isManager}>
-          <UserPlus className="mr-2 h-4 w-4" />
-          Add User
-        </Button>
-      </div>
 
-      {isManager && (
-        <Card className="border-blue-100 bg-blue-50/70">
-          <CardContent className="p-4 text-sm text-blue-900">
-            You are signed in as a Manager. User management and subscription changes are read-only.
-          </CardContent>
-        </Card>
-      )}
+        {isManager && (
+          <Card className="border-blue-100 bg-blue-50/70">
+            <CardContent className="p-4 text-sm text-blue-900">
+              You are signed in as a Manager. User management and subscription changes are read-only.
+            </CardContent>
+          </Card>
+        )}
 
-      {error && (
-        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
-          {error}
-        </div>
-      )}
+        {error && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+            {error}
+          </div>
+        )}
 
-      <Card>
-        <CardHeader>
-          <CardTitle>Tenant Users</CardTitle>
-          <CardDescription>{users.length} users, {adminCount} admins</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <div className="overflow-hidden rounded-lg border">
-            <Table>
-              <TableHeader className="bg-muted">
-                <TableRow>
-                  <TableHead>Name</TableHead>
-                  <TableHead>Email</TableHead>
-                  <TableHead>Role</TableHead>
-                  <TableHead>Invite</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
+        <Card>
+          <CardHeader>
+            <CardTitle>Tenant Users</CardTitle>
+            <CardDescription>{users.length} users, {adminCount} admins</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="overflow-hidden rounded-lg border">
+              <Table>
+                <TableHeader className="bg-muted">
                   <TableRow>
-                    <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
-                      Loading users...
-                    </TableCell>
+                    <TableHead>Name</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead>Role</TableHead>
+                    <TableHead>Invite</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
-                ) : users.length === 0 ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
-                      No users found for this tenant.
-                    </TableCell>
-                  </TableRow>
-                ) : (
-                  users.map((user) => (
-                    <TableRow key={user.userId}>
-                      <TableCell className="font-medium">{user.name}</TableCell>
-                      <TableCell>{user.email}</TableCell>
-                      <TableCell>
-                        <Badge variant={user.role === "admin" ? "default" : "outline"}>
-                          {user.role === "admin" ? "Admin" : "Manager"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        <Badge variant={inviteBadgeVariant(user.inviteState)}>
-                          {user.inviteState === "accepted" ? "Accepted" : "Invite Sent"}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div className="inline-flex items-center gap-2">
-                          <Button size="icon" variant="outline" disabled={isManager} onClick={() => openEdit(user)}>
-                            <Pencil className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            disabled={isManager || saving || user.inviteState !== "sent"}
-                            onClick={() => resendInvite(user)}
-                          >
-                            <Mail className="h-4 w-4" />
-                          </Button>
-                          <Button
-                            size="icon"
-                            variant="outline"
-                            disabled={isManager}
-                            onClick={() => openDelete(user)}
-                          >
-                            <Trash2 className="h-4 w-4" />
-                          </Button>
-                        </div>
+                </TableHeader>
+                <TableBody>
+                  {loading ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                        Loading users...
                       </TableCell>
                     </TableRow>
-                  ))
-                )}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
+                  ) : users.length === 0 ? (
+                    <TableRow>
+                      <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                        No users found for this tenant.
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    users.map((user) => (
+                      <TableRow key={user.userId}>
+                        <TableCell className="font-medium">{user.name}</TableCell>
+                        <TableCell>{user.email}</TableCell>
+                        <TableCell>
+                          <Badge variant={user.role === "admin" ? "default" : "outline"}>
+                            {user.role === "admin" ? "Admin" : "Manager"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          <Badge variant={inviteBadgeVariant(user.inviteState)}>
+                            {user.inviteState === "accepted" ? "Accepted" : "Invite Sent"}
+                          </Badge>
+                        </TableCell>
+                        <TableCell className="text-right">
+                          <div className="inline-flex items-center gap-2">
+                            <Button size="icon" variant="outline" disabled={isManager} onClick={() => openEdit(user)}>
+                              <span className="sr-only">Edit user</span>
+                              <Pencil className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              disabled={isManager || saving || user.inviteState !== "sent"}
+                              onClick={() => resendInvite(user)}
+                            >
+                              <span className="sr-only">Resend invite</span>
+                              <Mail className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="icon"
+                              variant="outline"
+                              disabled={isManager || isProtectedFinalAdmin(user)}
+                              onClick={() => openDelete(user)}
+                            >
+                              <span className="sr-only">Delete user</span>
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
@@ -401,7 +415,7 @@ export const UsersPage = () => {
           <DialogHeader>
             <DialogTitle>Remove User</DialogTitle>
             <DialogDescription>
-              This performs a soft delete. The user will be disabled and removed from tenant access.
+              The user will be disabled and removed from tenant access.
             </DialogDescription>
           </DialogHeader>
           <div className="text-sm">
@@ -411,7 +425,7 @@ export const UsersPage = () => {
             <Button variant="outline" onClick={() => setShowDeleteDialog(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button variant="destructive" onClick={deleteUser} disabled={saving}>
+            <Button variant="destructive" onClick={deleteUser} disabled={saving || isProtectedFinalAdmin(selectedUser)}>
               Delete User
             </Button>
           </DialogFooter>

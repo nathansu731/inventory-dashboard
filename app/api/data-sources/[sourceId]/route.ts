@@ -65,7 +65,7 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ so
   if (!sourceId) return withCookies(NextResponse.json({ error: "missing_source_id" }, { status: 400 }), ctx.cookiesToSet)
 
   const payload = (await request.json().catch(() => null)) as
-    | { selectedTables?: unknown; syncMode?: unknown; syncStartDate?: unknown; state?: unknown; adapter?: unknown }
+    | { selectedTables?: unknown; availableTables?: unknown; syncMode?: unknown; syncStartDate?: unknown; state?: unknown; adapter?: unknown }
     | null
 
   const ddb = new DynamoDBClient({ region })
@@ -97,6 +97,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ so
     accountName: state === "not_connected" ? "" : existing.accountName,
     accountId: state === "not_connected" ? undefined : existing.accountId,
     connectedAt: state === "not_connected" ? null : existing.connectedAt,
+    availableTables: Array.isArray(payload?.availableTables)
+      ? payload.availableTables.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)
+      : existing.availableTables,
     updatedAt: now,
   }
 

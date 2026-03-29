@@ -101,6 +101,7 @@ export const upsertSourceInDedicatedTable = async (
           accountId: source.accountId,
           state: source.state,
           connectedAt: source.connectedAt,
+          availableTables: source.availableTables,
           selectedTables: source.selectedTables,
           syncMode: source.syncMode,
           syncStartDate: source.syncStartDate,

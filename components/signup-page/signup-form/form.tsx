@@ -34,7 +34,7 @@ export const SignupFormFields = () => {
     const errorMessage = useMemo(() => getSignupErrorMessage(searchParams.get("error")), [searchParams]);
 
     return (
-        <form className="p-6 md:p-8" action="/api/auth/signup" method="post">
+        <form className="p-6 md:p-8" action="/api/auth/signup" method="post" noValidate>
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center text-center">
                     <h1 className="text-2xl font-bold">Create your account</h1>
@@ -55,7 +55,7 @@ export const SignupFormFields = () => {
 
                 <div className="grid gap-3">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" name="email" type="email" placeholder="m@example.com" required />
+                    <Input id="email" name="email" type="text" inputMode="email" autoComplete="email" placeholder="m@example.com" required />
                 </div>
 
                 <div className="grid gap-3">

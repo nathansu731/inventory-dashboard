@@ -3,6 +3,7 @@
 import type React from "react"
 
 import { useEffect, useMemo, useState } from "react"
+import { useSearchParams } from "next/navigation"
 import { ForecastEditorControlsRow } from "@/components/forecast-editor/forecast-editor-controls-row"
 import { ForecastEditorMainContentLeft } from "@/components/forecast-editor/forecast-editor-main-content-left"
 import { ForecastEditorMainContentRight } from "@/components/forecast-editor/forecast-editor-main-content-right"
@@ -52,9 +53,148 @@ type ForecastRow = {
 }
 
 const EDITABLE_METRICS = ["demandAdjustment", "forecastAdjustment"]
+const AGGREGATION_LEVELS = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"] as const
+type Frequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
+
+const normalizeFrequency = (value?: string): Frequency => {
+    const lower = (value ?? "").toLowerCase()
+    if (lower === "daily") return "daily"
+    if (lower === "weekly") return "weekly"
+    if (lower === "quarterly") return "quarterly"
+    if (lower === "yearly") return "yearly"
+    return "monthly"
+}
+
+const frequencyToLabel = (value: Frequency): (typeof AGGREGATION_LEVELS)[number] => {
+    if (value === "daily") return "Daily"
+    if (value === "weekly") return "Weekly"
+    if (value === "quarterly") return "Quarterly"
+    if (value === "yearly") return "Yearly"
+    return "Monthly"
+}
+
+const labelToFrequency = (value: string): Frequency => normalizeFrequency(value)
+
+const frequencyRank: Record<Frequency, number> = {
+    daily: 0,
+    weekly: 1,
+    monthly: 2,
+    quarterly: 3,
+    yearly: 4,
+}
+
+const toQuarter = (month: number) => Math.floor((month - 1) / 3) + 1
+
+const getIsoWeek = (date: Date) => {
+    const utcDate = new Date(Date.UTC(date.getFullYear(), date.getMonth(), date.getDate()))
+    const day = utcDate.getUTCDay() || 7
+    utcDate.setUTCDate(utcDate.getUTCDate() + 4 - day)
+    const yearStart = new Date(Date.UTC(utcDate.getUTCFullYear(), 0, 1))
+    const weekNo = Math.ceil((((utcDate.getTime() - yearStart.getTime()) / 86400000) + 1) / 7)
+    return { week: weekNo, year: utcDate.getUTCFullYear() }
+}
+
+const parsePeriodDate = (period: string, frequency: Frequency): Date | null => {
+    if (frequency === "daily") {
+        const date = new Date(period)
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    if (frequency === "weekly") {
+        const iso = period.match(/^(\d{4})-W(\d{1,2})$/i)
+        if (iso) {
+            const year = Number(iso[1])
+            const week = Number(iso[2])
+            const jan4 = new Date(Date.UTC(year, 0, 4))
+            const jan4Day = jan4.getUTCDay() || 7
+            const mondayWeek1 = new Date(jan4)
+            mondayWeek1.setUTCDate(jan4.getUTCDate() - jan4Day + 1)
+            mondayWeek1.setUTCDate(mondayWeek1.getUTCDate() + (week - 1) * 7)
+            return new Date(mondayWeek1)
+        }
+        const date = new Date(period)
+        return Number.isNaN(date.getTime()) ? null : date
+    }
+
+    if (frequency === "monthly") {
+        const monthYear = period.match(/^(\d{1,2})-(\d{4})$/)
+        if (!monthYear) return null
+        const month = Number(monthYear[1])
+        const year = Number(monthYear[2])
+        return new Date(year, month - 1, 1)
+    }
+
+    if (frequency === "quarterly") {
+        const qy = period.match(/^Q([1-4])[- ]?(\d{4})$/i) ?? period.match(/^(\d{4})[- ]?Q([1-4])$/i)
+        if (!qy) return null
+        const quarter = Number(qy[1].startsWith("20") ? qy[2] : qy[1])
+        const year = Number(qy[1].startsWith("20") ? qy[1] : qy[2])
+        const month = (quarter - 1) * 3
+        return new Date(year, month, 1)
+    }
+
+    const yearOnly = period.match(/^(\d{4})$/)
+    if (!yearOnly) return null
+    return new Date(Number(yearOnly[1]), 0, 1)
+}
+
+const toBucketKey = (date: Date, target: Frequency) => {
+    if (target === "daily") return date.toISOString().slice(0, 10)
+    if (target === "weekly") {
+        const { week, year } = getIsoWeek(date)
+        return `${year}-W${String(week).padStart(2, "0")}`
+    }
+    if (target === "monthly") return `${String(date.getMonth() + 1).padStart(2, "0")}-${date.getFullYear()}`
+    if (target === "quarterly") return `Q${toQuarter(date.getMonth() + 1)}-${date.getFullYear()}`
+    return `${date.getFullYear()}`
+}
+
+const aggregateRows = (
+    rows: ForecastRow[],
+    periods: string[],
+    fromFrequency: Frequency,
+    toFrequency: Frequency
+): { periods: string[]; rows: ForecastRow[] } => {
+    if (fromFrequency === toFrequency) {
+        return { periods, rows }
+    }
+
+    const bucketOrder: string[] = []
+    const periodToBucket = new Map<string, string>()
+
+    periods.forEach((period) => {
+        const parsed = parsePeriodDate(period, fromFrequency)
+        const bucket = parsed ? toBucketKey(parsed, toFrequency) : period
+        periodToBucket.set(period, bucket)
+        if (!bucketOrder.includes(bucket)) bucketOrder.push(bucket)
+    })
+
+    const aggregatedRows = rows.map((row) => {
+        const next: ForecastRow = {
+            metric: row.metric,
+            metricKey: row.metricKey,
+        }
+
+        periods.forEach((period) => {
+            const bucket = periodToBucket.get(period)
+            if (!bucket) return
+            const current = Number(next[bucket] ?? 0)
+            const add = Number(row[period] ?? 0)
+            next[bucket] = current + add
+        })
+
+        return next
+    })
+
+    return { periods: bucketOrder, rows: aggregatedRows }
+}
 
 export const ForecastEditor = () => {
-    const [aggregationType, setAggregationType] = useState("Monthly")
+    const searchParams = useSearchParams()
+    const requestedSku = useMemo(() => searchParams.get("sku")?.trim() ?? "", [searchParams])
+    const requestedStore = useMemo(() => searchParams.get("store")?.trim() ?? "", [searchParams])
+
+    const [aggregationType, setAggregationType] = useState<(typeof AGGREGATION_LEVELS)[number]>("Monthly")
     const [editingCell, setEditingCell] = useState<string | null>(null)
     const [editedCells, setEditedCells] = useState<Set<string>>(new Set())
     const [monthColumns, setMonthColumns] = useState<string[]>([])
@@ -67,6 +207,7 @@ export const ForecastEditor = () => {
     const [showConfirm, setShowConfirm] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [runMessage, setRunMessage] = useState<string | null>(null)
+    const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
 
     const storeGroups = useMemo(() => {
         const groups: Record<string, SkuForecastItem[]> = {}
@@ -102,21 +243,58 @@ export const ForecastEditor = () => {
                 setSummaryData(monthlyTotals)
             }
             if (skuValues) {
-                setSkuForecastValues(skuValues)
-                const initialStore = skuValues.items?.[0]?.store || null
+                const items = skuValues.items ?? []
+                setSkuForecastValues({ ...skuValues, items })
+
+                const grouped: Record<string, SkuForecastItem[]> = {}
+                for (const item of items) {
+                    if (!grouped[item.store]) grouped[item.store] = []
+                    grouped[item.store].push(item)
+                }
+                Object.values(grouped).forEach((groupItems) => groupItems.sort((a, b) => a.sku.localeCompare(b.sku)))
+
+                let initialStore = items[0]?.store || null
+                let initialIndex = 0
+
+                if (requestedStore && grouped[requestedStore]) {
+                    initialStore = requestedStore
+                }
+
+                if (requestedSku) {
+                    const candidateStore =
+                        (initialStore && grouped[initialStore]?.some((item) => item.sku === requestedSku) ? initialStore : null) ??
+                        Object.keys(grouped).find((store) => grouped[store].some((item) => item.sku === requestedSku)) ??
+                        null
+
+                    if (candidateStore) {
+                        initialStore = candidateStore
+                        initialIndex = grouped[candidateStore].findIndex((item) => item.sku === requestedSku)
+                        if (initialIndex < 0) initialIndex = 0
+                    }
+                }
+
                 setSelectedStore(initialStore)
-                setSkuIndex(0)
+                setSkuIndex(initialIndex)
             }
             setIsLoading(false)
         }
 
         loadData()
-    }, [])
+    }, [requestedSku, requestedStore])
+
+    const baseFrequency = useMemo(
+        () => normalizeFrequency(currentItem?.frequency || skuForecastValues?.frequency || "monthly"),
+        [currentItem?.frequency, skuForecastValues?.frequency]
+    )
+
+    const availableAggregations = useMemo(
+        () => AGGREGATION_LEVELS.filter((label) => frequencyRank[labelToFrequency(label)] >= frequencyRank[baseFrequency]),
+        [baseFrequency]
+    )
 
     useEffect(() => {
         if (!currentItem) return
-        const freqLabel = currentItem.frequency ? currentItem.frequency.charAt(0).toUpperCase() + currentItem.frequency.slice(1) : "Monthly"
-        setAggregationType(freqLabel)
+        setAggregationType(frequencyToLabel(baseFrequency))
         setAdjustments({
             demandAdjustment: { ...(currentItem.demandAdjustment || {}) },
             forecastAdjustment: { ...(currentItem.forecastAdjustment || {}) },
@@ -125,10 +303,12 @@ export const ForecastEditor = () => {
         setEditedCells(new Set())
         setEditingCell(null)
         setRunMessage(null)
-    }, [currentItem])
+    }, [currentItem, baseFrequency])
 
     const formatPeriod = (period: string, frequency: string) => {
         if (frequency === "daily" || frequency === "weekly") {
+            const week = period.match(/^(\d{4})-W(\d{1,2})$/i)
+            if (week) return `W${String(Number(week[2])).padStart(2, "0")} ${week[1]}`
             const date = new Date(period)
             if (!Number.isNaN(date.getTime())) {
                 return date.toLocaleDateString("en-US", { month: "short", day: "numeric" })
@@ -143,11 +323,6 @@ export const ForecastEditor = () => {
         if (frequency === "quarterly") return period.replace("-", " ")
         return period
     }
-
-    const formattedColumns = useMemo(() => {
-        const freq = currentItem?.frequency || skuForecastValues?.frequency || "monthly"
-        return monthColumns.map((column) => formatPeriod(column, freq))
-    }, [monthColumns, currentItem?.frequency, skuForecastValues?.frequency])
 
     const forecastValues: ForecastRow[] = useMemo(() => {
         if (!currentItem) return []
@@ -184,6 +359,39 @@ export const ForecastEditor = () => {
             },
         ]
     }, [currentItem, adjustments])
+
+    const aggregatedData = useMemo(
+        () => aggregateRows(forecastValues, monthColumns, baseFrequency, labelToFrequency(aggregationType)),
+        [forecastValues, monthColumns, baseFrequency, aggregationType]
+    )
+
+    const displayMonthColumns = useMemo(() => aggregatedData.periods, [aggregatedData.periods])
+    const displayForecastValues = useMemo(() => aggregatedData.rows, [aggregatedData.rows])
+    const displayFormattedColumns = useMemo(() => {
+        const targetFrequency = labelToFrequency(aggregationType)
+        return displayMonthColumns.map((column) => formatPeriod(column, targetFrequency))
+    }, [displayMonthColumns, aggregationType])
+
+    useEffect(() => {
+        setColumnVisibility((prev) => {
+            const next: Record<string, boolean> = {}
+            displayMonthColumns.forEach((period) => {
+                next[period] = prev[period] ?? true
+            })
+            return next
+        })
+    }, [displayMonthColumns])
+
+    const visibleMonthColumns = useMemo(() => {
+        return displayMonthColumns.filter((column) => columnVisibility[column] !== false)
+    }, [displayMonthColumns, columnVisibility])
+
+    const visibleFormattedColumns = useMemo(() => {
+        return displayMonthColumns
+            .map((column, index) => ({ column, label: displayFormattedColumns[index] }))
+            .filter(({ column }) => columnVisibility[column] !== false)
+            .map(({ label }) => label)
+    }, [displayMonthColumns, displayFormattedColumns, columnVisibility])
 
     const handleCellClick = (metricKey: string, period: string, value: number) => {
         const cellKey = `${metricKey}:${period}`
@@ -313,55 +521,94 @@ export const ForecastEditor = () => {
         }
     }
 
+    const handleExport = () => {
+        const columnsToExport = visibleMonthColumns.length > 0 ? visibleMonthColumns : displayMonthColumns
+        const headerLabels = columnsToExport.map((column) => {
+            const index = displayMonthColumns.indexOf(column)
+            return displayFormattedColumns[index] ?? column
+        })
+
+        if (columnsToExport.length === 0 || displayForecastValues.length === 0) return
+
+        const headers = ["Metric", ...headerLabels]
+        const rows = displayForecastValues.map((row) => [
+            row.metric,
+            ...columnsToExport.map((column) => String(row[column] ?? 0)),
+        ])
+        const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
+
+        const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+        const url = URL.createObjectURL(blob)
+        const link = document.createElement("a")
+        link.href = url
+        link.setAttribute("download", `forecast-editor-${currentItem?.sku ?? "export"}.csv`)
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(url)
+    }
+
     return (
-        <div className="flex flex-col h-screen bg-background">
-            <div className="border-b bg-background px-6 py-4">
-                <h1 className="text-2xl font-semibold text-foreground">Forecast Editor</h1>
-            </div>
-            <ForecastEditorControlsRow
-                aggregationType={aggregationType}
-                setAggregationType={setAggregationType}
-                storeLabel={currentItem?.store ?? null}
-                skuLabel={currentItem?.sku ?? null}
-                skuIndex={skuIndex}
-                skuCount={currentSkus.length}
-                onPrevSku={onPrevSku}
-                onNextSku={onNextSku}
-                onSave={() => setShowConfirm(true)}
-                isSaving={isSaving}
-            />
-            <div className="flex flex-1 overflow-x-auto">
-                <ForecastEditorMainContentLeft summaryData={summaryData} isLoading={isLoading}/>
-                <ForecastEditorMainContentRight
-                    forecastValues={forecastValues}
-                    monthColumns={monthColumns}
-                    formattedColumns={formattedColumns}
-                    editingCell={editingCell}
-                    editedCells={editedCells}
-                    handleCellClick={(rowIndex, period) => {
-                        const row = forecastValues[rowIndex]
-                        const value = Number(row?.[period] ?? 0)
-                        handleCellClick(row.metricKey, period, value)
-                    }}
-                    tempValue={tempValue}
-                    setTempValue={setTempValue}
-                    handleCellBlur={(rowIndex, period) => {
-                        const row = forecastValues[rowIndex]
-                        handleCellBlur(row.metricKey, period)
-                    }}
-                    handleKeyPress={(e, rowIndex, period) => {
-                        const row = forecastValues[rowIndex]
-                        handleKeyPress(e, row.metricKey, period)
-                    }}
-                    isLoading={isLoading}
-                    editableMetrics={EDITABLE_METRICS}
-                />
-            </div>
-            {runMessage && (
-                <div className="px-6 pb-6 text-sm text-muted-foreground">
-                    {runMessage}
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Forecast Editor</h1>
+                    <p className="text-muted-foreground mt-1">Review forecast values, apply adjustments, and rerun selected SKU scenarios.</p>
                 </div>
-            )}
+                <div className="rounded-md border bg-background">
+                    <ForecastEditorControlsRow
+                        aggregationType={aggregationType}
+                        setAggregationType={setAggregationType}
+                        availableAggregations={availableAggregations}
+                        storeLabel={currentItem?.store ?? null}
+                        skuLabel={currentItem?.sku ?? null}
+                        skuIndex={skuIndex}
+                        skuCount={currentSkus.length}
+                        onPrevSku={onPrevSku}
+                        onNextSku={onNextSku}
+                        onSave={() => setShowConfirm(true)}
+                        isSaving={isSaving}
+                        disableSave={labelToFrequency(aggregationType) !== baseFrequency}
+                        monthColumns={displayMonthColumns}
+                        formattedColumns={displayFormattedColumns}
+                        columnVisibility={columnVisibility}
+                        setColumnVisibility={setColumnVisibility}
+                        onExport={handleExport}
+                    />
+                    <div className="flex overflow-x-auto">
+                        <ForecastEditorMainContentLeft summaryData={summaryData} isLoading={isLoading}/>
+                        <ForecastEditorMainContentRight
+                            forecastValues={displayForecastValues}
+                            monthColumns={visibleMonthColumns}
+                            formattedColumns={visibleFormattedColumns}
+                            editingCell={editingCell}
+                            editedCells={editedCells}
+                            handleCellClick={(rowIndex, period) => {
+                                const row = displayForecastValues[rowIndex]
+                                const value = Number(row?.[period] ?? 0)
+                                handleCellClick(row.metricKey, period, value)
+                            }}
+                            tempValue={tempValue}
+                            setTempValue={setTempValue}
+                            handleCellBlur={(rowIndex, period) => {
+                                const row = displayForecastValues[rowIndex]
+                                handleCellBlur(row.metricKey, period)
+                            }}
+                            handleKeyPress={(e, rowIndex, period) => {
+                                const row = displayForecastValues[rowIndex]
+                                handleKeyPress(e, row.metricKey, period)
+                            }}
+                            isLoading={isLoading}
+                            editableMetrics={labelToFrequency(aggregationType) === baseFrequency ? EDITABLE_METRICS : []}
+                        />
+                    </div>
+                </div>
+                {runMessage && (
+                    <div className="text-sm text-muted-foreground">
+                        {runMessage}
+                    </div>
+                )}
+            </div>
 
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
                 <DialogContent className="sm:max-w-md">

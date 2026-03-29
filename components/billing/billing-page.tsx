@@ -17,9 +17,13 @@ type BillingSubscription = {
 }
 
 type BillingInvoice = {
+    invoice_id?: string
+    number?: string | null
     amount_due?: number | null
     amount_paid?: number | null
     currency?: string | null
+    created?: number | null
+    due_date?: number | null
     paid_at?: number | null
     next_payment_attempt?: number | null
     hosted_invoice_url?: string | null
@@ -31,6 +35,7 @@ type BillingData = {
     subscription?: BillingSubscription | null
     next_invoice?: BillingInvoice | null
     last_payment?: BillingInvoice | null
+    invoice_history?: BillingInvoice[]
 }
 
 const formatMoney = (amount: number | null | undefined, currency: string | null | undefined) => {
@@ -65,15 +70,18 @@ export const BillingPage = () => {
     const [data, setData] = useState<BillingData | null>(null)
     const [isLoading, setIsLoading] = useState(false)
     const [isOpeningPortal, setIsOpeningPortal] = useState(false)
+    const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
         const loadBilling = async () => {
             if (!customerId) {
                 setData(null)
+                setError(null)
                 return
             }
 
             setIsLoading(true)
+            setError(null)
             try {
                 const params = new URLSearchParams()
                 params.set("customerId", customerId)
@@ -85,6 +93,7 @@ export const BillingPage = () => {
                 setData(payload)
             } catch {
                 setData(null)
+                setError("Failed to load billing details.")
             } finally {
                 setIsLoading(false)
             }
@@ -114,21 +123,30 @@ export const BillingPage = () => {
                 throw new Error(payload.error || `portal_error_${response.status}`)
             }
             window.location.assign(payload.url)
+        } catch (err) {
+            const message = err instanceof Error ? err.message : "portal_session_failed"
+            setError(`Failed to open billing portal (${message}).`)
         } finally {
             setIsOpeningPortal(false)
         }
     }
 
     return (
-        <div className="container mx-auto p-6 space-y-6">
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">Billing</h1>
-                    <p className="text-muted-foreground">View your subscription, invoices, and upcoming payments</p>
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Billing</h1>
+                    <p className="text-muted-foreground mt-1">View your subscription, next payment, and invoice history.</p>
                 </div>
 
+                {error && (
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+                        {error}
+                    </div>
+                )}
+
                 {!isLoading && customerId && subscription && (
-                    <div className="mb-6 flex justify-end">
+                    <div className="flex justify-end">
                         <Button onClick={openPortal} disabled={isOpeningPortal}>
                             {isOpeningPortal ? "Opening..." : "Manage Subscription"}
                         </Button>
@@ -166,90 +184,153 @@ export const BillingPage = () => {
                 )}
 
                 {!isLoading && subscription && (
-                    <div className="grid gap-6 lg:grid-cols-3">
-                        <div className="rounded-lg border border-border p-6 bg-background">
-                            <h3 className="text-sm font-medium text-muted-foreground mb-3">Subscription</h3>
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Status</span>
-                                    <span className="text-sm font-semibold">{subscription.status}</span>
+                    <>
+                        <div className="grid gap-6 lg:grid-cols-3">
+                            <div className="rounded-lg border border-border p-6 bg-background">
+                                <h3 className="text-sm font-medium text-muted-foreground mb-3">Subscription</h3>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Status</span>
+                                        <span className="text-sm font-semibold">{subscription.status}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Renews</span>
+                                        <span className="text-sm font-semibold">
+                                            {formatDate(subscription.current_period_end)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Amount</span>
+                                        <span className="text-sm font-semibold">
+                                            {formatMoney(subscription.unit_amount, subscription.currency)} / {subscription.interval || "month"}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Auto-renew</span>
+                                        <span className="text-sm font-semibold">
+                                            {subscription.cancel_at_period_end ? "No" : "Yes"}
+                                        </span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Renews</span>
-                                    <span className="text-sm font-semibold">
-                                        {formatDate(subscription.current_period_end)}
-                                    </span>
+                            </div>
+
+                            <div className="rounded-lg border border-border p-6 bg-background">
+                                <h3 className="text-sm font-medium text-muted-foreground mb-3">Next Invoice</h3>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Amount</span>
+                                        <span className="text-sm font-semibold">
+                                            {formatMoney(nextInvoice?.amount_due ?? null, nextInvoice?.currency ?? subscription.currency)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Date</span>
+                                        <span className="text-sm font-semibold">
+                                            {formatDate(nextInvoice?.next_payment_attempt ?? subscription.current_period_end)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Status</span>
+                                        <span className="text-sm font-semibold">{nextInvoice?.status || "Upcoming"}</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Amount</span>
-                                    <span className="text-sm font-semibold">
-                                        {formatMoney(subscription.unit_amount, subscription.currency)} / {subscription.interval || "month"}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Auto-renew</span>
-                                    <span className="text-sm font-semibold">
-                                        {subscription.cancel_at_period_end ? "No" : "Yes"}
-                                    </span>
+                            </div>
+
+                            <div className="rounded-lg border border-border p-6 bg-background">
+                                <h3 className="text-sm font-medium text-muted-foreground mb-3">Last Payment</h3>
+                                <div className="space-y-2">
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Amount</span>
+                                        <span className="text-sm font-semibold">
+                                            {formatMoney(lastPayment?.amount_paid ?? null, lastPayment?.currency ?? subscription.currency)}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Date</span>
+                                        <span className="text-sm font-semibold">{formatDate(lastPayment?.paid_at)}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-sm text-muted-foreground">Receipt</span>
+                                        <span className="text-sm font-semibold">
+                                            {lastPayment?.hosted_invoice_url ? (
+                                                <a
+                                                    className="text-primary hover:underline"
+                                                    href={lastPayment.hosted_invoice_url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                >
+                                                    View
+                                                </a>
+                                            ) : (
+                                                "—"
+                                            )}
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
                         <div className="rounded-lg border border-border p-6 bg-background">
-                            <h3 className="text-sm font-medium text-muted-foreground mb-3">Next Invoice</h3>
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Amount</span>
-                                    <span className="text-sm font-semibold">
-                                        {formatMoney(nextInvoice?.amount_due ?? null, nextInvoice?.currency ?? subscription.currency)}
-                                    </span>
+                            <h3 className="text-sm font-medium text-muted-foreground mb-4">Invoice History</h3>
+                            {!data?.invoice_history?.length ? (
+                                <p className="text-sm text-muted-foreground">No invoices available yet.</p>
+                            ) : (
+                                <div className="overflow-x-auto">
+                                    <table className="w-full text-sm">
+                                        <thead>
+                                            <tr className="border-b text-muted-foreground">
+                                                <th className="py-2 pr-3 text-left font-medium">Invoice</th>
+                                                <th className="py-2 pr-3 text-left font-medium">Date</th>
+                                                <th className="py-2 pr-3 text-left font-medium">Amount</th>
+                                                <th className="py-2 pr-3 text-left font-medium">Status</th>
+                                                <th className="py-2 pr-3 text-left font-medium">Actions</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            {data.invoice_history.map((invoice) => (
+                                                <tr key={invoice.invoice_id} className="border-b last:border-0">
+                                                    <td className="py-3 pr-3">{invoice.number || invoice.invoice_id || "—"}</td>
+                                                    <td className="py-3 pr-3">{formatDate(invoice.paid_at ?? invoice.due_date ?? invoice.created)}</td>
+                                                    <td className="py-3 pr-3">
+                                                        {formatMoney(
+                                                            invoice.amount_paid ?? invoice.amount_due ?? null,
+                                                            invoice.currency ?? subscription.currency
+                                                        )}
+                                                    </td>
+                                                    <td className="py-3 pr-3 capitalize">{invoice.status || "—"}</td>
+                                                    <td className="py-3 pr-3">
+                                                        <div className="flex items-center gap-3">
+                                                            {invoice.hosted_invoice_url && (
+                                                                <a
+                                                                    className="text-primary hover:underline"
+                                                                    href={invoice.hosted_invoice_url}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    View
+                                                                </a>
+                                                            )}
+                                                            {invoice.invoice_pdf && (
+                                                                <a
+                                                                    className="text-primary hover:underline"
+                                                                    href={invoice.invoice_pdf}
+                                                                    target="_blank"
+                                                                    rel="noreferrer"
+                                                                >
+                                                                    Download PDF
+                                                                </a>
+                                                            )}
+                                                            {!invoice.hosted_invoice_url && !invoice.invoice_pdf && "—"}
+                                                        </div>
+                                                    </td>
+                                                </tr>
+                                            ))}
+                                        </tbody>
+                                    </table>
                                 </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Date</span>
-                                    <span className="text-sm font-semibold">
-                                        {formatDate(nextInvoice?.next_payment_attempt ?? subscription.current_period_end)}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Status</span>
-                                    <span className="text-sm font-semibold">{nextInvoice?.status || "Upcoming"}</span>
-                                </div>
-                            </div>
+                            )}
                         </div>
-
-                        <div className="rounded-lg border border-border p-6 bg-background">
-                            <h3 className="text-sm font-medium text-muted-foreground mb-3">Last Payment</h3>
-                            <div className="space-y-2">
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Amount</span>
-                                    <span className="text-sm font-semibold">
-                                        {formatMoney(lastPayment?.amount_paid ?? null, lastPayment?.currency ?? subscription.currency)}
-                                    </span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Date</span>
-                                    <span className="text-sm font-semibold">{formatDate(lastPayment?.paid_at)}</span>
-                                </div>
-                                <div className="flex items-center justify-between">
-                                    <span className="text-sm text-muted-foreground">Receipt</span>
-                                    <span className="text-sm font-semibold">
-                                        {lastPayment?.hosted_invoice_url ? (
-                                            <a
-                                                className="text-primary hover:underline"
-                                                href={lastPayment.hosted_invoice_url}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                            >
-                                                View
-                                            </a>
-                                        ) : (
-                                            "—"
-                                        )}
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    </>
                 )}
             </div>
         </div>

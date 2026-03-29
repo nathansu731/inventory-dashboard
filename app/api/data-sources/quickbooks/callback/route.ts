@@ -13,7 +13,7 @@ import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { encryptSecret } from "@/lib/data-source-secrets"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 const QUICKBOOKS_STATE_COOKIE = "quickbooks_oauth_state"
 
@@ -52,12 +52,13 @@ export async function GET(request: NextRequest) {
     return safeRedirect(request, "state_missing")
   }
 
-  let statePayload: { state: string; tenantId: string; requesterSub: string; selectedTables: string[]; createdAt: number } | null = null
+  let statePayload: { state: string; tenantId: string; requesterSub: string; availableTables: string[]; selectedTables: string[]; createdAt: number } | null = null
   try {
     const parsed = JSON.parse(Buffer.from(stateCookie, "base64url").toString("utf8")) as {
       state?: string
       tenantId?: string
       requesterSub?: string
+      availableTables?: unknown
       selectedTables?: unknown
       createdAt?: number
     }
@@ -71,6 +72,7 @@ export async function GET(request: NextRequest) {
         state: parsed.state,
         tenantId: parsed.tenantId,
         requesterSub: parsed.requesterSub,
+        availableTables: sanitizeAvailableObjects("quickbooks", parsed.availableTables),
         selectedTables: sanitizeSelectedObjects("quickbooks", parsed.selectedTables),
         createdAt: parsed.createdAt,
       }
@@ -130,6 +132,7 @@ export async function GET(request: NextRequest) {
     accountId: realmId,
     state: "connected",
     connectedAt: now,
+    availableTables: sanitizeAvailableObjects("quickbooks", statePayload.availableTables ?? existing?.availableTables),
     selectedTables: sanitizeSelectedObjects("quickbooks", statePayload.selectedTables ?? existing?.selectedTables),
     syncMode: existing?.syncMode || "manual",
     syncStartDate: existing?.syncStartDate || "",

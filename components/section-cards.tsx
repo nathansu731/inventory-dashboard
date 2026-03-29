@@ -26,6 +26,8 @@ type MonthlyMetric = {
 
 type MonthlyTotalsResult = {
   totalRevenue?: MonthlyMetric
+  stockoutRiskSkus?: MonthlyMetric
+  forecastAccuracy?: MonthlyMetric
   newCustomers?: MonthlyMetric
   activeAccounts?: MonthlyMetric
   growthRate?: MonthlyMetric
@@ -112,50 +114,54 @@ export function SectionCards() {
           </CardFooter>
         </Card>
 
-        {/* New Customers */}
+        {/* Stockout Risk */}
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>New Customers</CardDescription>
+            <CardDescription>Stockout Risk SKUs</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {formatValue(data?.newCustomers?.value)}
+              {formatValue(data?.stockoutRiskSkus?.value ?? data?.newCustomers?.value)}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                <TrendIcon status={data?.newCustomers?.status} />
-                {formatPercent(data?.newCustomers?.variance)}
+                <TrendIcon status={data?.stockoutRiskSkus?.status ?? data?.newCustomers?.status} />
+                {formatPercent(data?.stockoutRiskSkus?.variance ?? data?.newCustomers?.variance)}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
             <div className="line-clamp-1 flex gap-2 font-medium">
-              Customer acquisition trend <TrendIcon status={data?.newCustomers?.status} />
+              Critical/high risk SKU trend <TrendIcon status={data?.stockoutRiskSkus?.status ?? data?.newCustomers?.status} />
             </div>
             <div className="text-muted-foreground">
-              Compared to previous period
+              Near-term replenishment exposure
             </div>
           </CardFooter>
         </Card>
 
-        {/* Active Accounts */}
+        {/* Forecast Accuracy */}
         <Card className="@container/card">
           <CardHeader>
-            <CardDescription>Active Accounts</CardDescription>
+            <CardDescription>Forecast Accuracy</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {formatValue(data?.activeAccounts?.value)}
+              {data?.forecastAccuracy?.value !== undefined
+                ? `${data.forecastAccuracy.value.toFixed(1)}%`
+                : data?.activeAccounts?.value !== undefined
+                  ? `${data.activeAccounts.value.toFixed(1)}%`
+                  : "--"}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
-                <TrendIcon status={data?.activeAccounts?.status} />
-                {formatPercent(data?.activeAccounts?.variance)}
+                <TrendIcon status={data?.forecastAccuracy?.status ?? data?.activeAccounts?.status} />
+                {formatPercent(data?.forecastAccuracy?.variance ?? data?.activeAccounts?.variance)}
               </Badge>
             </CardAction>
           </CardHeader>
           <CardFooter className="flex-col items-start gap-1.5 text-sm">
             <div className="line-clamp-1 flex gap-2 font-medium">
-              Account activity trend <TrendIcon status={data?.activeAccounts?.status} />
+              Model performance vs baseline <TrendIcon status={data?.forecastAccuracy?.status ?? data?.activeAccounts?.status} />
             </div>
             <div className="text-muted-foreground">
-              Active users this month
+              Higher is better (100% - SMAPE)
             </div>
           </CardFooter>
         </Card>

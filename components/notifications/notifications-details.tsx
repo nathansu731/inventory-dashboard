@@ -84,7 +84,7 @@ export const NotificationsDetails = ({selectedNotification, getNotificationIcon,
                             )}
                         </div>
 
-                        <div className="pt-4 border-t space-y-2">
+                        <div className="pt-4 border-t">
                             {!selectedNotification.read && (
                                 <Button
                                     variant="outline"
@@ -95,9 +95,6 @@ export const NotificationsDetails = ({selectedNotification, getNotificationIcon,
                                     Mark as Read
                                 </Button>
                             )}
-                            <Button variant="outline" size="sm" className="w-full bg-transparent">
-                                Archive
-                            </Button>
                         </div>
                     </div>
                 </div>

@@ -1,13 +1,26 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
-import { Download, RefreshCw } from "lucide-react"
+import { Check, ChevronsUpDown, Download, RefreshCw } from "lucide-react"
 import { Button } from "@/components/ui/button"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { ForecastTable } from "@/components/forecast-navigator/forecast-table"
 import { ForecastChart } from "@/components/forecast-navigator/forecast-chart"
+import { cn } from "@/lib/utils"
+import {
+    type AggregationLabel,
+    aggregateValueMap,
+    buildAggregationBuckets,
+    formatPeriodByFrequency,
+    frequencyToLabel,
+    getAvailableAggregationLabels,
+    labelToFrequency,
+    normalizeFrequency,
+} from "@/lib/forecast-aggregation"
 
 type ForecastItem = {
     sku: string
@@ -41,17 +54,11 @@ const LABEL_MAP: Array<{ key: keyof ForecastItem; label: string }> = [
     { key: "revenue", label: "Revenue" },
 ]
 
-const formatPeriod = (period: string) => {
-    if (/^\d{2}-\d{4}$/.test(period)) {
-        const [month, year] = period.split("-")
-        return `${month}/${year}`
-    }
-    return period
-}
-
 export const ForecastNavigator = () => {
     const [payload, setPayload] = useState<ForecastValuesPayload>({ items: [] })
     const [selectedSku, setSelectedSku] = useState<string>("")
+    const [skuPickerOpen, setSkuPickerOpen] = useState(false)
+    const [aggregationType, setAggregationType] = useState<AggregationLabel>("Monthly")
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -93,30 +100,66 @@ export const ForecastNavigator = () => {
         return items.find((item) => item.sku === selectedSku) ?? items[0]
     }, [items, selectedSku])
 
-    const periods = useMemo(() => selectedItem?.periods ?? [], [selectedItem])
+    const baseFrequency = useMemo(
+        () => normalizeFrequency(selectedItem?.frequency || payload.frequency || "monthly"),
+        [selectedItem?.frequency, payload.frequency]
+    )
+    const availableAggregations = useMemo(() => getAvailableAggregationLabels(baseFrequency), [baseFrequency])
+    const targetFrequency = useMemo(() => labelToFrequency(aggregationType), [aggregationType])
+
+    useEffect(() => {
+        setAggregationType(frequencyToLabel(baseFrequency))
+    }, [baseFrequency, selectedItem?.sku])
+
+    const sourcePeriods = useMemo(() => selectedItem?.periods ?? [], [selectedItem])
+    const buckets = useMemo(
+        () => buildAggregationBuckets(sourcePeriods, baseFrequency, targetFrequency),
+        [sourcePeriods, baseFrequency, targetFrequency]
+    )
+    const periods = useMemo(() => buckets.periods, [buckets.periods])
+
+    const aggregatedMaps = useMemo(() => {
+        if (!selectedItem) return {}
+        const keys: Array<keyof ForecastItem> = [
+            "demand",
+            "forecastBaseline",
+            "demandAdjustment",
+            "forecastAdjustment",
+            "variance",
+            "revenue",
+        ]
+        return keys.reduce<Record<string, Record<string, number>>>((acc, key) => {
+            acc[String(key)] = aggregateValueMap(
+                (selectedItem[key] as Record<string, number> | undefined) ?? {},
+                sourcePeriods,
+                buckets
+            )
+            return acc
+        }, {})
+    }, [selectedItem, sourcePeriods, buckets])
 
     const rowData: RowData[] = useMemo(() => {
         if (!selectedItem) return []
 
         return LABEL_MAP.map(({ key, label }) => {
-            const map = (selectedItem[key] as Record<string, number> | undefined) ?? {}
+            const map = aggregatedMaps[String(key)] ?? {}
             return {
                 label,
                 values: periods.map((period) => String(map[period] ?? 0)),
             }
         })
-    }, [periods, selectedItem])
+    }, [aggregatedMaps, periods, selectedItem])
 
     const chartData = useMemo(() => {
         const demandRow = rowData.find((r) => r.label === "Demand")
         const baselineRow = rowData.find((r) => r.label === "Forecast Baseline")
 
         return periods.map((period, index) => ({
-            month: formatPeriod(period),
+            month: formatPeriodByFrequency(period, targetFrequency),
             demand: Number(demandRow?.values[index] ?? 0),
             forecastBaseline: Number(baselineRow?.values[index] ?? 0),
         }))
-    }, [periods, rowData])
+    }, [periods, rowData, targetFrequency])
 
     const handleExportCsv = () => {
         if (!selectedItem || periods.length === 0) return
@@ -137,11 +180,11 @@ export const ForecastNavigator = () => {
     }
 
     return (
-        <div className="container mx-auto py-8 px-4">
-            <div className="mx-auto px-6 py-6 space-y-4">
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
                 <div>
-                    <h1 className="text-2xl font-bold text-gray-900">Forecast Navigator</h1>
-                    <p className="text-sm text-muted-foreground mt-1">
+                    <h1 className="text-3xl font-bold text-foreground">Forecast Navigator</h1>
+                    <p className="text-muted-foreground mt-1">
                         Explore forecast values by SKU and compare demand against baseline.
                     </p>
                 </div>
@@ -149,19 +192,49 @@ export const ForecastNavigator = () => {
                 <Card className="py-1">
                     <CardContent className="p-3 flex flex-wrap items-center justify-between gap-3">
                         <div className="flex flex-wrap items-center gap-2">
-                            <Select value={selectedSku || undefined} onValueChange={setSelectedSku}>
-                                <SelectTrigger className="w-[220px]">
-                                    <SelectValue placeholder="Select SKU" />
+                            <Popover open={skuPickerOpen} onOpenChange={setSkuPickerOpen}>
+                                <PopoverTrigger asChild>
+                                    <Button variant="outline" role="combobox" aria-expanded={skuPickerOpen} className="w-[220px] justify-between">
+                                        {selectedItem?.sku ?? "Select SKU"}
+                                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                    </Button>
+                                </PopoverTrigger>
+                                <PopoverContent className="w-[220px] p-0">
+                                    <Command>
+                                        <CommandInput placeholder="Search SKU..." />
+                                        <CommandList>
+                                            <CommandEmpty>No SKU found.</CommandEmpty>
+                                            <CommandGroup>
+                                                {skuOptions.map((sku) => (
+                                                    <CommandItem
+                                                        key={sku}
+                                                        value={sku}
+                                                        onSelect={(value) => {
+                                                            const matchedSku = skuOptions.find((option) => option.toLowerCase() === value.toLowerCase()) ?? value
+                                                            setSelectedSku(matchedSku)
+                                                            setSkuPickerOpen(false)
+                                                        }}
+                                                    >
+                                                        <Check className={cn("mr-2 h-4 w-4", selectedItem?.sku === sku ? "opacity-100" : "opacity-0")} />
+                                                        {sku}
+                                                    </CommandItem>
+                                                ))}
+                                            </CommandGroup>
+                                        </CommandList>
+                                    </Command>
+                                </PopoverContent>
+                            </Popover>
+                            {selectedItem?.store && <Badge variant="secondary">Store: {selectedItem.store}</Badge>}
+                            <Select value={aggregationType} onValueChange={(value) => setAggregationType(value as AggregationLabel)}>
+                                <SelectTrigger className="w-[150px]">
+                                    <SelectValue placeholder="Aggregation" />
                                 </SelectTrigger>
                                 <SelectContent>
-                                    {skuOptions.map((sku) => (
-                                        <SelectItem key={sku} value={sku}>
-                                            {sku}
-                                        </SelectItem>
+                                    {availableAggregations.map((option) => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                            {selectedItem?.store && <Badge variant="secondary">Store: {selectedItem.store}</Badge>}
                             <Badge variant="outline">Frequency: {selectedItem?.frequency ?? payload.frequency ?? "unknown"}</Badge>
                         </div>
 
@@ -193,7 +266,7 @@ export const ForecastNavigator = () => {
                     </div>
                 ) : (
                     <>
-                        <ForecastTable months={periods.map(formatPeriod)} rowData={rowData} />
+                        <ForecastTable months={periods.map((period) => formatPeriodByFrequency(period, targetFrequency))} rowData={rowData} />
                         <ForecastChart data={chartData} />
                     </>
                 )}

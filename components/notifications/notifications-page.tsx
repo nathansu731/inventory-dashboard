@@ -7,7 +7,6 @@ import {
     CreditCard,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
-import {NotificationsPageTitle} from "@/components/notifications/notifications-page-title";
 import {NotificationsSort} from "@/components/notifications/notifications-sort";
 import {NotificationsList} from "@/components/notifications/notifications-list";
 import {NotificationsDetails} from "@/components/notifications/notifications-details";
@@ -34,18 +33,71 @@ type SortOption = "newest" | "oldest" | "unread" | "priority"
 export const NotificationsPage = () => {
     const [notifications, setNotifications] = useState<Notification[]>([])
     const [loading, setLoading] = useState(false)
+    const [actionLoading, setActionLoading] = useState(false)
     const [hasMore, setHasMore] = useState(false)
     const [nextToken, setNextToken] = useState<string | null>(null)
     const [sortBy, setSortBy] = useState<SortOption>("newest")
     const [selectedNotification, setSelectedNotification] = useState<Notification | null>(null)
+    const [error, setError] = useState<string | null>(null)
     const { profile } = useProfile()
+
+    const mapNotification = useCallback((run: NotificationRecord, displayName: string): Notification => {
+        const status = (run.status || "").toUpperCase()
+        const jobStatus =
+            status === "DONE"
+                ? "completed"
+                : status === "FAILED"
+                    ? "failed"
+                    : status === "RUNNING"
+                        ? "in-progress"
+                        : "pending"
+
+        let summary = run.summary || {}
+        if (typeof run.summary === "string") {
+            try {
+                summary = JSON.parse(run.summary)
+            } catch {
+                summary = {}
+            }
+        }
+        const summaryText =
+            summary?.totalSkus && summary?.dateStart && summary?.dateEnd
+                ? `Processed ${summary.totalSkus} SKUs (${summary.dateStart} to ${summary.dateEnd}).`
+                : "Artifacts are being prepared."
+
+        const message =
+            jobStatus === "completed"
+                ? `Forecast job completed for ${displayName}. ${summaryText}`
+                : jobStatus === "failed"
+                    ? `Forecast job failed for ${displayName}. Please retry.`
+                    : jobStatus === "in-progress"
+                        ? `Forecast job is running for ${displayName}.`
+                        : `Forecast job queued for ${displayName}.`
+
+        const timestamp = new Date(run.updatedAt || run.createdAt || Date.now())
+
+        return {
+            id: run.notificationId || run.runId,
+            type: "job",
+            title: "Job Report Generation",
+            message,
+            timestamp,
+            read: Boolean(run.read),
+            jobStatus,
+            priority: jobStatus === "failed" ? "high" : jobStatus === "in-progress" ? "medium" : "low",
+            details: `Run ID: ${run.runId}`,
+            relatedUser: displayName,
+        }
+    }, [])
 
     useEffect(() => {
         const loadNotifications = async () => {
             setLoading(true)
+            setError(null)
             const res = await fetch("/api/list-notifications?limit=10")
             if (!res.ok) {
                 setLoading(false)
+                setError("Failed to load notifications.")
                 return
             }
             const payload = await res.json()
@@ -58,54 +110,7 @@ export const NotificationsPage = () => {
                 profile?.email ||
                 "your account"
 
-            const mapped: Notification[] = items.map((run) => {
-                const status = (run.status || "").toUpperCase()
-                const jobStatus =
-                    status === "DONE"
-                        ? "completed"
-                        : status === "FAILED"
-                            ? "failed"
-                            : status === "RUNNING"
-                                ? "in-progress"
-                                : "pending"
-
-                let summary = run.summary || {}
-                if (typeof run.summary === "string") {
-                    try {
-                        summary = JSON.parse(run.summary)
-                    } catch {
-                        summary = {}
-                    }
-                }
-                const summaryText =
-                    summary?.totalSkus && summary?.dateStart && summary?.dateEnd
-                        ? `Processed ${summary.totalSkus} SKUs (${summary.dateStart} to ${summary.dateEnd}).`
-                        : "Artifacts are being prepared."
-
-                const message =
-                    jobStatus === "completed"
-                        ? `Forecast job completed for ${displayName}. ${summaryText}`
-                        : jobStatus === "failed"
-                            ? `Forecast job failed for ${displayName}. Please retry.`
-                            : jobStatus === "in-progress"
-                                ? `Forecast job is running for ${displayName}.`
-                                : `Forecast job queued for ${displayName}.`
-
-                const timestamp = new Date(run.updatedAt || run.createdAt || Date.now())
-
-                return {
-                    id: run.notificationId || run.runId,
-                    type: "job",
-                    title: "Job Report Generation",
-                    message,
-                    timestamp,
-                    read: Boolean(run.read),
-                    jobStatus,
-                    priority: jobStatus === "failed" ? "high" : jobStatus === "in-progress" ? "medium" : "low",
-                    details: `Run ID: ${run.runId}`,
-                    relatedUser: displayName,
-                }
-            })
+            const mapped: Notification[] = items.map((run) => mapNotification(run, displayName))
 
             setNotifications(mapped)
             setNextToken(token)
@@ -114,15 +119,17 @@ export const NotificationsPage = () => {
         }
 
         loadNotifications()
-    }, [profile])
+    }, [mapNotification, profile])
 
     const loadMore = useCallback(async () => {
         if (loading || !hasMore || !nextToken) return
 
         setLoading(true)
+        setError(null)
         const res = await fetch(`/api/list-notifications?limit=10&nextToken=${encodeURIComponent(nextToken)}`)
         if (!res.ok) {
             setLoading(false)
+            setError("Failed to load more notifications.")
             return
         }
         const payload = await res.json()
@@ -135,61 +142,13 @@ export const NotificationsPage = () => {
             profile?.email ||
             "your account"
 
-        const mapped: Notification[] = items.map((run) => {
-            const status = (run.status || "").toUpperCase()
-            const jobStatus =
-                status === "DONE"
-                    ? "completed"
-                    : status === "FAILED"
-                        ? "failed"
-                        : status === "RUNNING"
-                            ? "in-progress"
-                            : "pending"
-
-            let summary = run.summary || {}
-            if (typeof run.summary === "string") {
-                try {
-                    summary = JSON.parse(run.summary)
-                } catch {
-                    summary = {}
-                }
-            }
-
-            const summaryText =
-                summary?.totalSkus && summary?.dateStart && summary?.dateEnd
-                    ? `Processed ${summary.totalSkus} SKUs (${summary.dateStart} to ${summary.dateEnd}).`
-                    : "Artifacts are being prepared."
-
-            const message =
-                jobStatus === "completed"
-                    ? `Forecast job completed for ${displayName}. ${summaryText}`
-                    : jobStatus === "failed"
-                        ? `Forecast job failed for ${displayName}. Please retry.`
-                        : jobStatus === "in-progress"
-                            ? `Forecast job is running for ${displayName}.`
-                            : `Forecast job queued for ${displayName}.`
-
-            const timestamp = new Date(run.updatedAt || run.createdAt || Date.now())
-
-            return {
-                id: run.notificationId || run.runId,
-                type: "job",
-                title: "Job Report Generation",
-                message,
-                timestamp,
-                read: Boolean(run.read),
-                jobStatus,
-                priority: jobStatus === "failed" ? "high" : jobStatus === "in-progress" ? "medium" : "low",
-                details: `Run ID: ${run.runId}`,
-                relatedUser: displayName,
-            }
-        })
+        const mapped: Notification[] = items.map((run) => mapNotification(run, displayName))
 
         setNotifications((prev) => [...prev, ...mapped])
         setNextToken(token)
         setHasMore(Boolean(token))
         setLoading(false)
-    }, [loading, hasMore, nextToken, profile])
+    }, [hasMore, loading, mapNotification, nextToken, profile])
 
     const sortedNotifications = [...notifications].sort((a, b) => {
         switch (sortBy) {
@@ -225,13 +184,37 @@ export const NotificationsPage = () => {
         setSelectedNotification(notification)
     }
 
-    const clearCompletedJobs = () => {
-        setNotifications((prev) => prev.filter((notif) => !(notif.type === "job" && notif.jobStatus === "completed")))
+    const markAllRead = async () => {
+        if (actionLoading) return
+        setActionLoading(true)
+        setError(null)
+        try {
+            const res = await fetch("/api/notifications/mark-all-read", { method: "POST" })
+            if (!res.ok) throw new Error(`request_failed_${res.status}`)
+            setNotifications((prev) => prev.map((item) => ({ ...item, read: true })))
+        } catch {
+            setError("Failed to mark all notifications as read.")
+        } finally {
+            setActionLoading(false)
+        }
     }
 
-    const clearAll = () => {
-        setNotifications([])
-        setHasMore(false)
+    const clearCompleted = async () => {
+        if (actionLoading) return
+        setActionLoading(true)
+        setError(null)
+        try {
+            const res = await fetch("/api/notifications/clear-completed", { method: "POST" })
+            if (!res.ok) throw new Error(`request_failed_${res.status}`)
+            setNotifications((prev) => prev.filter((item) => item.jobStatus !== "completed"))
+            if (selectedNotification?.jobStatus === "completed") {
+                setSelectedNotification(null)
+            }
+        } catch {
+            setError("Failed to clear completed notifications.")
+        } finally {
+            setActionLoading(false)
+        }
     }
 
     const getNotificationIcon = (notification: Notification) => {
@@ -262,18 +245,26 @@ export const NotificationsPage = () => {
     }
 
     const unreadCount = notifications.filter((n) => !n.read).length
-    const completedJobsCount = notifications.filter((n) => n.type === "job" && n.jobStatus === "completed").length
-
     return (
-        <div className="flex h-screen bg-background">
+        <div className="min-h-screen bg-background flex">
             <div className={cn("flex-1 overflow-auto", selectedNotification && "mr-96")}>
-                <div className="container mx-auto p-6 max-w-4xl">
-                    <NotificationsPageTitle unreadCount={unreadCount}/>
+                <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+                    <div>
+                        <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
+                        <p className="text-muted-foreground mt-1">Track forecast jobs, billing updates, and product activity.</p>
+                        {unreadCount > 0 && <p className="text-sm text-muted-foreground mt-2">{unreadCount} unread</p>}
+                    </div>
+                    {error && (
+                        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
+                            {error}
+                        </div>
+                    )}
                     <NotificationsSort
-                        clearCompletedJobs={clearCompletedJobs}
-                        completedJobsCount={completedJobsCount}
-                        clearAll={clearAll}
-                        notifications={notifications}
+                        onClearCompleted={clearCompleted}
+                        onMarkAllRead={markAllRead}
+                        clearCompletedDisabled={notifications.every((item) => item.jobStatus !== "completed")}
+                        markAllReadDisabled={notifications.every((item) => item.read)}
+                        actionLoading={actionLoading}
                         sortBy={sortBy}
                         setSortBy={setSortBy}
                     />

@@ -263,7 +263,7 @@ export async function POST(request: Request) {
         subscription?.items?.data?.[0]?.price?.lookup_key,
         subscription?.items?.data?.[0]?.price?.nickname
       );
-      const renewsAt = toIsoFromEpoch(subscription?.current_period_end ?? null);
+      const renewsAt = toIsoFromEpoch(subscription?.items?.data?.[0]?.current_period_end ?? null);
 
       if (email) {
         await updateCognitoUser(email, {
@@ -297,7 +297,7 @@ export async function POST(request: Request) {
         subscription.items?.data?.[0]?.price?.lookup_key,
         subscription.items?.data?.[0]?.price?.nickname
       );
-      const renewsAt = toIsoFromEpoch(subscription.current_period_end ?? null);
+      const renewsAt = toIsoFromEpoch(subscription.items?.data?.[0]?.current_period_end ?? null);
 
       if (email) {
         await updateCognitoUser(email, {
@@ -321,7 +321,10 @@ export async function POST(request: Request) {
     if (event.type === "invoice.payment_failed") {
       const invoice = event.data.object as Stripe.Invoice;
       const customerId = typeof invoice.customer === "string" ? invoice.customer : "";
-      const subscriptionId = typeof invoice.subscription === "string" ? invoice.subscription : "";
+      const subscriptionId =
+        typeof (invoice as { subscription?: unknown }).subscription === "string"
+          ? ((invoice as { subscription?: string }).subscription as string)
+          : "";
       const email = await resolveCustomerEmail(customerId);
 
       let subscription: Stripe.Subscription | null = null;
@@ -339,7 +342,7 @@ export async function POST(request: Request) {
         subscription?.items?.data?.[0]?.price?.nickname
       );
       const status = subscription?.status || "past_due";
-      const renewsAt = toIsoFromEpoch(subscription?.current_period_end ?? null);
+      const renewsAt = toIsoFromEpoch(subscription?.items?.data?.[0]?.current_period_end ?? null);
 
       if (email) {
         await updateCognitoUser(email, {

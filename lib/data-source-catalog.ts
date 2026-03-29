@@ -7,24 +7,24 @@ type ProviderCatalogEntry = {
 
 const DATA_SOURCE_CATALOG: Record<DataSourceProvider, ProviderCatalogEntry> = {
   shopify: {
-    objects: [],
-    defaultSelected: [],
+    objects: ["orders", "products", "customers", "inventory_levels"],
+    defaultSelected: ["orders", "products"],
   },
   amazon: {
-    objects: [],
-    defaultSelected: [],
+    objects: ["orders", "order_items", "inventory"],
+    defaultSelected: ["orders", "order_items"],
   },
   quickbooks: {
-    objects: [],
-    defaultSelected: [],
+    objects: ["invoices", "sales_receipts", "items", "customers", "purchase_orders"],
+    defaultSelected: ["invoices", "items"],
   },
   bigcommerce: {
-    objects: [],
-    defaultSelected: [],
+    objects: ["orders", "products", "variants", "customers", "inventory"],
+    defaultSelected: ["orders", "products"],
   },
   other: {
-    objects: [],
-    defaultSelected: [],
+    objects: ["orders", "products", "customers", "inventory"],
+    defaultSelected: ["orders"],
   },
 }
 
@@ -52,4 +52,15 @@ export const sanitizeSelectedObjects = (provider: DataSourceProvider, value: unk
   )
 
   return selected.length > 0 ? selected : getDefaultSelectedObjects(provider)
+}
+
+export const sanitizeAvailableObjects = (provider: DataSourceProvider, value: unknown) => {
+  const allowed = new Set(getProviderObjects(provider))
+  const source = Array.isArray(value) ? value : []
+  const normalized = unique(
+    source
+      .map((item) => (typeof item === "string" ? item.trim() : ""))
+      .filter((item) => item && allowed.has(item))
+  )
+  return normalized.length > 0 ? normalized : getProviderObjects(provider)
 }

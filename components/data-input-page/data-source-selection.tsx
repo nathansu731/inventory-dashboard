@@ -1,14 +1,12 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Settings, Link2, CheckCircle2, AlertTriangle } from "lucide-react"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import React from "react"
 
-export type ConnectorProvider = "shopify" | "amazon" | "quickbooks" | "bigcommerce" | "other"
+export type ConnectorProvider = "csv" | "shopify" | "amazon" | "quickbooks" | "bigcommerce" | "other"
 
 export type ConnectorState = "not_connected" | "connected" | "error"
 
@@ -21,17 +19,27 @@ type DataSourceSelectionProps = {
   connectedAccount: string
   connectedAt: string | null
   canManageSources: boolean
-  onConnect: (payload: { accountName: string; accountId: string; selectedTables: string[] }) => void
+  onConnect: (payload: { accountName: string; accountId: string; availableTables: string[]; selectedTables: string[] }) => void
   onDisconnect: () => void
 }
 
 const providerLabel = (provider: ConnectorProvider) => {
+  if (provider === "csv") return "CSV"
   if (provider === "shopify") return "Shopify"
   if (provider === "amazon") return "Amazon"
   if (provider === "quickbooks") return "QuickBooks"
   if (provider === "bigcommerce") return "BigCommerce"
   return "Other"
 }
+
+const providerOptions: Array<{ value: ConnectorProvider; label: string }> = [
+  { value: "csv", label: "CSV" },
+  { value: "shopify", label: "Shopify" },
+  { value: "amazon", label: "Amazon" },
+  { value: "quickbooks", label: "QuickBooks" },
+  { value: "bigcommerce", label: "BigCommerce" },
+  { value: "other", label: "Other" },
+]
 
 export const DataSourceSelection = ({
   availableObjects,
@@ -45,6 +53,7 @@ export const DataSourceSelection = ({
   onConnect,
   onDisconnect,
 }: DataSourceSelectionProps) => {
+  const isCsvProvider = provider === "csv"
   const [showConnectDialog, setShowConnectDialog] = React.useState(false)
   const [accountName, setAccountName] = React.useState("")
   const [accountId, setAccountId] = React.useState("")
@@ -55,9 +64,15 @@ export const DataSourceSelection = ({
     : null
 
   const connectNow = () => {
+    if (isCsvProvider) return
     const requiresAccountName = provider === "shopify" || provider === "other"
     if (requiresAccountName && !accountName.trim()) return
-    onConnect({ accountName: accountName.trim(), accountId: accountId.trim(), selectedTables: selectedObjects })
+    onConnect({
+      accountName: accountName.trim(),
+      accountId: accountId.trim(),
+      availableTables: availableObjects,
+      selectedTables: selectedObjects,
+    })
     setShowConnectDialog(false)
     setAccountName("")
     setAccountId("")
@@ -85,31 +100,22 @@ export const DataSourceSelection = ({
           <CardDescription>Configure file uploads and connect commerce/accounting platforms</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
             <div className="space-y-2">
               <Label htmlFor="provider">Provider</Label>
-              <Select value={provider} onValueChange={(value) => setProvider(value as ConnectorProvider)}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select provider" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="shopify">Shopify</SelectItem>
-                  <SelectItem value="amazon">Amazon</SelectItem>
-                  <SelectItem value="quickbooks">QuickBooks</SelectItem>
-                  <SelectItem value="bigcommerce">BigCommerce</SelectItem>
-                  <SelectItem value="other">Other</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Data Format</Label>
-              <div className="flex h-10 items-center rounded-md border px-3 text-sm">CSV</div>
-            </div>
-
-            <div className="space-y-2">
-              <Label>Data Type</Label>
-              <div className="flex h-10 items-center rounded-md border px-3 text-sm">Time series</div>
+              <div className="flex flex-wrap gap-2">
+                {providerOptions.map((option) => (
+                  <Button
+                    key={option.value}
+                    type="button"
+                    variant={provider === option.value ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setProvider(option.value)}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </div>
             </div>
           </div>
 
@@ -118,7 +124,12 @@ export const DataSourceSelection = ({
               <div>
                 <div className="text-sm font-medium">Connection Status</div>
                 <div className="mt-1 flex items-center gap-2 text-sm text-muted-foreground">
-                  {connectionState === "connected" ? (
+                  {isCsvProvider ? (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 text-green-600" />
+                      <span>CSV upload mode enabled</span>
+                    </>
+                  ) : connectionState === "connected" ? (
                     <>
                       <CheckCircle2 className="h-4 w-4 text-green-600" />
                       <span>
@@ -137,98 +148,104 @@ export const DataSourceSelection = ({
                     </>
                   )}
                 </div>
-                {connectedLabel && (
-                  <div className="mt-1 text-xs text-muted-foreground">Connected on {connectedLabel}</div>
-                )}
+                {connectedLabel && <div className="mt-1 text-xs text-muted-foreground">Connected on {connectedLabel}</div>}
               </div>
-              <div className="flex items-center gap-2">
-                <Badge variant={connectionState === "connected" ? "secondary" : "outline"}>
-                  {connectionState === "connected" ? "Connected" : "Not Connected"}
-                </Badge>
-                {connectionState === "connected" ? (
-                  <Button variant="outline" onClick={onDisconnect} disabled={!canManageSources}>
-                    Disconnect
-                  </Button>
-                ) : (
-                  <Button onClick={() => setShowConnectDialog(true)} disabled={!canManageSources}>
-                    Connect
-                  </Button>
-                )}
-              </div>
+
+              {!isCsvProvider && (
+                <div className="flex items-center gap-2">
+                  {connectionState === "connected" ? (
+                    <Button variant="outline" onClick={onDisconnect} disabled={!canManageSources}>
+                      Disconnect
+                    </Button>
+                  ) : (
+                    <Button onClick={() => setShowConnectDialog(true)} disabled={!canManageSources}>
+                      Connect
+                    </Button>
+                  )}
+                </div>
+              )}
             </div>
           </div>
+
+          {connectionState === "error" && !isCsvProvider && (
+            <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+              Connection issue detected. Reconnect your provider to continue syncing.
+            </div>
+          )}
         </CardContent>
       </Card>
 
-      <Dialog open={showConnectDialog} onOpenChange={setShowConnectDialog}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Connect {providerLabel(provider)}</DialogTitle>
-            <DialogDescription>
-              {provider === "shopify" || provider === "other"
-                ? "Provide source details to establish the connection."
-                : "You will be redirected to the provider OAuth screen to grant access."}
-            </DialogDescription>
-          </DialogHeader>
-          <div className="grid gap-4 py-2">
-            <div className="grid gap-2">
-              <Label>Tables / Objects to import</Label>
-              <div className="max-h-40 space-y-2 overflow-auto rounded-md border p-3">
-                {availableObjects.length > 0 ? (
-                  availableObjects.map((objectName) => (
-                    <label key={objectName} className="flex items-center gap-2 text-sm">
-                      <input
-                        type="checkbox"
-                        className="rounded"
-                        checked={selectedObjects.includes(objectName)}
-                        onChange={(event) => toggleObject(objectName, event.target.checked)}
-                      />
-                      <span>{objectName}</span>
-                    </label>
-                  ))
-                ) : (
-                  <div className="text-sm text-muted-foreground">
-                    No objects discovered yet for this provider. Connect first, then sync metadata.
-                  </div>
-                )}
+      {!isCsvProvider && (
+        <Dialog open={showConnectDialog} onOpenChange={setShowConnectDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Connect {providerLabel(provider)}</DialogTitle>
+              <DialogDescription>
+                {provider === "shopify" || provider === "other"
+                  ? "Provide source details to establish the connection."
+                  : "You will be redirected to the provider OAuth screen to grant access."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-2">
+              <div className="grid gap-2">
+                <Label>Tables / Objects to import</Label>
+                <div className="max-h-40 space-y-2 overflow-auto rounded-md border p-3">
+                  {availableObjects.length > 0 ? (
+                    availableObjects.map((objectName) => (
+                      <label key={objectName} className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          className="rounded"
+                          checked={selectedObjects.includes(objectName)}
+                          onChange={(event) => toggleObject(objectName, event.target.checked)}
+                        />
+                        <span>{objectName}</span>
+                      </label>
+                    ))
+                  ) : (
+                    <div className="text-sm text-muted-foreground">
+                      No objects discovered yet for this provider. Connect first, then sync metadata.
+                    </div>
+                  )}
+                </div>
               </div>
+              {(provider === "shopify" || provider === "other") && (
+                <div className="grid gap-2">
+                  <Label htmlFor="account-name">Account / Store Name</Label>
+                  <Input
+                    id="account-name"
+                    placeholder={provider === "shopify" ? "e.g., your-store.myshopify.com" : "e.g., ARK Main Store"}
+                    value={accountName}
+                    onChange={(event) => setAccountName(event.target.value)}
+                  />
+                </div>
+              )}
+              {provider === "other" && (
+                <div className="grid gap-2">
+                  <Label htmlFor="account-id">Account ID (optional)</Label>
+                  <Input
+                    id="account-id"
+                    placeholder="e.g., shop_12345"
+                    value={accountId}
+                    onChange={(event) => setAccountId(event.target.value)}
+                  />
+                </div>
+              )}
             </div>
-            {(provider === "shopify" || provider === "other") && (
-              <div className="grid gap-2">
-                <Label htmlFor="account-name">Account / Store Name</Label>
-                <Input
-                  id="account-name"
-                  placeholder={provider === "shopify" ? "e.g., your-store.myshopify.com" : "e.g., ARK Main Store"}
-                  value={accountName}
-                  onChange={(event) => setAccountName(event.target.value)}
-                />
-              </div>
-            )}
-            {provider === "other" && (
-              <div className="grid gap-2">
-                <Label htmlFor="account-id">Account ID (optional)</Label>
-                <Input
-                  id="account-id"
-                  placeholder="e.g., shop_12345"
-                  value={accountId}
-                  onChange={(event) => setAccountId(event.target.value)}
-                />
-              </div>
-            )}
-          </div>
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setShowConnectDialog(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={connectNow}
-              disabled={(provider === "shopify" || provider === "other") && !accountName.trim()}
-            >
-              {provider === "shopify" || provider === "other" ? "Connect" : "Continue to OAuth"}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setShowConnectDialog(false)}>
+                Cancel
+              </Button>
+              <Button
+                onClick={connectNow}
+                disabled={(provider === "shopify" || provider === "other") && !accountName.trim()}
+              >
+                {provider === "shopify" || provider === "other" ? "Connect" : "Continue to OAuth"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      )}
     </>
   )
 }

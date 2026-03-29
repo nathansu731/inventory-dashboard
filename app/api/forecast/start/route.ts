@@ -9,7 +9,21 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { s3Bucket, s3Key, originalFilename, adjustmentsKey, sku, store, frequency, model, mode, seasonality } = body || {};
+    const {
+        s3Bucket,
+        s3Key,
+        originalFilename,
+        adjustmentsKey,
+        sku,
+        store,
+        frequency,
+        model,
+        mode,
+        seasonality,
+        dateFormat,
+        targetVariable,
+        priceColumnName,
+    } = body || {};
     if (!s3Bucket || !s3Key) {
         return NextResponse.json({ error: "missing_s3" }, { status: 400 });
     }
@@ -37,14 +51,17 @@ export async function POST(req: Request) {
                 s3Bucket,
                 s3Key,
                 originalFilename,
-                adjustmentsKey,
-                sku,
-                store,
-                frequency,
-                model,
-                mode,
-                seasonality,
-            },
+            adjustmentsKey,
+            sku,
+            store,
+            frequency,
+            model,
+            mode,
+            seasonality,
+                dateFormat,
+                targetVariable,
+                priceColumnName,
+            }
         });
 
         const response = NextResponse.json(json.data.startForecastRun);

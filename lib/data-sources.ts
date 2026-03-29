@@ -31,6 +31,7 @@ export type DataSourceRecord = {
   accountId?: string
   state: DataSourceState
   connectedAt: string | null
+  availableTables: string[]
   selectedTables: string[]
   syncMode: SyncMode
   syncStartDate: string
@@ -112,6 +113,9 @@ const normalizeSource = (id: string, value: unknown): DataSourceRecord | null =>
     accountId: sanitizeText(input.accountId) || undefined,
     state: normalizeState(input.state),
     connectedAt: sanitizeText(input.connectedAt) || null,
+    availableTables: Array.isArray(input.availableTables)
+      ? input.availableTables.map((item) => sanitizeText(item)).filter(Boolean)
+      : [],
     selectedTables: Array.isArray(input.selectedTables)
       ? input.selectedTables.map((item) => sanitizeText(item)).filter(Boolean)
       : [],

@@ -49,6 +49,24 @@ export async function GET(request: Request) {
     })
     const lastPayment = lastPaymentList.data[0] || null
 
+    const invoiceHistoryList = await stripe.invoices.list({
+        customer: customerId,
+        limit: 24,
+    })
+    const invoiceHistory = invoiceHistoryList.data.map((invoice) => ({
+        invoice_id: invoice.id,
+        number: invoice.number,
+        amount_due: invoice.amount_due,
+        amount_paid: invoice.amount_paid,
+        currency: invoice.currency,
+        created: invoice.created,
+        due_date: invoice.due_date,
+        paid_at: invoice.status_transitions?.paid_at ?? null,
+        status: invoice.status,
+        hosted_invoice_url: invoice.hosted_invoice_url ?? null,
+        invoice_pdf: invoice.invoice_pdf ?? null,
+    }))
+
     const price = subscription?.items?.data?.[0]?.price
     const currentPeriodEnd = subscription?.items?.data?.[0]?.current_period_end ?? null
 
@@ -85,5 +103,6 @@ export async function GET(request: Request) {
                   status: lastPayment.status,
               }
             : null,
+        invoice_history: invoiceHistory,
     })
 }

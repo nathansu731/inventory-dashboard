@@ -237,10 +237,10 @@ export const ReportsPage = () => {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="container max-w-[2000px] mx-auto px-5 py-8 min-w-0 space-y-4">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
                 <div className="flex items-center justify-between gap-3 flex-wrap">
                     <div>
-                        <h1 className="text-3xl font-bold text-foreground mb-2">Reports</h1>
+                        <h1 className="text-3xl font-bold text-foreground">Reports</h1>
                         <p className="text-muted-foreground">Define report criteria, preview matching runs, and save the criteria for reuse.</p>
                     </div>
                     <Button variant="outline" asChild>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,7 +45,7 @@ export const ConfirmSignupFormFields = () => {
     const [remaining, setRemaining] = useState(0);
     const [status, setStatus] = useState("");
     const [error, setError] = useState("");
-    const emailInputRef = useRef<HTMLInputElement | null>(null);
+    const [emailValidationError, setEmailValidationError] = useState("");
     const confirmError = useMemo(
         () => getConfirmErrorMessage(searchParams.get("error")),
         [searchParams]
@@ -87,8 +87,13 @@ export const ConfirmSignupFormFields = () => {
     const handleResend = async () => {
         setStatus("");
         setError("");
-        if (!email) {
-            emailInputRef.current?.reportValidity();
+        setEmailValidationError("");
+        if (!email.trim()) {
+            setEmailValidationError("Email is required.");
+            return;
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) {
+            setEmailValidationError("Enter a valid email address.");
             return;
         }
         const res = await fetch("/api/auth/resend", {
@@ -111,7 +116,7 @@ export const ConfirmSignupFormFields = () => {
     };
 
     return (
-        <form className="p-6 md:p-8" action="/api/auth/confirm" method="post">
+        <form className="p-6 md:p-8" action="/api/auth/confirm" method="post" noValidate>
             <div className="flex flex-col gap-6">
                 <div className="flex flex-col items-center text-center">
                     <h1 className="text-2xl font-bold">Confirm your email</h1>
@@ -125,13 +130,17 @@ export const ConfirmSignupFormFields = () => {
                     <Input
                         id="email"
                         name="email"
-                        type="email"
+                        type="text"
+                        inputMode="email"
+                        autoComplete="email"
                         placeholder="m@example.com"
                         required
-                        ref={emailInputRef}
                         value={email}
                         onChange={(event) => setEmail(event.target.value)}
                     />
+                    {emailValidationError ? (
+                        <span className="text-xs text-destructive">{emailValidationError}</span>
+                    ) : null}
                 </div>
 
                 <div className="grid gap-3">

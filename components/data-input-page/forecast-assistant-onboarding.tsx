@@ -1,6 +1,6 @@
 "use client"
 
-import { useCallback, useEffect, useMemo, useState } from "react"
+import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Bot, Loader2, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
@@ -13,7 +13,7 @@ import {
   CommandList,
   CommandSeparator,
 } from "@/components/ui/command"
-import type { AssistantUsagePayload, ForecastAssistantPayload } from "@/lib/forecast-assistant"
+import type { ForecastAssistantPayload } from "@/lib/forecast-assistant"
 
 type ForecastAssistantOnboardingProps = {
   runId: string | null
@@ -33,14 +33,6 @@ export function ForecastAssistantOnboarding({ runId }: ForecastAssistantOnboardi
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [payload, setPayload] = useState<ForecastAssistantPayload | null>(null)
-  const [usage, setUsage] = useState<AssistantUsagePayload | null>(null)
-
-  const loadUsage = useCallback(async () => {
-    const res = await fetch("/api/assistant/usage", { cache: "no-store" })
-    if (!res.ok) return
-    const json = (await res.json()) as AssistantUsagePayload
-    setUsage(json)
-  }, [])
 
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -53,10 +45,6 @@ export function ForecastAssistantOnboarding({ runId }: ForecastAssistantOnboardi
     window.addEventListener("keydown", onKeyDown)
     return () => window.removeEventListener("keydown", onKeyDown)
   }, [])
-
-  useEffect(() => {
-    void loadUsage()
-  }, [loadUsage])
 
   const promptOptions = useMemo(() => {
     if (!payload?.suggestedPrompts || payload.suggestedPrompts.length === 0) {
@@ -87,7 +75,6 @@ export function ForecastAssistantOnboarding({ runId }: ForecastAssistantOnboardi
 
       setPayload(json)
       setCommand(prompt)
-      await loadUsage()
     } catch {
       setError("assistant_request_failed")
     } finally {
@@ -96,7 +83,7 @@ export function ForecastAssistantOnboarding({ runId }: ForecastAssistantOnboardi
   }
 
   return (
-    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4">
+    <div className="rounded-xl border border-emerald-200 bg-emerald-50/50 p-4 mb-6">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="space-y-1">
           <div className="flex items-center gap-2 text-sm font-semibold text-emerald-900">
@@ -153,19 +140,6 @@ export function ForecastAssistantOnboarding({ runId }: ForecastAssistantOnboardi
               ))}
             </div>
           )}
-        </div>
-      )}
-
-      {usage && (
-        <div className="mt-3 grid grid-cols-2 gap-2 text-xs">
-          <div className="rounded-md border bg-white p-2">
-            <div className="text-muted-foreground">Monthly Requests ({usage.monthKey})</div>
-            <div className="font-semibold">{usage.requestsUsed}/{usage.requestsLimit}</div>
-          </div>
-          <div className="rounded-md border bg-white p-2">
-            <div className="text-muted-foreground">Monthly Tokens</div>
-            <div className="font-semibold">{usage.tokensUsed}/{usage.tokensLimit}</div>
-          </div>
         </div>
       )}
 

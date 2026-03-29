@@ -336,7 +336,7 @@ export const Kpis = () => {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="container max-w-[2000px] mx-auto px-5 py-8 min-w-0 space-y-5">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                     <div>
                         <h1 className="text-3xl font-bold text-foreground">KPIs</h1>
@@ -368,13 +368,13 @@ export const Kpis = () => {
                                 const url = URL.createObjectURL(blob)
                                 const link = document.createElement("a")
                                 link.href = url
-                                link.setAttribute("download", "kpi-risk-table.csv")
+                                link.setAttribute("download", "kpi-top-10-at-risk.csv")
                                 document.body.appendChild(link)
                                 link.click()
                                 document.body.removeChild(link)
                                 URL.revokeObjectURL(url)
                             }}
-                            aria-label="Export KPI table"
+                            aria-label="Export top 10 at-risk SKUs"
                         >
                             <Download className="h-4 w-4" />
                         </Button>

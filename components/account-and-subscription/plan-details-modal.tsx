@@ -4,6 +4,7 @@ import {Badge} from "@/components/ui/badge";
 import {ArrowRight, Calendar, Check, CreditCard, Lock, Shield, Star} from "lucide-react";
 import {Button} from "@/components/ui/button";
 import {handleSubscribeTeam} from "@/components/handle-subscriptions/handle-subscribe-team";
+import { useState } from "react";
 
 type PlanDetailsModalProps = {
     isModalOpen: boolean,
@@ -15,6 +16,7 @@ type PlanDetailsModalProps = {
     handleBackToPlan: () => void,
     customerEmail?: string,
     customerId?: string,
+    planPrices?: Partial<Record<PlanType, { displayPrice: string }>>,
 }
 
 export const PlanDetailsModal = ({
@@ -27,7 +29,36 @@ export const PlanDetailsModal = ({
      handleBackToPlan,
      customerEmail,
      customerId,
+     planPrices,
      }: PlanDetailsModalProps) => {
+    const livePrice = selectedPlan ? planPrices?.[selectedPlan]?.displayPrice : undefined
+    const modalPrice = livePrice || (selectedPlan ? `${planDetails[selectedPlan].price}/month` : "")
+    const dueTodayPrice = livePrice ? livePrice.split("/")[0] : selectedPlan ? planDetails[selectedPlan].price : ""
+    const [checkoutError, setCheckoutError] = useState<string | null>(null)
+    const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false)
+
+    const startCheckout = async () => {
+        if (!selectedPlan || isRedirectingToCheckout) return
+        setCheckoutError(null)
+        setIsRedirectingToCheckout(true)
+        try {
+            await handleSubscribeTeam({
+                priceId: planDetails[selectedPlan].priceId,
+                customerEmail,
+                clientReferenceId: customerId,
+                metadata: {
+                    plan: planDetails[selectedPlan].name,
+                    plan_interval: planDetails[selectedPlan].interval,
+                    email: customerEmail || "",
+                },
+            })
+        } catch (error) {
+            const message = error instanceof Error ? error.message : "checkout_redirect_failed"
+            setCheckoutError(`Unable to continue to checkout. ${message}`)
+            setIsRedirectingToCheckout(false)
+        }
+    }
+
     return (
         <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
             <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
@@ -56,8 +87,7 @@ export const PlanDetailsModal = ({
                                             <p className="text-muted-foreground">Billed monthly, cancel anytime</p>
                                         </div>
                                         <div className="text-3xl font-bold text-primary">
-                                            {planDetails[selectedPlan].price}
-                                            <span className="text-sm font-normal text-muted-foreground">/month</span>
+                                            {modalPrice}
                                         </div>
                                     </div>
                                     <div>
@@ -130,15 +160,15 @@ export const PlanDetailsModal = ({
                                     <div className="p-4 bg-muted rounded-lg">
                                         <h3 className="font-semibold mb-3">Order Summary</h3>
                                         <div className="flex items-center justify-between mb-2">
-                        <span className="flex items-center gap-2">
+                                            <span className="flex items-center gap-2">
                           {planDetails[selectedPlan].icon}
                             {planDetails[selectedPlan].name} Plan
                         </span>
-                                            <span className="font-semibold">{planDetails[selectedPlan].price}/month</span>
+                                            <span className="font-semibold">{modalPrice}</span>
                                         </div>
                                         <div className="flex items-center justify-between font-semibold">
                                             <span>Due today</span>
-                                            <span>{planDetails[selectedPlan].price}</span>
+                                            <span>{dueTodayPrice}</span>
                                         </div>
                                         <p className="text-xs text-muted-foreground mt-2">
                                             Billed monthly until you cancel.
@@ -163,22 +193,17 @@ export const PlanDetailsModal = ({
                                         </Button>
                                         <Button
                                             className="flex-1"
-                                            onClick={() =>
-                                                handleSubscribeTeam({
-                                                    priceId: planDetails[selectedPlan].priceId,
-                                                    customerEmail,
-                                                    clientReferenceId: customerId,
-                                                    metadata: {
-                                                        plan: planDetails[selectedPlan].name,
-                                                        plan_interval: planDetails[selectedPlan].interval,
-                                                        email: customerEmail || "",
-                                                    },
-                                                })
-                                            }
+                                            onClick={startCheckout}
+                                            disabled={isRedirectingToCheckout}
                                         >
-                                            Proceed to Payment
+                                            {isRedirectingToCheckout ? "Redirecting..." : "Proceed to Payment"}
                                         </Button>
                                     </div>
+                                    {checkoutError && (
+                                        <p className="text-xs text-destructive text-center">
+                                            {checkoutError}
+                                        </p>
+                                    )}
                                     <p className="text-xs text-muted-foreground text-center">
                                         By continuing, you agree to our Terms of Service and Privacy Policy. You can cancel your
                                         subscription at any time.

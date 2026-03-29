@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextRequest, NextResponse } from "next/server"
 import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion } from "@/lib/data-sources"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 const SHOPIFY_STATE_COOKIE = "shopify_oauth_state"
 
@@ -55,6 +55,10 @@ export async function GET(request: NextRequest) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
+  const availableTablesRaw = (request.nextUrl.searchParams.get("allTables") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
   if (!isValidShopDomain(shop)) {
     const invalid = NextResponse.redirect(new URL("/data-input?shopify=invalid_shop", request.url))
     for (const cookie of cookiesToSet) invalid.cookies.set(cookie.name, cookie.value, cookie.options)
@@ -77,6 +81,7 @@ export async function GET(request: NextRequest) {
       tenantId: tokenCtx.tenantId,
       requesterSub: tokenCtx.sub,
       shop,
+      availableTables: sanitizeAvailableObjects("shopify", availableTablesRaw),
       selectedTables: sanitizeSelectedObjects("shopify", selectedTablesRaw),
       createdAt: Date.now(),
     }),

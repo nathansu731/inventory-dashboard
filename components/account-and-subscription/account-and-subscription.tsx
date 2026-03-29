@@ -13,6 +13,10 @@ type AccountAndSubscriptionProps = {
     initialStep?: string
 }
 
+type PlanPriceInfo = {
+    displayPrice: string
+}
+
 export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: AccountAndSubscriptionProps) => {
     const { profile } = useProfile()
     const customerEmail = typeof profile?.email === "string" ? profile.email : undefined
@@ -28,6 +32,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
     const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalStep, setModalStep] = useState<ModalStep>("plan-details")
+    const [planPrices, setPlanPrices] = useState<Partial<Record<PlanType, PlanPriceInfo>>>({})
     const role = typeof profile?.app_role === "string" ? profile.app_role : "admin"
     const isReadOnly = role === "manager"
 
@@ -63,28 +68,51 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
         }
     }, [initialUpgradePlan, initialStep, isReadOnly])
 
+    useEffect(() => {
+        const loadPlanPrices = async () => {
+            try {
+                const res = await fetch("/api/subscription-plans", { cache: "no-store" })
+                if (!res.ok) return
+                const payload = (await res.json()) as {
+                    plans?: Partial<Record<PlanType, PlanPriceInfo>>
+                }
+                if (payload?.plans) {
+                    setPlanPrices(payload.plans)
+                }
+            } catch {
+                setPlanPrices({})
+            }
+        }
+        void loadPlanPrices()
+    }, [])
+
     return (
-        <div className="container mx-auto p-6 space-y-6">
-            <div className="container mx-auto px-4 py-8 max-w-6xl">
-                <div className="mb-8">
-                    <h1 className="text-3xl font-bold text-foreground mb-2">Account and Subscription</h1>
-                    <p className="text-muted-foreground">Manage your account details and subscription plan</p>
+        <div className="min-h-screen bg-background">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+                <div>
+                    <h1 className="text-3xl font-bold text-foreground">Account and Subscription</h1>
+                    <p className="text-muted-foreground mt-1">Manage your account details and subscription plan.</p>
                 </div>
                 <AccountDetailsSection/>
-                <div className="mb-6">
-                    <h2 className="text-2xl font-bold text-foreground mb-4">Choose Your Plan</h2>
-                    <p className="text-muted-foreground mb-8">Select the perfect plan for your needs</p>
+                <div>
+                    <h2 className="text-2xl font-bold text-foreground mb-2">Choose Your Plan</h2>
+                    <p className="text-muted-foreground mb-6">Select the perfect plan for your needs.</p>
                     {isReadOnly && (
                         <p className="text-sm text-muted-foreground mb-4">
                             Managers have read-only access for billing and subscription changes.
                         </p>
                     )}
                 </div>
-                <SubscriptionPlanCards handlePlanClick={handlePlanClick} currentPlan={currentPlan} isReadOnly={isReadOnly} />
-                <div className="mt-8 text-center">
+                <SubscriptionPlanCards
+                    handlePlanClick={handlePlanClick}
+                    currentPlan={currentPlan}
+                    isReadOnly={isReadOnly}
+                    planPrices={planPrices}
+                />
+                <div className="text-center">
                     <p className="text-sm text-muted-foreground">
                         All plans are billed monthly. Cancel anytime. Questions?
-                        <a href="#" className="text-primary hover:underline ml-1">
+                        <a href="mailto:info@arkforecasting.com.au" className="text-primary hover:underline ml-1">
                             Contact support
                         </a>
                     </p>
@@ -100,6 +128,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
                 handleBackToPlan={handleBackToPlan}
                 customerEmail={customerEmail}
                 customerId={customerId}
+                planPrices={planPrices}
             />
         </div>
     )

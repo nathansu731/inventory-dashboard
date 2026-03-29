@@ -15,11 +15,13 @@ export async function GET() {
         model
         mode
         seasonality
+        dateFormat
+        targetVariable
+        priceColumnName
         updatedAt
       }
     }
   `
-
   const json = await appsyncRequest(idToken, query)
   const response = NextResponse.json(json.data.getTenantSettings)
   for (const cookie of cookiesToSet) {
@@ -42,6 +44,9 @@ export async function POST(request: Request) {
     model?: string
     mode?: string
     seasonality?: string
+    dateFormat?: string
+    targetVariable?: string
+    priceColumnName?: string
   } | null
 
   const query = `
@@ -51,11 +56,13 @@ export async function POST(request: Request) {
         model
         mode
         seasonality
+        dateFormat
+        targetVariable
+        priceColumnName
         updatedAt
       }
     }
   `
-
   const json = await appsyncRequest(idToken, query, { input: payload ?? {} })
   const response = NextResponse.json(json.data.setTenantSettings)
   for (const cookie of cookiesToSet) {

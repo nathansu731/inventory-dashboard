@@ -1,3 +1,4 @@
+import { Suspense } from "react"
 import { AppSidebar } from "@/components/app-sidebar"
 import { SiteHeader } from "@/components/site-header"
 import {
@@ -17,7 +18,9 @@ export default function Page() {
             <AppSidebar/>
             <SidebarInset>
                 <SiteHeader />
-                <ForecastEditor/>
+                <Suspense fallback={null}>
+                    <ForecastEditor/>
+                </Suspense>
             </SidebarInset>
         </SidebarProvider>
     )

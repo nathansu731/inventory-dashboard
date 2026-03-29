@@ -3,8 +3,9 @@
 import {
   BadgeCheck,
   Bell,
-  ChevronsUpDown, Cog,
+  ChevronsUpDown,
   CreditCard,
+  LifeBuoy,
   LogOut,
   Sparkles,
   Users,
@@ -124,9 +125,9 @@ export function NavUser({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/data-input">
-                <Cog />
-                Configurations
+                <Link href="/help-center">
+                  <LifeBuoy />
+                  Help Center
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>

@@ -17,6 +17,16 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
+import {
+    type AggregationLabel,
+    aggregateValueMap,
+    buildAggregationBuckets,
+    formatPeriodByFrequency,
+    frequencyToLabel,
+    getAvailableAggregationLabels,
+    labelToFrequency,
+    normalizeFrequency,
+} from "@/lib/forecast-aggregation"
 
 type SkuMetadata = {
     store: string
@@ -68,17 +78,9 @@ const parseResult = <T,>(payload: unknown): T | null => {
     return (raw as T) ?? null
 }
 
-const formatPeriod = (period: string) => {
-    if (/^\d{2}-\d{4}$/.test(period)) {
-        const [m, y] = period.split("-")
-        return `${m}/${y}`
-    }
-    return period
-}
-
-const metricValue = (item: ForecastItem, period: string, metric: MetricKey) => {
-    const demand = Number(item.demand?.[period] ?? 0)
-    const forecast = Number(item.forecastBaseline?.[period] ?? 0)
+const metricValue = (demandMap: Record<string, number>, forecastMap: Record<string, number>, period: string, metric: MetricKey) => {
+    const demand = Number(demandMap[period] ?? 0)
+    const forecast = Number(forecastMap[period] ?? 0)
     const denom = Math.max(1, Math.abs(demand))
 
     if (metric === "demand") return demand
@@ -126,6 +128,7 @@ export const KpiNavigator = () => {
     const [metric, setMetric] = useState<MetricKey>("accuracy")
     const [storeFilter, setStoreFilter] = useState("all")
     const [selectedSku, setSelectedSku] = useState("")
+    const [aggregationType, setAggregationType] = useState<AggregationLabel>("Monthly")
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
@@ -149,13 +152,11 @@ export const KpiNavigator = () => {
             const items = parsedValues.items ?? []
             setMetadata(parsedMeta)
             setPayload({ ...parsedValues, items })
-
-            if (items.length > 0 && !items.some((item) => item.sku === selectedSku)) {
-                setSelectedSku(items[0].sku)
-            }
-            if (items.length === 0) {
-                setSelectedSku("")
-            }
+            setSelectedSku((prev) => {
+                if (items.length === 0) return ""
+                if (items.some((item) => item.sku === prev)) return prev
+                return items[0].sku
+            })
         } catch (e) {
             setMetadata({})
             setPayload({ items: [] })
@@ -164,7 +165,7 @@ export const KpiNavigator = () => {
         } finally {
             setIsLoading(false)
         }
-    }, [selectedSku])
+    }, [])
 
     useEffect(() => {
         loadData()
@@ -196,11 +197,30 @@ export const KpiNavigator = () => {
     }, [selectedSku, visibleItems])
 
     const selectedItem = useMemo(() => visibleItems.find((i) => i.sku === selectedSku), [selectedSku, visibleItems])
-    const periods = useMemo(() => selectedItem?.periods ?? [], [selectedItem])
+    const baseFrequency = useMemo(
+        () => normalizeFrequency(selectedItem?.frequency || payload.frequency || "monthly"),
+        [selectedItem?.frequency, payload.frequency]
+    )
+    const availableAggregations = useMemo(() => getAvailableAggregationLabels(baseFrequency), [baseFrequency])
+    const targetFrequency = useMemo(() => labelToFrequency(aggregationType), [aggregationType])
+
+    useEffect(() => {
+        const available = getAvailableAggregationLabels(baseFrequency)
+        setAggregationType((prev) => (available.includes(prev) ? prev : frequencyToLabel(baseFrequency)))
+    }, [baseFrequency])
+
+    const periods = useMemo(() => {
+        if (!selectedItem) return []
+        return buildAggregationBuckets(selectedItem.periods ?? [], baseFrequency, targetFrequency).periods
+    }, [selectedItem, baseFrequency, targetFrequency])
 
     const tableRows = useMemo(() => {
         return visibleItems.map((item) => {
-            const values = periods.map((period) => metricValue(item, period, metric))
+            const itemBase = normalizeFrequency(item.frequency || payload.frequency || "monthly")
+            const buckets = buildAggregationBuckets(item.periods ?? [], itemBase, targetFrequency)
+            const demandMap = aggregateValueMap(item.demand, item.periods ?? [], buckets)
+            const forecastMap = aggregateValueMap(item.forecastBaseline, item.periods ?? [], buckets)
+            const values = periods.map((period) => metricValue(demandMap, forecastMap, period, metric))
             const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0
             const meta = metadata[item.sku]
             return {
@@ -212,15 +232,18 @@ export const KpiNavigator = () => {
                 values,
             }
         })
-    }, [metric, metadata, periods, visibleItems])
+    }, [metric, metadata, payload.frequency, periods, targetFrequency, visibleItems])
 
     const selectedTrend = useMemo(() => {
         if (!selectedItem) return []
+        const buckets = buildAggregationBuckets(selectedItem.periods ?? [], baseFrequency, targetFrequency)
+        const demandMap = aggregateValueMap(selectedItem.demand, selectedItem.periods ?? [], buckets)
+        const forecastMap = aggregateValueMap(selectedItem.forecastBaseline, selectedItem.periods ?? [], buckets)
         return periods.map((period) => ({
-            period: formatPeriod(period),
-            value: Number(metricValue(selectedItem, period, metric).toFixed(2)),
+            period: formatPeriodByFrequency(period, targetFrequency),
+            value: Number(metricValue(demandMap, forecastMap, period, metric).toFixed(2)),
         }))
-    }, [metric, periods, selectedItem])
+    }, [baseFrequency, metric, periods, selectedItem, targetFrequency])
 
     const goToRelativeSku = (direction: -1 | 1) => {
         if (skuOptions.length === 0 || !selectedSku) return
@@ -232,7 +255,7 @@ export const KpiNavigator = () => {
 
     const exportCsv = () => {
         if (tableRows.length === 0) return
-        const headers = ["SKU", "Store", "ABC", "Method", "Average", ...periods]
+        const headers = ["SKU", "Store", "ABC", "Method", "Average", ...periods.map((period) => formatPeriodByFrequency(period, targetFrequency))]
         const rows = tableRows.map((row) => [
             row.sku,
             row.store,
@@ -255,7 +278,7 @@ export const KpiNavigator = () => {
 
     return (
         <div className="min-h-screen bg-background">
-            <div className="container max-w-[2000px] mx-auto px-5 py-8 min-w-0 space-y-4">
+            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground mb-2">KPI Navigator</h1>
                     <p className="text-muted-foreground">Drill into KPI performance by store, SKU, and period.</p>
@@ -274,7 +297,7 @@ export const KpiNavigator = () => {
                                 </SelectContent>
                             </Select>
 
-                            <Button variant="outline" size="sm" onClick={() => goToRelativeSku(-1)} disabled={skuOptions.length === 0}>Prev SKU</Button>
+                            <Button variant="outline" size="sm" onClick={() => goToRelativeSku(-1)} disabled={skuOptions.length <= 1}>Prev SKU</Button>
                             <Select value={selectedSku || undefined} onValueChange={setSelectedSku}>
                                 <SelectTrigger className="w-[220px]"><SelectValue placeholder="Select SKU" /></SelectTrigger>
                                 <SelectContent>
@@ -283,13 +306,21 @@ export const KpiNavigator = () => {
                                     ))}
                                 </SelectContent>
                             </Select>
-                            <Button variant="outline" size="sm" onClick={() => goToRelativeSku(1)} disabled={skuOptions.length === 0}>Next SKU</Button>
+                            <Button variant="outline" size="sm" onClick={() => goToRelativeSku(1)} disabled={skuOptions.length <= 1}>Next SKU</Button>
 
                             <Select value={metric} onValueChange={(v: MetricKey) => setMetric(v)}>
                                 <SelectTrigger className="w-[180px]"><SelectValue placeholder="KPI metric" /></SelectTrigger>
                                 <SelectContent>
                                     {METRIC_OPTIONS.map((option) => (
                                         <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={aggregationType} onValueChange={(value) => setAggregationType(value as AggregationLabel)}>
+                                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Aggregation" /></SelectTrigger>
+                                <SelectContent>
+                                    {availableAggregations.map((option) => (
+                                        <SelectItem key={option} value={option}>{option}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
@@ -341,7 +372,7 @@ export const KpiNavigator = () => {
                                             <TableHead>Method</TableHead>
                                             <TableHead className="text-right">Average</TableHead>
                                             {periods.map((period) => (
-                                                <TableHead key={period} className="text-right">{formatPeriod(period)}</TableHead>
+                                                <TableHead key={period} className="text-right">{formatPeriodByFrequency(period, targetFrequency)}</TableHead>
                                             ))}
                                         </TableRow>
                                     </TableHeader>

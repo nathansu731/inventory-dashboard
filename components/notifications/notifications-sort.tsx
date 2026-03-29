@@ -2,46 +2,52 @@ import {Button} from "@/components/ui/button";
 import {ChevronDown, Filter, Trash2} from "lucide-react";
 import {DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger} from "@/components/ui/dropdown-menu";
 import React from "react";
-import {Notification} from "./notifications-types"
 
 type SortOption = "newest" | "oldest" | "unread" | "priority"
 
 type NotificationsSortProps = {
-    clearCompletedJobs: () => void,
-    completedJobsCount: number,
-    clearAll: () => void,
-    notifications: Notification[],
+    onClearCompleted: () => void,
+    onMarkAllRead: () => void,
+    clearCompletedDisabled: boolean,
+    markAllReadDisabled: boolean,
+    actionLoading: boolean,
     sortBy: SortOption,
     setSortBy: React.Dispatch<React.SetStateAction<SortOption>>;
 }
 
-export const NotificationsSort = ({ clearCompletedJobs, completedJobsCount, clearAll, notifications, sortBy, setSortBy }: NotificationsSortProps) => {
+export const NotificationsSort = ({
+    onClearCompleted,
+    onMarkAllRead,
+    clearCompletedDisabled,
+    markAllReadDisabled,
+    actionLoading,
+    sortBy,
+    setSortBy,
+}: NotificationsSortProps) => {
     return (
         <div className="mb-6 p-4 border rounded-lg">
             <div className="flex flex-wrap gap-3 items-center justify-between">
-                <div className="flex flex-wrap gap-2">
+                <div className="flex items-center gap-2">
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={clearCompletedJobs}
-                        disabled={completedJobsCount === 0}
-                        className="flex items-center gap-2 bg-transparent"
+                        onClick={onMarkAllRead}
+                        disabled={markAllReadDisabled || actionLoading}
+                        className="bg-transparent"
                     >
-                        <Trash2 className="h-4 w-4"/>
-                        Clear Completed Jobs ({completedJobsCount})
+                        Mark All Read
                     </Button>
                     <Button
                         variant="outline"
                         size="sm"
-                        onClick={clearAll}
-                        disabled={notifications.length === 0}
-                        className="flex items-center gap-2 bg-transparent"
+                        onClick={onClearCompleted}
+                        disabled={clearCompletedDisabled || actionLoading}
+                        className="bg-transparent"
                     >
-                        <Trash2 className="h-4 w-4"/>
-                        Clear All
+                        <Trash2 className="h-4 w-4 mr-2"/>
+                        Clear Completed
                     </Button>
                 </div>
-
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                         <Button variant="outline" size="sm" className="flex items-center gap-2 bg-transparent">

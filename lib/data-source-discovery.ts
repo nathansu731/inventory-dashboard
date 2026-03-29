@@ -1,6 +1,7 @@
 import type { DataSourceProvider, DataSourceRecord, TenantRecord } from "@/lib/data-sources"
 import { decryptSecret } from "@/lib/data-source-secrets"
 import crypto from "crypto"
+import { getDataSourceCatalog } from "@/lib/data-source-catalog"
 
 type ProviderCatalogEntry = {
   objects: string[]
@@ -332,16 +333,24 @@ const discoverByProvider = async (source: DataSourceRecord, secretEntry: Record<
 
 export const discoverDataSourceCatalog = async (tenantRecord: TenantRecord, sourceMap: Record<string, DataSourceRecord>) => {
   const catalog = emptyCatalog()
+  const seeded = getDataSourceCatalog()
+  for (const [provider, entry] of Object.entries(seeded) as Array<[DataSourceProvider, ProviderCatalogEntry]>) {
+    catalog[provider] = {
+      objects: unique(entry.objects),
+      defaultSelected: unique(entry.defaultSelected),
+    }
+  }
 
   const tasks = Object.values(sourceMap)
     .filter((source) => source.state === "connected")
     .map(async (source) => {
       const secretEntry = readSecretEntry(tenantRecord, source.id)
       const discovered = unique(await discoverByProvider(source, secretEntry))
-      const selected = unique((source.selectedTables || []).filter((item) => discovered.includes(item)))
+      const allTables = unique([...(source.availableTables || []), ...catalog[source.provider].objects, ...discovered])
+      const selected = unique((source.selectedTables || []).filter((item) => allTables.includes(item)))
       catalog[source.provider] = {
-        objects: discovered,
-        defaultSelected: selected.length > 0 ? selected : pickDefaults(discovered),
+        objects: allTables,
+        defaultSelected: selected.length > 0 ? selected : pickDefaults(allTables),
       }
     })
 

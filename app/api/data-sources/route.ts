@@ -14,7 +14,7 @@ import {
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { readSourcesWithFallback, upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
 import { normalizeAdapterMap } from "@/lib/data-source-adapters"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
 
@@ -94,7 +94,7 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json().catch(() => null)) as
-    | { provider?: string; accountName?: string; accountId?: string; selectedTables?: unknown }
+    | { provider?: string; accountName?: string; accountId?: string; selectedTables?: unknown; availableTables?: unknown }
     | null
 
   const provider = providerFromPayload(payload?.provider)
@@ -128,6 +128,7 @@ export async function POST(request: Request) {
     accountId: accountId || existing?.accountId,
     state: "connected",
     connectedAt: now,
+    availableTables: sanitizeAvailableObjects(provider, payload?.availableTables ?? existing?.availableTables),
     selectedTables: sanitizeSelectedObjects(provider, payload?.selectedTables ?? existing?.selectedTables),
     syncMode: existing?.syncMode || "manual",
     syncStartDate: existing?.syncStartDate || "",

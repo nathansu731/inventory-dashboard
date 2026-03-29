@@ -3,7 +3,7 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextRequest, NextResponse } from "next/server"
 import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion } from "@/lib/data-sources"
-import { sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
 
 const AMAZON_STATE_COOKIE = "amazon_oauth_state"
 
@@ -52,6 +52,10 @@ export async function GET(request: NextRequest) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
+  const availableTablesRaw = (request.nextUrl.searchParams.get("allTables") || "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean)
   const redirectUri =
     process.env.AMAZON_REDIRECT_URI ||
     new URL("/api/data-sources/amazon/callback", request.url).toString()
@@ -69,6 +73,7 @@ export async function GET(request: NextRequest) {
       state,
       tenantId: tokenCtx.tenantId,
       requesterSub: tokenCtx.sub,
+      availableTables: sanitizeAvailableObjects("amazon", availableTablesRaw),
       selectedTables: sanitizeSelectedObjects("amazon", selectedTablesRaw),
       createdAt: Date.now(),
     }),

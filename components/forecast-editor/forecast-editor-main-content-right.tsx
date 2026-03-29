@@ -69,7 +69,7 @@ export const ForecastEditorMainContentRight = ({
                                         {row.metric}
                                     </TableCell>
                                     {monthColumns.map((month) => {
-                                        const cellKey = `${rowIndex}-${month}`;
+                                        const cellKey = `${row.metricKey}:${month}`;
                                         const isEditing = editingCell === cellKey;
                                         const isEdited = editedCells.has(cellKey);
                                         const cellValue = Number(row[month] ?? 0);

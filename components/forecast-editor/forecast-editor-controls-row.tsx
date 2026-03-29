@@ -1,13 +1,14 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, ChevronDown, Columns, Download, Eye, Save } from "lucide-react"
+import { ArrowLeft, ArrowRight, ChevronDown, Columns, Download, Save } from "lucide-react"
 import React, { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { ForecastEditorColumnSelector } from "@/components/forecast-editor/forecast-editor-column-selector"
 
 type ForecastEditorControlsRowProps = {
-    aggregationType: string
-    setAggregationType: React.Dispatch<React.SetStateAction<string>>;
+    aggregationType: "Daily" | "Weekly" | "Monthly" | "Quarterly" | "Yearly"
+    setAggregationType: React.Dispatch<React.SetStateAction<"Daily" | "Weekly" | "Monthly" | "Quarterly" | "Yearly">>
+    availableAggregations: Array<"Daily" | "Weekly" | "Monthly" | "Quarterly" | "Yearly">
     storeLabel: string | null
     skuLabel: string | null
     skuIndex: number
@@ -16,11 +17,18 @@ type ForecastEditorControlsRowProps = {
     onNextSku: () => void
     onSave: () => void
     isSaving: boolean
+    disableSave?: boolean
+    monthColumns: string[]
+    formattedColumns: string[]
+    columnVisibility: Record<string, boolean>
+    setColumnVisibility: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
+    onExport: () => void
 }
 
 export const ForecastEditorControlsRow = ({
     aggregationType,
     setAggregationType,
+    availableAggregations,
     storeLabel,
     skuLabel,
     skuIndex,
@@ -29,19 +37,15 @@ export const ForecastEditorControlsRow = ({
     onNextSku,
     onSave,
     isSaving,
+    disableSave = false,
+    monthColumns,
+    formattedColumns,
+    columnVisibility,
+    setColumnVisibility,
+    onExport,
 }: ForecastEditorControlsRowProps) => {
     const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
-    const [columnVisibility, setColumnVisibility] = useState({
-        select: true,
-        jan: true,
-        feb: true,
-        mar: true,
-        apr: true,
-        may: true,
-        jun: true,
-        jul: true,
-        aug: true,
-    })
+
     return (
         <div id="editor-button-panel" className="flex flex-wrap items-center justify-between border-b bg-muted/30 px-6 py-3 gap-3">
             <div className="flex items-center gap-4 mr-3 flex-wrap">
@@ -56,21 +60,11 @@ export const ForecastEditorControlsRow = ({
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent>
-                        <DropdownMenuItem onClick={() => setAggregationType("Daily")}>
-                            Daily
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAggregationType("Weekly")}>
-                            Weekly
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAggregationType("Monthly")}>
-                            Monthly
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAggregationType("Quarterly")}>
-                            Quarterly
-                        </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => setAggregationType("Yearly")}>
-                            Yearly
-                        </DropdownMenuItem>
+                        {availableAggregations.map((value) => (
+                            <DropdownMenuItem key={value} onClick={() => setAggregationType(value)}>
+                                {value}
+                            </DropdownMenuItem>
+                        ))}
                     </DropdownMenuContent>
                 </DropdownMenu>
                 <div className="flex items-center gap-2 rounded-full border bg-white px-3 py-1 text-xs text-muted-foreground">
@@ -92,7 +86,7 @@ export const ForecastEditorControlsRow = ({
             </div>
 
             <div className="flex flex-wrap gap-2 items-center gap-responsive-sm">
-                <Button variant="default" size="sm" onClick={onSave} disabled={isSaving}>
+                <Button variant="default" size="sm" onClick={onSave} disabled={isSaving || disableSave}>
                     <Save className="h-4 w-4 mr-2"/>
                     {isSaving ? "Saving..." : "Save"}
                 </Button>
@@ -103,20 +97,18 @@ export const ForecastEditorControlsRow = ({
                             Columns
                         </Button>
                     </DialogTrigger>
-                    <DialogContent className="sm:max-w-md">
-                        <DialogHeader>
-                            <DialogTitle>Choose Columns</DialogTitle>
-                        </DialogHeader>
-                        <ForecastEditorColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
+                        <DialogContent className="sm:max-w-md">
+                            <DialogHeader>
+                                <DialogTitle>Choose Columns</DialogTitle>
+                            </DialogHeader>
+                            <ForecastEditorColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
+                                                       monthColumns={monthColumns}
+                                                       formattedColumns={formattedColumns}
                                                        columnVisibility={columnVisibility}
                                                        setColumnVisibility={setColumnVisibility}/>
-                    </DialogContent>
-                </Dialog>
-                <Button variant="outline" size="sm">
-                    <Eye className="h-4 w-4 mr-2"/>
-                    View
-                </Button>
-                <Button variant="outline" size="sm">
+                        </DialogContent>
+                    </Dialog>
+                <Button variant="outline" size="sm" onClick={onExport}>
                     <Download className="h-4 w-4 mr-2"/>
                     Export
                 </Button>

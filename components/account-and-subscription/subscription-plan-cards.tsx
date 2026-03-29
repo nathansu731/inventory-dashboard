@@ -8,9 +8,18 @@ type SubscriptionPlanCardsProps = {
     handlePlanClick: (plan: PlanType) => void
     currentPlan?: PlanType
     isReadOnly?: boolean
+    planPrices?: Partial<Record<PlanType, { displayPrice: string }>>
 }
 
-export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly = false }: SubscriptionPlanCardsProps) => {
+const displayPlanPrice = (plan: PlanType, planPrices?: Partial<Record<PlanType, { displayPrice: string }>>) => {
+    const livePrice = planPrices?.[plan]?.displayPrice
+    if (livePrice) return livePrice.replace("/month", "")
+    if (plan === "launch") return "$0"
+    if (plan === "core") return "$99"
+    return "$299"
+}
+
+export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly = false, planPrices }: SubscriptionPlanCardsProps) => {
     const isCurrent = (plan: PlanType) => currentPlan === plan
     const handleCardClick = (plan: PlanType) => {
         if (!isReadOnly && !isCurrent(plan)) {
@@ -35,7 +44,7 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly 
                                 Current Plan
                             </Badge>
                         )}
-                        <div className="text-2xl font-bold">$0</div>
+                        <div className="text-2xl font-bold">{displayPlanPrice("launch", planPrices)}</div>
                     </div>
                     <CardDescription>Perfect for getting started</CardDescription>
                 </CardHeader>
@@ -81,7 +90,7 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly 
                                 Current Plan
                             </Badge>
                         )}
-                        <div className="text-2xl font-bold">$99</div>
+                        <div className="text-2xl font-bold">{displayPlanPrice("core", planPrices)}</div>
                     </div>
                     <CardDescription>Great for growing teams</CardDescription>
                 </CardHeader>
@@ -128,7 +137,7 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly 
                                 Current Plan
                             </Badge>
                         )}
-                        <div className="text-2xl font-bold">$299</div>
+                        <div className="text-2xl font-bold">{displayPlanPrice("professional", planPrices)}</div>
                     </div>
                     <CardDescription>For scale and automation</CardDescription>
                 </CardHeader>
