@@ -79,7 +79,7 @@ export const ForecastingOptionsSection = ({
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
           <div className="space-y-2">
             <Label>Plan</Label>
-            <div className="text-sm capitalize text-muted-foreground">{plan || "free"}</div>
+            <div className="text-sm capitalize text-muted-foreground">{plan || "launch"}</div>
           </div>
           <div className="space-y-2">
             <Label>Mode</Label>
@@ -90,7 +90,7 @@ export const ForecastingOptionsSection = ({
               <SelectContent>
                 <SelectItem value="local">Local</SelectItem>
                 <SelectItem value="global" disabled={!allowGlobal}>
-                  Global (Pro)
+                  Global (Enterprise)
                 </SelectItem>
               </SelectContent>
             </Select>

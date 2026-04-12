@@ -57,16 +57,29 @@ export async function GET(req: NextRequest) {
         if (tokenCtx && tableName && region) {
             const ddb = new DynamoDBClient({ region });
             const now = new Date().toISOString();
+            const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             const tenantRecord =
                 (await getTenantRecord(ddb, tableName, tokenCtx.tenantId)) ||
                 ({
                     tenantId: tokenCtx.tenantId,
                     name: `${tokenCtx.firstName} ${tokenCtx.lastName}`.trim(),
                     primaryUserEmail: tokenCtx.email,
-                    status: "active",
-                    plan: "free",
+                    status: "trialing",
+                    plan: "launch",
+                    trialStartedAt: now,
+                    trialEndsAt,
                     createdAt: now,
                 } as TenantRecord);
+
+            const normalizedPlan = String(tenantRecord.plan || "launch").toLowerCase();
+            const stripeSubId = typeof tenantRecord.stripeSubId === "string" ? tenantRecord.stripeSubId : "";
+            if (normalizedPlan === "launch" && !stripeSubId) {
+                if (!tenantRecord.trialStartedAt) tenantRecord.trialStartedAt = now;
+                if (!tenantRecord.trialEndsAt) tenantRecord.trialEndsAt = trialEndsAt;
+                if (!tenantRecord.status || tenantRecord.status === "onboarding") {
+                    tenantRecord.status = "trialing";
+                }
+            }
 
             const users = normalizeUsersMap(tenantRecord.users);
             const existing = users[tokenCtx.sub];

@@ -56,7 +56,7 @@ export function NavUser({
     (typeof profile?.["custom:plan"] === "string" && profile["custom:plan"]) || ""
   const plan = (planRaw || "launch").toLowerCase()
   const appRole = typeof profile?.app_role === "string" ? profile.app_role : "admin"
-  const showUpgrade = appRole !== "manager" && plan !== "core" && plan !== "professional"
+  const showUpgrade = appRole !== "manager" && plan !== "professional" && plan !== "enterprise"
 
   const initials = (displayName === "--" ? "" : displayName)
     .split(" ")
@@ -108,9 +108,9 @@ export function NavUser({
               <>
                 <DropdownMenuGroup>
                   <DropdownMenuItem asChild>
-                    <Link href="/account-and-subscription?upgrade=core&step=payment">
+                    <Link href="/account-and-subscription?upgrade=professional&step=payment">
                       <Sparkles />
-                      Upgrade to Pro
+                      Upgrade to Professional
                     </Link>
                   </DropdownMenuItem>
                 </DropdownMenuGroup>

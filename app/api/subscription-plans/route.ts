@@ -2,12 +2,12 @@ import { NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
 import { getValidIdToken } from "@/lib/server-auth"
 
-type PlanKey = "launch" | "core" | "professional"
+type PlanKey = "launch" | "professional" | "enterprise"
 
 const PLAN_PRICE_IDS: Record<PlanKey, string> = {
-  launch: "price_1SpN9dEyjMYH6Im3iUDEsRHR",
-  core: "price_1SCkQyEyjMYH6Im32jOYEUUR",
-  professional: "price_1SCgPmEyjMYH6Im3cim0brss",
+  launch: process.env.STRIPE_PRICE_ID_LAUNCH || "",
+  professional: process.env.STRIPE_PRICE_ID_PROFESSIONAL || "",
+  enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || "",
 }
 
 const formatAmount = (unitAmount: number | null, currency: string, interval: string) => {
@@ -28,9 +28,9 @@ export async function GET() {
   }
 
   const responsePlans: Record<PlanKey, { priceId: string; unitAmount: number | null; currency: string; interval: string; displayPrice: string }> = {
-    launch: { priceId: PLAN_PRICE_IDS.launch, unitAmount: 0, currency: "usd", interval: "month", displayPrice: "$0/month" },
-    core: { priceId: PLAN_PRICE_IDS.core, unitAmount: 9900, currency: "usd", interval: "month", displayPrice: "$99/month" },
-    professional: { priceId: PLAN_PRICE_IDS.professional, unitAmount: 29900, currency: "usd", interval: "month", displayPrice: "$299/month" },
+    launch: { priceId: PLAN_PRICE_IDS.launch, unitAmount: 9900, currency: "usd", interval: "month", displayPrice: "$99/month" },
+    professional: { priceId: PLAN_PRICE_IDS.professional, unitAmount: 19900, currency: "usd", interval: "month", displayPrice: "$199/month" },
+    enterprise: { priceId: PLAN_PRICE_IDS.enterprise, unitAmount: null, currency: "usd", interval: "month", displayPrice: "Custom" },
   }
 
   try {
@@ -38,6 +38,7 @@ export async function GET() {
     await Promise.all(
       keys.map(async (key) => {
         try {
+          if (!PLAN_PRICE_IDS[key]) return
           const price = await stripe.prices.retrieve(PLAN_PRICE_IDS[key])
           const amount = typeof price.unit_amount === "number" ? price.unit_amount : null
           const currency = typeof price.currency === "string" ? price.currency : "usd"

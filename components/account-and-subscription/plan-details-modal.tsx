@@ -16,6 +16,7 @@ type PlanDetailsModalProps = {
     handleBackToPlan: () => void,
     customerEmail?: string,
     customerId?: string,
+    stripeCustomerId?: string,
     planPrices?: Partial<Record<PlanType, { displayPrice: string }>>,
 }
 
@@ -29,6 +30,7 @@ export const PlanDetailsModal = ({
      handleBackToPlan,
      customerEmail,
      customerId,
+     stripeCustomerId,
      planPrices,
      }: PlanDetailsModalProps) => {
     const livePrice = selectedPlan ? planPrices?.[selectedPlan]?.displayPrice : undefined
@@ -36,9 +38,11 @@ export const PlanDetailsModal = ({
     const dueTodayPrice = livePrice ? livePrice.split("/")[0] : selectedPlan ? planDetails[selectedPlan].price : ""
     const [checkoutError, setCheckoutError] = useState<string | null>(null)
     const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false)
+    const isEnterprise = selectedPlan === "enterprise"
+    const hasTrial = selectedPlan === "launch" || selectedPlan === "professional"
 
     const startCheckout = async () => {
-        if (!selectedPlan || isRedirectingToCheckout) return
+        if (!selectedPlan || isRedirectingToCheckout || isEnterprise) return
         setCheckoutError(null)
         setIsRedirectingToCheckout(true)
         try {
@@ -46,7 +50,9 @@ export const PlanDetailsModal = ({
                 priceId: planDetails[selectedPlan].priceId,
                 customerEmail,
                 clientReferenceId: customerId,
+                stripeCustomerId,
                 metadata: {
+                    plan_key: selectedPlan,
                     plan: planDetails[selectedPlan].name,
                     plan_interval: planDetails[selectedPlan].interval,
                     email: customerEmail || "",
@@ -151,7 +157,7 @@ export const PlanDetailsModal = ({
                                         Complete Your Subscription
                                     </DialogTitle>
                                     <DialogDescription>
-                                        Secure payment powered by Stripe. Your subscription will start immediately.
+                                        Secure payment powered by Stripe.
                                     </DialogDescription>
                                 </DialogHeader>
 
@@ -168,10 +174,12 @@ export const PlanDetailsModal = ({
                                         </div>
                                         <div className="flex items-center justify-between font-semibold">
                                             <span>Due today</span>
-                                            <span>{dueTodayPrice}</span>
+                                            <span>{hasTrial ? "$0 (trial)" : dueTodayPrice}</span>
                                         </div>
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            Billed monthly until you cancel.
+                                            {hasTrial
+                                                ? "30-day free trial. Switching plans during trial starts paid billing immediately."
+                                                : "Billed monthly until you cancel."}
                                         </p>
                                     </div>
                                     <div className="p-6 border border-border rounded-lg text-center">
@@ -191,13 +199,19 @@ export const PlanDetailsModal = ({
                                         <Button variant="outline" onClick={handleBackToPlan} className="flex-1 bg-transparent">
                                             Back to Plan
                                         </Button>
-                                        <Button
-                                            className="flex-1"
-                                            onClick={startCheckout}
-                                            disabled={isRedirectingToCheckout}
-                                        >
-                                            {isRedirectingToCheckout ? "Redirecting..." : "Proceed to Payment"}
-                                        </Button>
+                                        {isEnterprise ? (
+                                            <Button asChild className="flex-1">
+                                                <a href="mailto:info@arkforecasting.com.au?subject=Enterprise%20Plan%20Inquiry">Contact Sales</a>
+                                            </Button>
+                                        ) : (
+                                            <Button
+                                                className="flex-1"
+                                                onClick={startCheckout}
+                                                disabled={isRedirectingToCheckout}
+                                            >
+                                                {isRedirectingToCheckout ? "Redirecting..." : "Proceed to Payment"}
+                                            </Button>
+                                        )}
                                     </div>
                                     {checkoutError && (
                                         <p className="text-xs text-destructive text-center">

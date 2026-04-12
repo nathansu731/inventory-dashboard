@@ -21,14 +21,36 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
     const { profile } = useProfile()
     const customerEmail = typeof profile?.email === "string" ? profile.email : undefined
     const customerId = typeof profile?.sub === "string" ? profile.sub : undefined
-    const currentPlanRaw = typeof profile?.["custom:plan"] === "string" ? profile["custom:plan"] : undefined
+    const stripeCustomerIdRaw = profile?.["custom:stripe_cus_id"]
+    const stripeCustomerId =
+        typeof stripeCustomerIdRaw === "string" && stripeCustomerIdRaw !== "unknown" ? stripeCustomerIdRaw : undefined
+    const currentPlanRaw =
+        typeof profile?.["custom:plan"] === "string"
+            ? profile["custom:plan"]
+            : typeof profile?.tenant_plan === "string"
+                ? profile.tenant_plan
+                : undefined
+    const tenantStatusRaw = typeof profile?.tenant_status === "string" ? profile.tenant_status : ""
+    const trialEndsAtRaw = typeof profile?.trial_ends_at === "string" ? profile.trial_ends_at : ""
+    const normalizedCurrentPlan = (() => {
+        const plan = String(currentPlanRaw || "").toLowerCase().trim()
+        if (plan === "enterprise") return "enterprise"
+        if (plan === "professional" || plan === "core" || plan === "pro") return "professional"
+        if (plan === "launch" || plan === "free") return "launch"
+        return ""
+    })()
     const currentPlan =
-        currentPlanRaw &&
-        (["launch", "core", "professional"] as const).includes(
-            currentPlanRaw.toLowerCase() as "launch" | "core" | "professional"
+        normalizedCurrentPlan &&
+        (["launch", "professional", "enterprise"] as const).includes(
+            normalizedCurrentPlan as "launch" | "professional" | "enterprise"
         )
-            ? (currentPlanRaw.toLowerCase() as PlanType)
+            ? (normalizedCurrentPlan as PlanType)
             : undefined
+    const isLaunchTrialActive =
+        currentPlan === "launch" &&
+        tenantStatusRaw.toLowerCase() === "trialing" &&
+        Boolean(trialEndsAtRaw) &&
+        new Date(trialEndsAtRaw).getTime() > Date.now()
     const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalStep, setModalStep] = useState<ModalStep>("plan-details")
@@ -60,8 +82,9 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
     useEffect(() => {
         if (isReadOnly) return
         const normalized = initialUpgradePlan?.toLowerCase()
-        if (normalized === "core" || normalized === "launch" || normalized === "professional") {
-            const upgradePlan = normalized as PlanType
+        const mapped = normalized === "core" ? "professional" : normalized
+        if (mapped === "launch" || mapped === "professional" || mapped === "enterprise") {
+            const upgradePlan = mapped as PlanType
             setSelectedPlan(upgradePlan)
             setModalStep(initialStep === "payment" ? "payment" : "plan-details")
             setIsModalOpen(true)
@@ -108,6 +131,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
                     currentPlan={currentPlan}
                     isReadOnly={isReadOnly}
                     planPrices={planPrices}
+                    isLaunchTrialActive={isLaunchTrialActive}
                 />
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground">
@@ -128,6 +152,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
                 handleBackToPlan={handleBackToPlan}
                 customerEmail={customerEmail}
                 customerId={customerId}
+                stripeCustomerId={stripeCustomerId}
                 planPrices={planPrices}
             />
         </div>

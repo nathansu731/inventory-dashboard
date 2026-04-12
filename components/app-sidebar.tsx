@@ -34,12 +34,12 @@ const data = {
     {
       name: "Acme Corp.",
       logo: AudioWaveform,
-      plan: "Startup",
+      plan: "Professional",
     },
     {
       name: "Evil Corp.",
       logo: Command,
-      plan: "Free",
+      plan: "Launch",
     },
   ],
   navMain: [

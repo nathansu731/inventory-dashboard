@@ -1,14 +1,14 @@
 import {Rocket, Star, Zap} from "lucide-react";
 import type React from "react";
 
-export type PlanType = "launch" | "core" | "professional"
+export type PlanType = "launch" | "professional" | "enterprise"
 
 export type ModalStep = "plan-details" | "payment"
 
 type PlanDetailsTypes = {
     name: string
     price: string
-    priceId: string
+    priceId?: string
     interval: string
     description: string
     features: string[]
@@ -19,33 +19,32 @@ type PlanDetailsTypes = {
 export const planDetails: Record<PlanType, PlanDetailsTypes> = {
     launch: {
         name: "Launch",
-        price: "$0",
-        priceId: "price_1SpN9dEyjMYH6Im3iUDEsRHR",
+        price: "$99",
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_LAUNCH || "",
         interval: "month",
-        description: "Perfect for getting started",
+        description: "Perfect for teams getting started",
         features: ["Up to 3 projects", "Basic support", "1GB storage", "Community access"],
         icon: <Rocket className="h-5 w-5" />,
     },
-    core: {
-        name: "Core",
-        price: "$99",
-        priceId: "price_1SCkQyEyjMYH6Im32jOYEUUR",
+    professional: {
+        name: "Professional",
+        price: "$199",
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PROFESSIONAL || "",
         interval: "month",
         description: "Great for growing teams",
         features: ["Up to 10 projects", "Priority support", "50GB storage", "Team collaboration", "Advanced analytics"],
         icon: <Star className="h-5 w-5" />,
         popular: true,
     },
-    professional: {
-        name: "Professional",
-        price: "$299",
-        priceId: "price_1SCgPmEyjMYH6Im3cim0brss",
+    enterprise: {
+        name: "Enterprise",
+        price: "Custom",
         interval: "month",
-        description: "For scale and automation",
+        description: "For scale, compliance, and bespoke workflows",
         features: [
             "Unlimited projects",
             "24/7 dedicated support",
-            "500GB storage",
+            "Custom storage",
             "Advanced integrations",
             "Custom workflows",
             "SSO & security",

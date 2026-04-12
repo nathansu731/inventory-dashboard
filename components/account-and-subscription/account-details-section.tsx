@@ -1,8 +1,10 @@
 "use client"
 
+import Link from "next/link";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Settings} from "lucide-react";
 import {Badge} from "@/components/ui/badge";
+import {Button} from "@/components/ui/button";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useProfile } from "@/hooks/use-profile";
@@ -21,20 +23,37 @@ export const AccountDetailsSection = () => {
     const [usage, setUsage] = useState<AssistantUsagePayload | null>(null)
     const [nextBillingDate, setNextBillingDate] = useState<string>("--")
     const [billingStatus, setBillingStatus] = useState<string>("--")
+    const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
     const givenName = typeof profile?.given_name === "string" ? profile.given_name : ""
     const familyName = typeof profile?.family_name === "string" ? profile.family_name : ""
     const name = [givenName, familyName].filter(Boolean).join(" ")
         || (typeof profile?.name === "string" ? profile.name : "--")
     const email = typeof profile?.email === "string" ? profile.email : "--"
     const memberSince = typeof profile?.iat === "number" ? formatDate(profile.iat) : "--"
-    const planRaw = typeof profile?.["custom:plan"] === "string" ? profile["custom:plan"] : ""
-    const plan = planRaw ? planRaw.charAt(0).toUpperCase() + planRaw.slice(1) : "--"
+    const planRaw =
+        typeof profile?.["custom:plan"] === "string"
+            ? profile["custom:plan"]
+            : typeof profile?.tenant_plan === "string"
+                ? profile.tenant_plan
+                : ""
+    const tenantStatusRaw = typeof profile?.tenant_status === "string" ? profile.tenant_status : ""
+    const trialEndsAtRaw = typeof profile?.trial_ends_at === "string" ? profile.trial_ends_at : ""
+    const plan = (() => {
+        const normalized = String(planRaw || "").toLowerCase().trim()
+        if (normalized === "enterprise") return "Enterprise"
+        if (normalized === "professional" || normalized === "core" || normalized === "pro") return "Professional"
+        if (normalized === "launch" || normalized === "free") return "Launch"
+        return "--"
+    })()
     const stripeCustomerIdRaw = profile?.["custom:stripe_cus_id"]
     const stripeSubscriptionIdRaw = profile?.["custom:stripe_sub_id"]
     const stripeCustomerId =
         typeof stripeCustomerIdRaw === "string" && stripeCustomerIdRaw !== "unknown" ? stripeCustomerIdRaw : ""
     const stripeSubscriptionId =
         typeof stripeSubscriptionIdRaw === "string" && stripeSubscriptionIdRaw !== "unknown" ? stripeSubscriptionIdRaw : ""
+    const upgradeHref = plan === "Launch"
+        ? "/account-and-subscription?upgrade=professional&step=payment"
+        : "/account-and-subscription?upgrade=enterprise&step=plan-details"
 
     useEffect(() => {
         const loadUsage = async () => {
@@ -52,9 +71,23 @@ export const AccountDetailsSection = () => {
 
     useEffect(() => {
         const loadBilling = async () => {
+            const toDaysLeft = (targetMs: number) => Math.max(1, Math.ceil((targetMs - Date.now()) / (24 * 60 * 60 * 1000)))
+
             if (!stripeCustomerId) {
                 setNextBillingDate("--")
-                setBillingStatus(plan === "--" ? "--" : "Active")
+                const trialEndMs = Date.parse(trialEndsAtRaw)
+                if (
+                    tenantStatusRaw.toLowerCase() === "trialing" &&
+                    Number.isFinite(trialEndMs) &&
+                    trialEndMs > Date.now()
+                ) {
+                    setBillingStatus("trialing")
+                    setTrialDaysLeft(toDaysLeft(trialEndMs))
+                    setNextBillingDate(new Date(trialEndMs).toLocaleDateString("en-US", { year: "numeric", month: "long" }))
+                } else {
+                    setTrialDaysLeft(null)
+                    setBillingStatus(plan === "--" ? "--" : "Active")
+                }
                 return
             }
 
@@ -75,13 +108,19 @@ export const AccountDetailsSection = () => {
                 const status = payload?.subscription?.status
                 setNextBillingDate(formatDate(typeof renewsAt === "number" ? renewsAt : undefined))
                 setBillingStatus(status ? status : plan === "--" ? "--" : "Active")
+                if (String(status || "").toLowerCase() === "trialing" && typeof renewsAt === "number") {
+                    setTrialDaysLeft(toDaysLeft(renewsAt * 1000))
+                } else {
+                    setTrialDaysLeft(null)
+                }
             } catch {
                 setNextBillingDate("--")
+                setTrialDaysLeft(null)
                 setBillingStatus(plan === "--" ? "--" : "Active")
             }
         }
         void loadBilling()
-    }, [plan, stripeCustomerId, stripeSubscriptionId])
+    }, [plan, stripeCustomerId, stripeSubscriptionId, tenantStatusRaw, trialEndsAtRaw])
 
     return (
         <Card className="mb-8 bg-card border-border">
@@ -116,6 +155,16 @@ export const AccountDetailsSection = () => {
                             <span className="text-sm text-muted-foreground">{billingStatus === "--" ? "—" : billingStatus}</span>
                         </div>
                         <p className="text-sm text-muted-foreground">Next billing: {nextBillingDate}</p>
+                        {trialDaysLeft && trialDaysLeft > 0 && (
+                            <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3">
+                                <p className="text-sm text-amber-900">
+                                    You have {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in your {plan} free trial.
+                                </p>
+                                <Button asChild size="sm" className="mt-2">
+                                    <Link href={upgradeHref}>Upgrade Now</Link>
+                                </Button>
+                            </div>
+                        )}
                         {usage && (
                             <div className="mt-3 space-y-1 text-sm text-muted-foreground">
                                 <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground/80">Usage this month</p>

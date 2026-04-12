@@ -33,6 +33,9 @@ export async function GET(req: NextRequest) {
     try {
         const profile = decodeJwtPayload(idToken);
         let appRole: "admin" | "manager" = "admin";
+        let tenantPlan: string | null = null;
+        let tenantStatus: string | null = null;
+        let trialEndsAt: string | null = null;
 
         const tokenCtx = getTokenUserContext(idToken);
         const tableName = getTenantsTableName();
@@ -43,11 +46,22 @@ export async function GET(req: NextRequest) {
             if (tenantRecord) {
                 const users = normalizeUsersMap(tenantRecord.users);
                 appRole = normalizeRole(roleForUser(users, tokenCtx.sub));
+                tenantPlan = typeof tenantRecord.plan === "string" ? tenantRecord.plan : null;
+                tenantStatus = typeof tenantRecord.status === "string" ? tenantRecord.status : null;
+                trialEndsAt = typeof tenantRecord.trialEndsAt === "string" ? tenantRecord.trialEndsAt : null;
             }
         }
 
         return NextResponse.json(
-            { profile: { ...profile, app_role: appRole } },
+            {
+                profile: {
+                    ...profile,
+                    app_role: appRole,
+                    tenant_plan: tenantPlan,
+                    tenant_status: tenantStatus,
+                    trial_ends_at: trialEndsAt,
+                },
+            },
             {
                 headers: {
                     "Cache-Control": "no-store",

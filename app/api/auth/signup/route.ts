@@ -68,6 +68,7 @@ export async function POST(req: NextRequest) {
             try {
                 const ddb = new DynamoDBClient({ region });
                 const createdAt = new Date().toISOString();
+                const trialEndsAt = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
                 await ddb.send(
                     new PutItemCommand({
                         TableName: tenantsTable,
@@ -76,8 +77,10 @@ export async function POST(req: NextRequest) {
                             name: `${String(firstName)} ${String(lastName)}`.trim(),
                             primaryUserEmail: String(email),
                             isOnboardingUser: true,
-                            status: "onboarding",
-                            plan: "free",
+                            status: "trialing",
+                            plan: "launch",
+                            trialStartedAt: createdAt,
+                            trialEndsAt,
                             createdAt,
                             users: result.UserSub
                                 ? {

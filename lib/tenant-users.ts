@@ -4,6 +4,7 @@ import { decodeJwtPayload, getTenantIdFromToken } from "@/lib/auth"
 
 export type TenantUserRole = "admin" | "manager"
 export type TenantInviteState = "sent" | "accepted"
+export type TenantPlan = "launch" | "professional" | "enterprise"
 
 export type TenantUserRecord = {
   userId: string
@@ -110,11 +111,24 @@ export const toDisplayName = (user: TenantUserRecord) => {
 export const countActiveAdmins = (users: Record<string, TenantUserRecord>) =>
   Object.values(users).filter((user) => isActiveUser(user) && normalizeRole(user.role) === "admin").length
 
+export const countActiveUsers = (users: Record<string, TenantUserRecord>) =>
+  Object.values(users).filter((user) => isActiveUser(user)).length
+
 export const roleForUser = (users: Record<string, TenantUserRecord>, sub: string): TenantUserRole => {
   const user = users[sub]
   if (!user || user.isDeleted) return "admin"
   return normalizeRole(user.role)
 }
+
+export const normalizeTenantPlan = (value: unknown): TenantPlan => {
+  const plan = typeof value === "string" ? value.trim().toLowerCase() : ""
+  if (plan === "enterprise") return "enterprise"
+  if (plan === "professional" || plan === "core" || plan === "pro") return "professional"
+  return "launch"
+}
+
+export const seatLimitForPlan = (plan: TenantPlan): number =>
+  plan === "launch" ? 1 : plan === "professional" ? 5 : Number.MAX_SAFE_INTEGER
 
 export const getTenantsTableName = () => process.env.TENANTS_TABLE || ""
 

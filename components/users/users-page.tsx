@@ -1,6 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useState } from "react"
+import Link from "next/link"
 import { Mail, Pencil, Trash2, UserPlus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,12 @@ type UserRow = {
 type UsersPayload = {
   currentUserRole: UserRole
   canManageUsers: boolean
+  summary?: {
+    plan?: string
+    seatLimit?: number
+    seatsUsed?: number
+    canInviteMore?: boolean
+  }
   items: UserRow[]
 }
 
@@ -38,6 +45,9 @@ export const UsersPage = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [currentUserRole, setCurrentUserRole] = useState<UserRole>("admin")
+  const [seatLimit, setSeatLimit] = useState<number | null>(null)
+  const [seatsUsed, setSeatsUsed] = useState(0)
+  const [planName, setPlanName] = useState("Launch")
 
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [showEditDialog, setShowEditDialog] = useState(false)
@@ -49,6 +59,7 @@ export const UsersPage = () => {
   const [editForm, setEditForm] = useState({ firstName: "", lastName: "", role: "manager" as UserRole })
 
   const isManager = currentUserRole === "manager"
+  const inviteBlockedBySeats = typeof seatLimit === "number" ? seatsUsed >= seatLimit : false
 
   const loadUsers = useCallback(async () => {
     setLoading(true)
@@ -62,6 +73,10 @@ export const UsersPage = () => {
       const payload = (await res.json()) as UsersPayload
       setUsers(Array.isArray(payload.items) ? payload.items : [])
       setCurrentUserRole(payload.currentUserRole === "manager" ? "manager" : "admin")
+      const rawPlan = String(payload.summary?.plan || "launch").toLowerCase()
+      setPlanName(rawPlan === "enterprise" ? "Enterprise" : rawPlan === "professional" ? "Professional" : "Launch")
+      setSeatLimit(typeof payload.summary?.seatLimit === "number" ? payload.summary.seatLimit : null)
+      setSeatsUsed(typeof payload.summary?.seatsUsed === "number" ? payload.summary.seatsUsed : 0)
     } catch (err) {
       setUsers([])
       setError(err instanceof Error ? err.message : "failed_to_load_users")
@@ -109,7 +124,12 @@ export const UsersPage = () => {
       setAddForm({ firstName: "", lastName: "", email: "", role: "manager" })
       await loadUsers()
     } catch (err) {
-      setError(err instanceof Error ? err.message : "failed_to_invite_user")
+      const message = err instanceof Error ? err.message : "failed_to_invite_user"
+      if (message === "seat_limit_exceeded") {
+        setError("Seat limit reached for your current plan. Upgrade to add more users.")
+      } else {
+        setError(message)
+      }
     } finally {
       setSaving(false)
     }
@@ -194,7 +214,7 @@ export const UsersPage = () => {
               Invite and manage tenant users. Managers have read-only access.
             </p>
           </div>
-          <Button onClick={() => setShowAddDialog(true)} disabled={isManager}>
+          <Button onClick={() => setShowAddDialog(true)} disabled={isManager || inviteBlockedBySeats}>
             <UserPlus className="mr-2 h-4 w-4" />
             Add User
           </Button>
@@ -212,6 +232,30 @@ export const UsersPage = () => {
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
             {error}
           </div>
+        )}
+
+        {typeof seatLimit === "number" && (
+          <Card className={inviteBlockedBySeats ? "border-amber-200 bg-amber-50/70" : ""}>
+            <CardContent className="p-4 text-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <span className="font-medium">{planName} plan seats:</span> {seatsUsed}/{seatLimit}
+                {inviteBlockedBySeats ? " (limit reached)" : ""}
+              </div>
+              {inviteBlockedBySeats && !isManager && (
+                <Button asChild size="sm" className="w-full sm:w-auto">
+                  <Link
+                    href={
+                      planName === "Launch"
+                        ? "/account-and-subscription?upgrade=professional&step=payment"
+                        : "/account-and-subscription?upgrade=enterprise&step=plan-details"
+                    }
+                  >
+                    {planName === "Launch" ? "Upgrade to Professional" : "Upgrade to Enterprise"}
+                  </Link>
+                </Button>
+              )}
+            </CardContent>
+          </Card>
         )}
 
         <Card>
@@ -349,7 +393,7 @@ export const UsersPage = () => {
             <Button variant="outline" onClick={() => setShowAddDialog(false)} disabled={saving}>
               Cancel
             </Button>
-            <Button onClick={createUser} disabled={saving}>
+            <Button onClick={createUser} disabled={saving || inviteBlockedBySeats}>
               Send Invite
             </Button>
           </DialogFooter>

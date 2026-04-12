@@ -96,14 +96,20 @@ export const useDataInputController = () => {
   const [targetVariable, setTargetVariable] = useState("quantity")
   const [priceColumnName, setPriceColumnName] = useState("price")
 
-  const plan = String(profile?.["custom:plan"] || "free").toLowerCase()
-  const allowGlobal = plan === "professional"
+  const rawPlan = String(profile?.["custom:plan"] || "launch").toLowerCase()
+  const plan = (() => {
+    if (rawPlan === "enterprise") return "enterprise"
+    if (rawPlan === "professional" || rawPlan === "core" || rawPlan === "pro") return "professional"
+    if (rawPlan === "launch" || rawPlan === "free") return "launch"
+    return "launch"
+  })()
+  const allowGlobal = plan === "enterprise"
 
   const availableModels = useMemo(() => {
-    if (plan === "professional") {
+    if (plan === "enterprise") {
       return ["arima", "ets", "ses", "theta", "tbats", "dhr_arima", "naive", "snaive", "croston", "pooled_regression"]
     }
-    if (plan === "core") {
+    if (plan === "professional") {
       return ["arima", "ets", "ses", "theta", "tbats", "dhr_arima", "naive", "snaive", "croston"]
     }
     return ["arima"]

@@ -8,14 +8,17 @@ import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextResponse } from "next/server"
 import {
   countActiveAdmins,
+  countActiveUsers,
   getTenantRecord,
   getTenantsTableName,
   getTokenUserContext,
+  normalizeTenantPlan,
   normalizeRole,
   normalizeUsersMap,
   putTenantRecord,
   resolveAwsRegion,
   roleForUser,
+  seatLimitForPlan,
   toDisplayName,
   type TenantUserRecord,
 } from "@/lib/tenant-users"
@@ -98,6 +101,9 @@ export async function GET() {
   }
 
   const currentUserRole = roleForUser(users, ctx.tokenCtx.sub)
+  const plan = normalizeTenantPlan(tenantRecord.plan)
+  const seatLimit = seatLimitForPlan(plan)
+  const seatsUsed = countActiveUsers(users)
   const items = Object.values(users)
     .filter((user) => !user.isDeleted)
     .sort((a, b) => a.email.localeCompare(b.email))
@@ -108,6 +114,10 @@ export async function GET() {
       currentUserRole,
       canManageUsers: currentUserRole === "admin",
       summary: {
+        plan,
+        seatLimit,
+        seatsUsed,
+        canInviteMore: seatsUsed < seatLimit,
         total: items.length,
         admins: Object.values(users).filter((u) => !u.isDeleted && normalizeRole(u.role) === "admin").length,
         managers: Object.values(users).filter((u) => !u.isDeleted && normalizeRole(u.role) === "manager").length,
@@ -153,6 +163,16 @@ export async function POST(request: Request) {
   const requesterRole = roleForUser(users, ctx.tokenCtx.sub)
   if (requesterRole !== "admin") {
     return withCookies(NextResponse.json({ error: "forbidden" }, { status: 403 }), ctx.cookiesToSet)
+  }
+
+  const plan = normalizeTenantPlan(tenantRecord.plan)
+  const seatLimit = seatLimitForPlan(plan)
+  const seatsUsed = countActiveUsers(users)
+  if (seatsUsed >= seatLimit) {
+    return withCookies(
+      NextResponse.json({ error: "seat_limit_exceeded", plan, seatLimit, seatsUsed }, { status: 409 }),
+      ctx.cookiesToSet
+    )
   }
 
   const duplicate = Object.values(users).some((user) => !user.isDeleted && user.email.toLowerCase() === email)

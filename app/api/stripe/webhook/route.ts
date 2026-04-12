@@ -21,24 +21,25 @@ const entitlementsTable = process.env.ENTITLEMENTS_TABLE || "";
 const awsRegion = process.env.AWS_REGION || process.env.COGNITO_REGION || "";
 
 const PLAN_CAPS: Record<string, { requestsPerMonth: number; tokensPerMonth: number }> = {
-  free: { requestsPerMonth: 100, tokensPerMonth: 200000 },
-  core: { requestsPerMonth: 500, tokensPerMonth: 2000000 },
-  professional: { requestsPerMonth: 2000, tokensPerMonth: 10000000 },
+  launch: { requestsPerMonth: 100, tokensPerMonth: 200000 },
+  professional: { requestsPerMonth: 500, tokensPerMonth: 2000000 },
+  enterprise: { requestsPerMonth: 2000, tokensPerMonth: 10000000 },
 };
 
 const ddb = awsRegion ? new DynamoDBClient({ region: awsRegion }) : null;
 
 const normalizePlan = (value: unknown) => {
-  const plan = String(value || "free").toLowerCase().trim();
-  if (plan.includes("professional") || plan.includes("pro")) return "professional";
-  if (plan.includes("core")) return "core";
-  return "free";
+  const plan = String(value || "launch").toLowerCase().trim();
+  if (plan.includes("enterprise")) return "enterprise";
+  if (plan === "core" || plan.includes("professional") || plan === "pro") return "professional";
+  if (plan === "free" || plan.includes("launch")) return "launch";
+  return "launch";
 };
 
 const inferPlanFromText = (...values: Array<unknown>) => {
   for (const value of values) {
     const normalized = normalizePlan(value);
-    if (normalized !== "free") return normalized;
+    if (normalized !== "launch") return normalized;
   }
   return normalizePlan(values[0]);
 };
@@ -126,7 +127,7 @@ const writeEntitlements = async ({
   renewsAt?: string | null;
 }) => {
   if (!ddb || !entitlementsTable || !tenantId) return;
-  const caps = PLAN_CAPS[normalizePlan(plan)] || PLAN_CAPS.free;
+  const caps = PLAN_CAPS[normalizePlan(plan)] || PLAN_CAPS.launch;
   await ddb.send(
     new PutItemCommand({
       TableName: entitlementsTable,
@@ -205,6 +206,7 @@ const updateTenantAndEntitlements = async ({
     stripeSubId: subscriptionId || tenant?.stripeSubId,
     status,
     renewsAt: renewsAt || null,
+    trialEndsAt: String(status || "").toLowerCase() === "trialing" ? renewsAt || null : null,
   });
 
   await writeEntitlements({
@@ -258,7 +260,9 @@ export async function POST(request: Request) {
       }
 
       const plan = inferPlanFromText(
+        session.metadata?.plan_key,
         session.metadata?.plan,
+        subscription?.metadata?.plan_key,
         subscription?.metadata?.plan,
         subscription?.items?.data?.[0]?.price?.lookup_key,
         subscription?.items?.data?.[0]?.price?.nickname
@@ -293,6 +297,7 @@ export async function POST(request: Request) {
       const customerId = typeof subscription.customer === "string" ? subscription.customer : "";
       const email = await resolveCustomerEmail(customerId);
       const plan = inferPlanFromText(
+        subscription.metadata?.plan_key,
         subscription.metadata?.plan,
         subscription.items?.data?.[0]?.price?.lookup_key,
         subscription.items?.data?.[0]?.price?.nickname
@@ -337,6 +342,7 @@ export async function POST(request: Request) {
       }
 
       const plan = inferPlanFromText(
+        subscription?.metadata?.plan_key,
         subscription?.metadata?.plan,
         subscription?.items?.data?.[0]?.price?.lookup_key,
         subscription?.items?.data?.[0]?.price?.nickname

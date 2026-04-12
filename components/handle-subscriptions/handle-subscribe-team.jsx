@@ -1,4 +1,4 @@
-export const handleSubscribeTeam = async ({ priceId, customerEmail, clientReferenceId, metadata = {} }) => {
+export const handleSubscribeTeam = async ({ priceId, customerEmail, clientReferenceId, stripeCustomerId, metadata = {} }) => {
     if (!priceId) {
         throw new Error("Missing price id");
     }
@@ -13,6 +13,7 @@ export const handleSubscribeTeam = async ({ priceId, customerEmail, clientRefere
             mode: "subscription",
             customerEmail,
             clientReferenceId,
+            stripeCustomerId,
             metadata,
         }),
     });
