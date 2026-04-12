@@ -54,19 +54,6 @@ export const DataInputPage = () => {
           />
         </div>
 
-        <DataInputActionsRow
-          canManageSources={vm.canManageSources}
-          isImportRunning={vm.importSummary.status === "running"}
-          canRunImportNow={Boolean(vm.activeSource && vm.connectionState === "connected" && vm.canManageSources)}
-          isProcessing={vm.isProcessing}
-          hasUploadedFile={Boolean(vm.uploadedFile)}
-          onRunDueImports={vm.runDueImports}
-          onRunImportNow={vm.runImportNow}
-          onStartForecasting={vm.startForecasting}
-        />
-
-        {vm.healthSummary && <SourceOpsHealthSection summary={vm.healthSummary} providers={vm.healthProviders} />}
-
         <details className="group mt-4 rounded-lg border bg-background">
           <summary className="flex cursor-pointer list-none items-center justify-between border-b px-4 py-3 text-sm font-medium">
             <span>Advanced Settings</span>
@@ -116,10 +103,24 @@ export const DataInputPage = () => {
           </div>
         </details>
 
+        {vm.runStatus && <ForecastRunStatusSection runStatus={vm.runStatus} />}
+
+        <DataInputActionsRow
+          canManageSources={vm.canManageSources}
+          isImportRunning={vm.importSummary.status === "running"}
+          canRunImportNow={Boolean(vm.activeSource && vm.connectionState === "connected" && vm.canManageSources)}
+          isProcessing={vm.isProcessing}
+          hasUploadedFile={Boolean(vm.uploadedFile)}
+          onRunDueImports={vm.runDueImports}
+          onRunImportNow={vm.runImportNow}
+          onStartForecasting={vm.startForecasting}
+        />
+
+        {vm.healthSummary && <SourceOpsHealthSection summary={vm.healthSummary} providers={vm.healthProviders} />}
+
         <DataQualityIndicator uploadedFile={vm.uploadedFile} isProcessing={vm.isProcessing} />
         <ImportSummarySection summary={vm.importSummary} />
         <RecentSourceActivitySection auditEvents={vm.auditEvents} />
-        {vm.runStatus && <ForecastRunStatusSection runStatus={vm.runStatus} />}
       </div>
     </div>
   )
