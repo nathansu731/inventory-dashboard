@@ -14,6 +14,18 @@ type SavedReportCriteria = {
   dateTo: string
 }
 
+type SavedReportSnapshot = {
+  runCount: number
+  doneCount: number
+  failedCount: number
+  averageSmape: number | null
+  averageAccuracy: number | null
+  averageTotalSkus: number | null
+  periodStart: string | null
+  periodEnd: string | null
+  generatedAt: string
+}
+
 const sanitizeCriteria = (input: unknown): SavedReportCriteria => {
   const obj = typeof input === "object" && input ? (input as Record<string, unknown>) : {}
   return {
@@ -22,6 +34,32 @@ const sanitizeCriteria = (input: unknown): SavedReportCriteria => {
     model: typeof obj.model === "string" ? obj.model : "all",
     dateFrom: typeof obj.dateFrom === "string" ? obj.dateFrom : "",
     dateTo: typeof obj.dateTo === "string" ? obj.dateTo : "",
+  }
+}
+
+const sanitizeSnapshot = (input: unknown): SavedReportSnapshot | null => {
+  const obj = typeof input === "object" && input ? (input as Record<string, unknown>) : null
+  if (!obj) return null
+
+  const toCount = (value: unknown) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return 0
+    return Math.max(0, Math.floor(value))
+  }
+  const toNullableNumber = (value: unknown) => {
+    if (typeof value !== "number" || Number.isNaN(value)) return null
+    return value
+  }
+
+  return {
+    runCount: toCount(obj.runCount),
+    doneCount: toCount(obj.doneCount),
+    failedCount: toCount(obj.failedCount),
+    averageSmape: toNullableNumber(obj.averageSmape),
+    averageAccuracy: toNullableNumber(obj.averageAccuracy),
+    averageTotalSkus: toNullableNumber(obj.averageTotalSkus),
+    periodStart: typeof obj.periodStart === "string" ? obj.periodStart : null,
+    periodEnd: typeof obj.periodEnd === "string" ? obj.periodEnd : null,
+    generatedAt: typeof obj.generatedAt === "string" ? obj.generatedAt : "",
   }
 }
 
@@ -83,6 +121,7 @@ export async function GET(_request: Request, { params }: { params: Promise<{ rep
       id: parsed.id,
       name: parsed.name,
       criteria: sanitizeCriteria(parsed.criteria),
+      snapshot: sanitizeSnapshot(parsed.snapshot),
       createdAt: parsed.createdAt,
       updatedAt: parsed.updatedAt,
     }),

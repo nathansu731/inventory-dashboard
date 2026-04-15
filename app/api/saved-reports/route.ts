@@ -13,10 +13,23 @@ type SavedReportCriteria = {
   dateTo: string
 }
 
+type SavedReportSnapshot = {
+  runCount: number
+  doneCount: number
+  failedCount: number
+  averageSmape: number | null
+  averageAccuracy: number | null
+  averageTotalSkus: number | null
+  periodStart: string | null
+  periodEnd: string | null
+  generatedAt: string
+}
+
 type SavedReportDefinition = {
   id: string
   name: string
   criteria: SavedReportCriteria
+  snapshot?: SavedReportSnapshot | null
   createdAt: string
   updatedAt: string
 }
@@ -50,6 +63,32 @@ const sanitizeCriteria = (input: unknown): SavedReportCriteria => {
   }
 }
 
+const sanitizeSnapshot = (input: unknown): SavedReportSnapshot | null => {
+  const obj = typeof input === "object" && input ? (input as Record<string, unknown>) : null
+  if (!obj) return null
+
+  const toCount = (value: unknown) => {
+    if (typeof value !== "number" || !Number.isFinite(value)) return 0
+    return Math.max(0, Math.floor(value))
+  }
+  const toNullableNumber = (value: unknown) => {
+    if (typeof value !== "number" || Number.isNaN(value)) return null
+    return value
+  }
+
+  return {
+    runCount: toCount(obj.runCount),
+    doneCount: toCount(obj.doneCount),
+    failedCount: toCount(obj.failedCount),
+    averageSmape: toNullableNumber(obj.averageSmape),
+    averageAccuracy: toNullableNumber(obj.averageAccuracy),
+    averageTotalSkus: toNullableNumber(obj.averageTotalSkus),
+    periodStart: typeof obj.periodStart === "string" ? obj.periodStart : null,
+    periodEnd: typeof obj.periodEnd === "string" ? obj.periodEnd : null,
+    generatedAt: typeof obj.generatedAt === "string" ? obj.generatedAt : new Date().toISOString(),
+  }
+}
+
 const parseItem = (item: Record<string, unknown>): SavedReportDefinition | null => {
   if (typeof item.id !== "string" || typeof item.name !== "string") return null
   const criteria = sanitizeCriteria(item.criteria)
@@ -57,6 +96,7 @@ const parseItem = (item: Record<string, unknown>): SavedReportDefinition | null 
     id: item.id,
     name: item.name,
     criteria,
+    snapshot: sanitizeSnapshot(item.snapshot),
     createdAt: typeof item.createdAt === "string" ? item.createdAt : "",
     updatedAt: typeof item.updatedAt === "string" ? item.updatedAt : "",
   }
@@ -142,6 +182,7 @@ export async function POST(request: Request) {
     id?: string
     name?: string
     criteria?: unknown
+    snapshot?: unknown
   } | null
 
   const name = typeof payload?.name === "string" ? payload.name.trim() : ""
@@ -152,6 +193,7 @@ export async function POST(request: Request) {
   const id = typeof payload?.id === "string" && payload.id.trim() ? payload.id.trim() : `SR-${crypto.randomUUID()}`
   const now = new Date().toISOString()
   const criteria = sanitizeCriteria(payload?.criteria)
+  const snapshot = sanitizeSnapshot(payload?.snapshot)
 
   const ddb = new DynamoDBClient({ region })
 
@@ -176,6 +218,7 @@ export async function POST(request: Request) {
     id,
     name,
     criteria,
+    snapshot,
     createdAt,
     updatedAt: now,
   }

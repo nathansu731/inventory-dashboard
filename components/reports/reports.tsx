@@ -10,7 +10,13 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Badge } from "@/components/ui/badge"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
-import { defaultSavedReportCriteria, findSavedReport, upsertSavedReport, type SavedReportCriteria } from "@/lib/saved-reports"
+import {
+    defaultSavedReportCriteria,
+    findSavedReport,
+    upsertSavedReport,
+    type SavedReportCriteria,
+    type SavedReportSnapshot,
+} from "@/lib/saved-reports"
 
 type RunItem = {
     runId: string
@@ -68,6 +74,11 @@ const withinDateRange = (iso: string | undefined, from: string, to: string) => {
         if (t > toT) return false
     }
     return true
+}
+
+const round = (value: number, digits = 2) => {
+    const factor = 10 ** digits
+    return Math.round(value * factor) / factor
 }
 
 export const ReportsPage = () => {
@@ -214,10 +225,40 @@ export const ReportsPage = () => {
 
         setIsSaving(true)
         try {
+            const smapeValues = filteredRows
+                .map((row) => row.smape)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+            const skuValues = filteredRows
+                .map((row) => row.totalSkus)
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+            const createdAtValues = filteredRows
+                .map((row) => row.createdAtRaw)
+                .filter((value): value is string => typeof value === "string" && value.length > 0)
+                .sort()
+
+            const doneCount = filteredRows.filter((row) => row.status === "DONE").length
+            const failedCount = filteredRows.filter((row) => row.status === "FAILED").length
+            const averageSmape = smapeValues.length > 0 ? round(smapeValues.reduce((sum, value) => sum + value, 0) / smapeValues.length, 4) : null
+            const averageAccuracy = averageSmape === null ? null : round(Math.max(0, 100 - averageSmape), 2)
+            const averageTotalSkus = skuValues.length > 0 ? round(skuValues.reduce((sum, value) => sum + value, 0) / skuValues.length, 2) : null
+
+            const snapshot: SavedReportSnapshot = {
+                runCount: filteredRows.length,
+                doneCount,
+                failedCount,
+                averageSmape,
+                averageAccuracy,
+                averageTotalSkus,
+                periodStart: createdAtValues[0] ?? null,
+                periodEnd: createdAtValues.length > 0 ? createdAtValues[createdAtValues.length - 1] : null,
+                generatedAt: new Date().toISOString(),
+            }
+
             const saved = await upsertSavedReport({
                 id: activeReportId ?? undefined,
                 name: trimmedName,
                 criteria,
+                snapshot,
             })
             setActiveReportId(saved.id)
             setSaveMessage(`Saved at ${safeDate(saved.updatedAt)}`)

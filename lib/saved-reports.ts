@@ -6,10 +6,23 @@ export type SavedReportCriteria = {
   dateTo: string
 }
 
+export type SavedReportSnapshot = {
+  runCount: number
+  doneCount: number
+  failedCount: number
+  averageSmape: number | null
+  averageAccuracy: number | null
+  averageTotalSkus: number | null
+  periodStart: string | null
+  periodEnd: string | null
+  generatedAt: string
+}
+
 export type SavedReportDefinition = {
   id: string
   name: string
   criteria: SavedReportCriteria
+  snapshot?: SavedReportSnapshot | null
   createdAt: string
   updatedAt: string
 }
@@ -33,6 +46,32 @@ const parseCriteria = (value: unknown): SavedReportCriteria => {
   }
 }
 
+const parseNumber = (value: unknown): number | null => {
+  if (typeof value !== "number" || Number.isNaN(value)) return null
+  return value
+}
+
+const parseSnapshot = (value: unknown): SavedReportSnapshot | null => {
+  const input = typeof value === "object" && value ? (value as Record<string, unknown>) : null
+  if (!input) return null
+
+  const runCount = typeof input.runCount === "number" && Number.isFinite(input.runCount) ? Math.max(0, Math.floor(input.runCount)) : 0
+  const doneCount = typeof input.doneCount === "number" && Number.isFinite(input.doneCount) ? Math.max(0, Math.floor(input.doneCount)) : 0
+  const failedCount = typeof input.failedCount === "number" && Number.isFinite(input.failedCount) ? Math.max(0, Math.floor(input.failedCount)) : 0
+
+  return {
+    runCount,
+    doneCount,
+    failedCount,
+    averageSmape: parseNumber(input.averageSmape),
+    averageAccuracy: parseNumber(input.averageAccuracy),
+    averageTotalSkus: parseNumber(input.averageTotalSkus),
+    periodStart: typeof input.periodStart === "string" ? input.periodStart : null,
+    periodEnd: typeof input.periodEnd === "string" ? input.periodEnd : null,
+    generatedAt: typeof input.generatedAt === "string" ? input.generatedAt : "",
+  }
+}
+
 const parseDefinition = (value: unknown): SavedReportDefinition | null => {
   const input = typeof value === "object" && value ? (value as Record<string, unknown>) : null
   if (!input) return null
@@ -42,6 +81,7 @@ const parseDefinition = (value: unknown): SavedReportDefinition | null => {
     id: input.id,
     name: input.name,
     criteria: parseCriteria(input.criteria),
+    snapshot: parseSnapshot(input.snapshot),
     createdAt: typeof input.createdAt === "string" ? input.createdAt : "",
     updatedAt: typeof input.updatedAt === "string" ? input.updatedAt : "",
   }

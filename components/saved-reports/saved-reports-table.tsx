@@ -72,6 +72,8 @@ export const SavedReportsTable = ({
                                 <TableHead>Query</TableHead>
                                 <TableHead>Status</TableHead>
                                 <TableHead>Model</TableHead>
+                                <TableHead className="text-right">Runs</TableHead>
+                                <TableHead className="text-right">Avg Accuracy</TableHead>
                                 <TableHead>Date Range</TableHead>
                                 <TableHead>Updated</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
@@ -80,7 +82,7 @@ export const SavedReportsTable = ({
                         <TableBody>
                             {filteredReports.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
                                         {searchTerm ? `No saved reports matching "${searchTerm}"` : "No saved reports yet"}
                                     </TableCell>
                                 </TableRow>
@@ -100,6 +102,10 @@ export const SavedReportsTable = ({
                                         </TableCell>
                                         <TableCell>{toLabel(report.criteria.status)}</TableCell>
                                         <TableCell>{toLabel(report.criteria.model)}</TableCell>
+                                        <TableCell className="text-right">{report.snapshot?.runCount ?? "-"}</TableCell>
+                                        <TableCell className="text-right">
+                                            {typeof report.snapshot?.averageAccuracy === "number" ? `${report.snapshot.averageAccuracy.toFixed(2)}%` : "-"}
+                                        </TableCell>
                                         <TableCell>{dateRangeLabel(report.criteria.dateFrom, report.criteria.dateTo)}</TableCell>
                                         <TableCell className="text-muted-foreground">{formatDate(report.updatedAt)}</TableCell>
                                         <TableCell className="text-right">
