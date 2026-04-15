@@ -27,12 +27,12 @@ type ForecastItem = {
     store?: string
     frequency?: string
     periods: string[]
-    demand?: Record<string, number>
-    forecastBaseline?: Record<string, number>
-    demandAdjustment?: Record<string, number>
-    forecastAdjustment?: Record<string, number>
-    variance?: Record<string, number>
-    revenue?: Record<string, number>
+    demand?: Record<string, number | null>
+    forecastBaseline?: Record<string, number | null>
+    demandAdjustment?: Record<string, number | null>
+    forecastAdjustment?: Record<string, number | null>
+    variance?: Record<string, number | null>
+    revenue?: Record<string, number | null>
 }
 
 type ForecastValuesPayload = {
@@ -42,7 +42,7 @@ type ForecastValuesPayload = {
 
 type RowData = {
     label: string
-    values: string[]
+    values: Array<number | null>
 }
 
 const LABEL_MAP: Array<{ key: keyof ForecastItem; label: string }> = [
@@ -128,9 +128,9 @@ export const ForecastNavigator = () => {
             "variance",
             "revenue",
         ]
-        return keys.reduce<Record<string, Record<string, number>>>((acc, key) => {
+        return keys.reduce<Record<string, Record<string, number | null>>>((acc, key) => {
             acc[String(key)] = aggregateValueMap(
-                (selectedItem[key] as Record<string, number> | undefined) ?? {},
+                (selectedItem[key] as Record<string, number | null> | undefined) ?? {},
                 sourcePeriods,
                 buckets
             )
@@ -145,7 +145,7 @@ export const ForecastNavigator = () => {
             const map = aggregatedMaps[String(key)] ?? {}
             return {
                 label,
-                values: periods.map((period) => String(map[period] ?? 0)),
+                values: periods.map((period) => (period in map ? map[period] : null)),
             }
         })
     }, [aggregatedMaps, periods, selectedItem])
@@ -156,8 +156,8 @@ export const ForecastNavigator = () => {
 
         return periods.map((period, index) => ({
             month: formatPeriodByFrequency(period, targetFrequency),
-            demand: Number(demandRow?.values[index] ?? 0),
-            forecastBaseline: Number(baselineRow?.values[index] ?? 0),
+            demand: demandRow?.values[index] ?? null,
+            forecastBaseline: baselineRow?.values[index] ?? null,
         }))
     }, [periods, rowData, targetFrequency])
 
@@ -165,7 +165,7 @@ export const ForecastNavigator = () => {
         if (!selectedItem || periods.length === 0) return
 
         const headers = ["Metric", ...periods]
-        const rows = rowData.map((row) => [row.label, ...row.values])
+        const rows = rowData.map((row) => [row.label, ...row.values.map((value) => (value === null || value === undefined ? "--" : String(value)))])
         const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
 
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })

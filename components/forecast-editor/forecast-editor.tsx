@@ -29,16 +29,16 @@ type SkuForecastItem = {
     store: string
     frequency: string
     periods: string[]
-    demand: Record<string, number>
-    forecastBaseline: Record<string, number>
-    demandAdjustment: Record<string, number>
-    forecastAdjustment: Record<string, number>
-    lower80?: Record<string, number>
-    upper80?: Record<string, number>
-    lower95?: Record<string, number>
-    upper95?: Record<string, number>
-    originalDemand?: Record<string, number>
-    originalForecastBaseline?: Record<string, number>
+    demand: Record<string, number | null>
+    forecastBaseline: Record<string, number | null>
+    demandAdjustment: Record<string, number | null>
+    forecastAdjustment: Record<string, number | null>
+    lower80?: Record<string, number | null>
+    upper80?: Record<string, number | null>
+    lower95?: Record<string, number | null>
+    upper95?: Record<string, number | null>
+    originalDemand?: Record<string, number | null>
+    originalForecastBaseline?: Record<string, number | null>
 }
 
 type SkuForecastValues = {
@@ -49,7 +49,7 @@ type SkuForecastValues = {
 type ForecastRow = {
     metric: string
     metricKey: string
-    [key: string]: number | string
+    [key: string]: number | string | null
 }
 
 const EDITABLE_METRICS = ["demandAdjustment", "forecastAdjustment"]
@@ -174,19 +174,47 @@ const aggregateRows = (
             metric: row.metric,
             metricKey: row.metricKey,
         }
+        const hasNumericByBucket: Record<string, boolean> = {}
 
         periods.forEach((period) => {
             const bucket = periodToBucket.get(period)
             if (!bucket) return
+            const rawValue = row[period]
+            if (rawValue === null || rawValue === undefined || rawValue === "") {
+                if (!(bucket in next)) next[bucket] = null
+                return
+            }
+            const numericValue = Number(rawValue)
+            if (Number.isNaN(numericValue)) {
+                if (!(bucket in next)) next[bucket] = null
+                return
+            }
             const current = Number(next[bucket] ?? 0)
-            const add = Number(row[period] ?? 0)
-            next[bucket] = current + add
+            next[bucket] = current + numericValue
+            hasNumericByBucket[bucket] = true
+        })
+
+        Object.keys(next).forEach((key) => {
+            if (key === "metric" || key === "metricKey") return
+            if (!hasNumericByBucket[key]) next[key] = null
         })
 
         return next
     })
 
     return { periods: bucketOrder, rows: aggregatedRows }
+}
+
+const toEditableAdjustmentMap = (values?: Record<string, number | null>): Record<string, number> => {
+    if (!values) return {}
+    return Object.entries(values).reduce<Record<string, number>>((acc, [period, value]) => {
+        if (value === null || value === undefined || Number.isNaN(Number(value))) {
+            acc[period] = 0
+        } else {
+            acc[period] = Number(value)
+        }
+        return acc
+    }, {})
 }
 
 export const ForecastEditor = () => {
@@ -296,8 +324,8 @@ export const ForecastEditor = () => {
         if (!currentItem) return
         setAggregationType(frequencyToLabel(baseFrequency))
         setAdjustments({
-            demandAdjustment: { ...(currentItem.demandAdjustment || {}) },
-            forecastAdjustment: { ...(currentItem.forecastAdjustment || {}) },
+            demandAdjustment: toEditableAdjustmentMap(currentItem.demandAdjustment),
+            forecastAdjustment: toEditableAdjustmentMap(currentItem.forecastAdjustment),
         })
         setMonthColumns(currentItem.periods || [])
         setEditedCells(new Set())
@@ -533,7 +561,10 @@ export const ForecastEditor = () => {
         const headers = ["Metric", ...headerLabels]
         const rows = displayForecastValues.map((row) => [
             row.metric,
-            ...columnsToExport.map((column) => String(row[column] ?? 0)),
+            ...columnsToExport.map((column) => {
+                const value = row[column]
+                return value === null || value === undefined || value === "" ? "--" : String(value)
+            }),
         ])
         const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
 

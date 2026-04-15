@@ -12,8 +12,8 @@ import {ChartContainer, ChartTooltip, ChartTooltipContent} from "@/components/ui
 type ForecastChartProps = {
     data: {
         month: string
-        demand: number
-        forecastBaseline: number
+        demand: number | null
+        forecastBaseline: number | null
     }[]
 }
 

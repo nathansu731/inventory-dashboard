@@ -10,7 +10,7 @@ import {
 
 type RowData = {
     label: string
-    values: string[]
+    values: Array<number | null>
 }
 
 type ForecastTableProps = {
@@ -52,17 +52,22 @@ export const ForecastTable = ({ months, rowData }: ForecastTableProps) => {
                                     </TableCell>
 
                                     {months.map((_, colIndex) => {
-                                        const value = row.values[colIndex] ?? "0"
-                                        const numeric = Number(value)
+                                        const value = row.values[colIndex]
+                                        const isMissing = value === null || value === undefined || Number.isNaN(Number(value))
+                                        const numeric = isMissing ? null : Number(value)
 
                                         return (
                                             <TableCell
                                                 key={colIndex}
                                                 className="text-center text-gray-700 py-1 px-2 text-sm"
                                             >
-                        <span className={numeric >= 0 ? "text-green-600" : "text-red-600"}>
-                          {numeric}
-                        </span>
+                                                {isMissing ? (
+                                                    <span className="text-gray-400">--</span>
+                                                ) : (
+                                                    <span className={numeric! >= 0 ? "text-green-600" : "text-red-600"}>
+                                                        {numeric}
+                                                    </span>
+                                                )}
                                             </TableCell>
                                         )
                                     })}

@@ -42,12 +42,12 @@ type ForecastItem = {
     store?: string
     frequency?: string
     periods: string[]
-    demand?: Record<string, number>
-    forecastBaseline?: Record<string, number>
-    demandAdjustment?: Record<string, number>
-    forecastAdjustment?: Record<string, number>
-    lower80?: Record<string, number>
-    upper80?: Record<string, number>
+    demand?: Record<string, number | null>
+    forecastBaseline?: Record<string, number | null>
+    demandAdjustment?: Record<string, number | null>
+    forecastAdjustment?: Record<string, number | null>
+    lower80?: Record<string, number | null>
+    upper80?: Record<string, number | null>
 }
 
 type ForecastValuesPayload = {
@@ -78,7 +78,7 @@ const parseResult = <T,>(payload: unknown): T | null => {
     return (raw as T) ?? null
 }
 
-const metricValue = (demandMap: Record<string, number>, forecastMap: Record<string, number>, period: string, metric: MetricKey) => {
+const metricValue = (demandMap: Record<string, number | null>, forecastMap: Record<string, number | null>, period: string, metric: MetricKey) => {
     const demand = Number(demandMap[period] ?? 0)
     const forecast = Number(forecastMap[period] ?? 0)
     const denom = Math.max(1, Math.abs(demand))

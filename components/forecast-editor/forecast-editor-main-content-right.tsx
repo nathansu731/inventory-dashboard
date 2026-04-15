@@ -5,7 +5,7 @@ import type React from "react"
 type ForecastRow = {
     metric: string
     metricKey: string
-    [key: string]: number | string
+    [key: string]: number | string | null
 }
 
 type ForecastEditorMainContentRightProps = {
@@ -72,7 +72,9 @@ export const ForecastEditorMainContentRight = ({
                                         const cellKey = `${row.metricKey}:${month}`;
                                         const isEditing = editingCell === cellKey;
                                         const isEdited = editedCells.has(cellKey);
-                                        const cellValue = Number(row[month] ?? 0);
+                                        const rawValue = row[month];
+                                        const isMissing = rawValue === null || rawValue === undefined || rawValue === "";
+                                        const cellValue = isMissing ? null : Number(rawValue);
                                         const isEditable = month !== "average" && editableMetrics.includes(row.metricKey);
 
                                         return (
@@ -98,7 +100,7 @@ export const ForecastEditorMainContentRight = ({
                                                         autoFocus
                                                     />
                                                 ) : (
-                                                    cellValue.toLocaleString()
+                                                    isMissing || Number.isNaN(cellValue) ? "--" : cellValue!.toLocaleString()
                                                 )}
                                             </TableCell>
                                         );

@@ -131,19 +131,29 @@ export const buildAggregationBuckets = (
 }
 
 export const aggregateValueMap = (
-  values: Record<string, number> | undefined,
+  values: Record<string, number | null> | undefined,
   sourcePeriods: string[],
   buckets: AggregationBuckets
-): Record<string, number> => {
-  const next: Record<string, number> = {}
+): Record<string, number | null> => {
+  const next: Record<string, number | null> = {}
+  const hasValue: Record<string, boolean> = {}
   if (!values) return next
 
   sourcePeriods.forEach((period) => {
     const bucket = buckets.periodToBucket.get(period)
     if (!bucket) return
+    const raw = values[period]
+    if (raw === null || raw === undefined || Number.isNaN(Number(raw))) {
+      if (!(bucket in next)) next[bucket] = null
+      return
+    }
     const current = Number(next[bucket] ?? 0)
-    const add = Number(values[period] ?? 0)
-    next[bucket] = current + add
+    next[bucket] = current + Number(raw)
+    hasValue[bucket] = true
+  })
+
+  Object.keys(next).forEach((bucket) => {
+    if (!hasValue[bucket]) next[bucket] = null
   })
 
   return next
