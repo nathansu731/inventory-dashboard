@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getServerCognitoConfig } from "@/lib/server-runtime-config";
 
 const clearAuthCookies = (response: NextResponse) => {
     const cookieOptions = {
@@ -14,26 +15,27 @@ const clearAuthCookies = (response: NextResponse) => {
 };
 
 const buildHostedLogoutUrl = (req: NextRequest) => {
-    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
-    const clientId = process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
-    const configuredLogoutUri = process.env.NEXT_PUBLIC_COGNITO_LOGOUT_URI || "/login";
-
-    if (!domain || !clientId) {
+    let cognito;
+    try {
+        cognito = getServerCognitoConfig();
+    } catch {
         return "";
     }
 
-    const logoutUri = configuredLogoutUri.startsWith("/")
-        ? new URL(configuredLogoutUri, req.url).toString()
-        : configuredLogoutUri;
+    if (!cognito.logoutUri) {
+        return "";
+    }
 
-    const baseDomain = domain.endsWith("/oauth2") ? domain.slice(0, -"/oauth2".length) : domain;
-    const logoutEndpoint = `${baseDomain}/logout`;
+    const logoutUri = cognito.logoutUri.startsWith("/")
+        ? new URL(cognito.logoutUri, req.url).toString()
+        : cognito.logoutUri;
+
     const params = new URLSearchParams({
-        client_id: clientId,
+        client_id: cognito.clientId,
         logout_uri: logoutUri,
     });
 
-    return `${logoutEndpoint}?${params.toString()}`;
+    return `${cognito.logoutEndpoint}?${params.toString()}`;
 };
 
 export async function GET(req: NextRequest) {

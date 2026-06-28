@@ -4,6 +4,7 @@ import Link from "next/link"
 import { useEffect, useMemo, useState } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { SavedReportsSearchBar } from "@/components/saved-reports/saved-reports-search-bar"
 import { SavedReportsTable } from "@/components/saved-reports/saved-reports-table"
 import { deleteSavedReports, readAllSavedReports, type SavedReportDefinition } from "@/lib/saved-reports"
@@ -41,9 +42,28 @@ export const SavedReports = () => {
         return reports.filter((report) => {
             const status = report.criteria.status.toLowerCase()
             const model = report.criteria.model.toLowerCase()
-            return report.name.toLowerCase().includes(q) || status.includes(q) || model.includes(q)
+            return (
+                report.name.toLowerCase().includes(q) ||
+                status.includes(q) ||
+                model.includes(q) ||
+                (report.snapshot?.bestRunId ?? "").toLowerCase().includes(q) ||
+                (report.snapshot?.worstRunId ?? "").toLowerCase().includes(q)
+            )
         })
     }, [reports, searchTerm])
+
+    const stats = useMemo(() => {
+        const reportCount = reports.length
+        const totalRuns = reports.reduce((sum, report) => sum + (report.snapshot?.runCount ?? 0), 0)
+        const totalScenarios = reports.reduce((sum, report) => sum + (report.snapshot?.scenarioCount ?? 0), 0)
+        const highErrorSeries = reports.reduce((sum, report) => sum + (report.snapshot?.highErrorSeries ?? 0), 0)
+        const accuracyValues = reports
+            .map((report) => report.snapshot?.averageAccuracy)
+            .filter((value): value is number => typeof value === "number" && Number.isFinite(value))
+        const avgAccuracy =
+            accuracyValues.length > 0 ? accuracyValues.reduce((sum, value) => sum + value, 0) / accuracyValues.length : null
+        return { reportCount, totalRuns, totalScenarios, highErrorSeries, avgAccuracy }
+    }, [reports])
 
     const filteredIds = useMemo(() => filteredReports.map((report) => report.id), [filteredReports])
     const selectedInView = useMemo(() => selectedReports.filter((id) => filteredIds.includes(id)), [filteredIds, selectedReports])
@@ -126,10 +146,10 @@ export const SavedReports = () => {
     return (
         <div className="min-h-screen bg-background">
             <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
-                <div className="px-6 flex items-start justify-between gap-3 flex-wrap">
+                <div className="flex items-start justify-between gap-3 flex-wrap">
                     <div>
                         <h1 className="text-3xl font-bold text-foreground">Saved Reports</h1>
-                        <p className="text-muted-foreground mt-1">Saved criteria templates. Open one to regenerate with the latest forecast runs.</p>
+                        <p className="text-muted-foreground mt-1">Saved report definitions with reusable criteria and captured run portfolio snapshots.</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" onClick={() => void loadReports()} disabled={isLoading}>Refresh</Button>
@@ -139,11 +159,17 @@ export const SavedReports = () => {
                     </div>
                 </div>
 
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+                    <Card><CardHeader className="pb-2"><CardDescription>Saved Reports</CardDescription><CardTitle>{stats.reportCount}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Reusable report definitions</CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardDescription>Captured Runs</CardDescription><CardTitle>{stats.totalRuns}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Runs represented in snapshots</CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardDescription>Scenario Runs</CardDescription><CardTitle>{stats.totalScenarios}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Edited child runs captured</CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardDescription>Avg Accuracy</CardDescription><CardTitle>{typeof stats.avgAccuracy === "number" ? `${stats.avgAccuracy.toFixed(1)}%` : "-"}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Across saved snapshots</CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardDescription>High Error Series</CardDescription><CardTitle>{stats.highErrorSeries}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Stored exception count</CardContent></Card>
+                </div>
+
                 {error ? (
-                    <div className="px-6">
-                        <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
-                            Failed to load saved reports. {error}
-                        </div>
+                    <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+                        Failed to load saved reports. {error}
                     </div>
                 ) : null}
 

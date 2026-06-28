@@ -8,19 +8,16 @@ import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-so
 const QUICKBOOKS_STATE_COOKIE = "quickbooks_oauth_state"
 
 export async function GET(request: NextRequest) {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    const unauthorized = NextResponse.redirect(new URL("/data-input?quickbooks=unauthorized", request.url))
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { cookiesToSet, tokenCtx, errorCode } = await getAuthenticatedApiContext()
+  if (!tokenCtx) {
+    const target =
+      errorCode === "trial_expired"
+        ? "/account-and-subscription?reason=trial_expired"
+        : "/data-input?quickbooks=unauthorized"
+    const unauthorized = NextResponse.redirect(new URL(target, request.url))
     for (const cookie of cookiesToSet) unauthorized.cookies.set(cookie.name, cookie.value, cookie.options)
     return unauthorized
-  }
-
-  const tokenCtx = getTokenUserContext(idToken)
-  if (!tokenCtx) {
-    const missing = NextResponse.redirect(new URL("/data-input?quickbooks=missing_tenant", request.url))
-    for (const cookie of cookiesToSet) missing.cookies.set(cookie.name, cookie.value, cookie.options)
-    return missing
   }
 
   const tableName = getTenantsTableName()

@@ -13,6 +13,12 @@ export type ForecastAssistantStep = {
   action: ForecastAssistantAction | null
 }
 
+export type ForecastAssistantEvidence = {
+  source: string
+  title: string
+  detail: string
+}
+
 export type ForecastAssistantPayload = {
   status: string
   intent: string
@@ -21,6 +27,11 @@ export type ForecastAssistantPayload = {
   checklist: string[]
   suggestedPrompts: string[]
   steps: ForecastAssistantStep[]
+  confidence?: number | null
+  evidence: ForecastAssistantEvidence[]
+  warnings: string[]
+  usedTools: string[]
+  answerVersion: string
 }
 
 export type AssistantUsagePayload = {

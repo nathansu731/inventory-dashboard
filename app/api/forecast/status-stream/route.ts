@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import { cookies } from "next/headers"
+import { getAuthenticatedApiContext } from "@/lib/server-auth"
 
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
@@ -10,11 +10,8 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "missing_run_id" }, { status: 400 })
   }
 
-  const cookieStore = await cookies()
-  const idToken = cookieStore.get("id_token")?.value || ""
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
   const stream = new ReadableStream({
     start(controller) {
@@ -43,6 +40,12 @@ export async function GET(request: Request) {
                   runId
                   tenantId
                   snapshotId
+                  parentRunId
+                  isScenario
+                  adjustmentsKey
+                  scenarioLabel
+                  editedAt
+                  editedCellCount
                   status
                   createdAt
                   updatedAt
@@ -82,11 +85,15 @@ export async function GET(request: Request) {
     },
   })
 
-  return new Response(stream, {
+  const response = new NextResponse(stream, {
     headers: {
       "Content-Type": "text/event-stream",
       "Cache-Control": "no-cache, no-transform",
       Connection: "keep-alive",
     },
   })
+  for (const cookie of cookiesToSet) {
+    response.cookies.set(cookie.name, cookie.value, cookie.options)
+  }
+  return response
 }

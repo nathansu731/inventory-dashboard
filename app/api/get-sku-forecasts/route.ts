@@ -4,27 +4,37 @@
 * const res = await fetch("/api/get-sku-forecasts")
 *
 * */
-export async function GET() {
+export async function GET(request: Request) {
   const { appsyncRequest } = await import("@/lib/appsync")
-  const { getValidIdToken } = await import("@/lib/server-auth")
+  const { buildMergedMonthlyForecasts } = await import("@/lib/merged-forecast-views")
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
   const { NextResponse } = await import("next/server")
 
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
-  const query = `
-    query GetSKUForecasts {
-      getSKUForecasts {
+  const { searchParams } = new URL(request.url)
+  const runId = searchParams.get("runId")
+
+  const mergedQuery = `
+    query GetMergedSkuForecastValues($runId: ID) {
+      getMergedSkuForecastValues(runId: $runId) {
         status
         result
       }
     }
   `
 
-  const json = await appsyncRequest(idToken, query)
-  const response = NextResponse.json(json.data.getSKUForecasts)
+  const mergedJson = await appsyncRequest(idToken, mergedQuery, { runId })
+  const mergedPayload = mergedJson?.data?.getMergedSkuForecastValues
+  const mergedResult =
+    typeof mergedPayload?.result === "string" ? JSON.parse(mergedPayload.result) : mergedPayload?.result
+  const mergedMonthly = buildMergedMonthlyForecasts({ items: mergedResult?.items ?? [] }, 12)
+
+  const response = NextResponse.json({
+    status: mergedPayload?.status ?? "success",
+    result: mergedMonthly,
+  })
   for (const cookie of cookiesToSet) {
     response.cookies.set(cookie.name, cookie.value, cookie.options)
   }

@@ -3,13 +3,27 @@
 import type React from "react"
 
 import { useEffect, useMemo, useState } from "react"
-import { useSearchParams } from "next/navigation"
+import Link from "next/link"
+import { usePathname, useRouter, useSearchParams } from "next/navigation"
 import { ForecastEditorControlsRow } from "@/components/forecast-editor/forecast-editor-controls-row"
 import { ForecastEditorMainContentLeft } from "@/components/forecast-editor/forecast-editor-main-content-left"
 import { ForecastEditorMainContentRight } from "@/components/forecast-editor/forecast-editor-main-content-right"
 import { fetchForecastResult } from "@/lib/forecasting"
 import { Button } from "@/components/ui/button"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { ForecastRunSelector } from "@/components/forecasts/forecast-run-selector"
+import { buildRunScopedUrl, fetchForecastRuns, formatRunTimestamp, type ForecastRunOption } from "@/lib/forecast-runs"
+import {
+    getForecastApproval,
+    listForecastApprovals,
+    updateForecastApproval,
+    subscribeForecastApprovalChanges,
+    type ApprovalMap,
+} from "@/lib/forecast-approvals"
+import { useRunStatusStream, type StreamRunSummary } from "@/components/data-input-page/use-run-status-stream"
+import { useForecastCopilot } from "@/components/copilot/forecast-copilot-provider"
 
 type MonthlyMetric = {
     value: number
@@ -218,9 +232,13 @@ const toEditableAdjustmentMap = (values?: Record<string, number | null>): Record
 }
 
 export const ForecastEditor = () => {
+    const router = useRouter()
+    const pathname = usePathname()
     const searchParams = useSearchParams()
+    const { setCopilotContext } = useForecastCopilot()
     const requestedSku = useMemo(() => searchParams.get("sku")?.trim() ?? "", [searchParams])
     const requestedStore = useMemo(() => searchParams.get("store")?.trim() ?? "", [searchParams])
+    const requestedRunId = useMemo(() => searchParams.get("runId")?.trim() ?? "", [searchParams])
 
     const [aggregationType, setAggregationType] = useState<(typeof AGGREGATION_LEVELS)[number]>("Monthly")
     const [editingCell, setEditingCell] = useState<string | null>(null)
@@ -235,7 +253,13 @@ export const ForecastEditor = () => {
     const [showConfirm, setShowConfirm] = useState(false)
     const [isSaving, setIsSaving] = useState(false)
     const [runMessage, setRunMessage] = useState<string | null>(null)
+    const [runs, setRuns] = useState<ForecastRunOption[]>([])
+    const [selectedRunId, setSelectedRunId] = useState(requestedRunId)
+    const [scenarioRunStatus, setScenarioRunStatus] = useState<StreamRunSummary | null>(null)
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
+    const [isApproved, setIsApproved] = useState(false)
+    const [approvalMap, setApprovalMap] = useState<ApprovalMap>({})
+    useRunStatusStream(scenarioRunStatus?.runId, setScenarioRunStatus)
 
     const storeGroups = useMemo(() => {
         const groups: Record<string, SkuForecastItem[]> = {}
@@ -260,11 +284,33 @@ export const ForecastEditor = () => {
     }>({ demandAdjustment: {}, forecastAdjustment: {} })
 
     useEffect(() => {
+        const loadRuns = async () => {
+            const nextRuns = await fetchForecastRuns(25)
+            setRuns(nextRuns)
+            if (!selectedRunId && nextRuns[0]?.runId) {
+                setSelectedRunId(nextRuns[0].runId)
+            }
+        }
+        void loadRuns()
+    }, [selectedRunId])
+
+    useEffect(() => {
+        const params = new URLSearchParams(searchParams.toString())
+        if (selectedRunId) params.set("runId", selectedRunId)
+        else params.delete("runId")
+        const nextQuery = params.toString()
+        const currentQuery = searchParams.toString()
+        if (nextQuery !== currentQuery) {
+            router.replace(nextQuery ? `${pathname}?${nextQuery}` : pathname, { scroll: false })
+        }
+    }, [pathname, router, searchParams, selectedRunId])
+
+    useEffect(() => {
         const loadData = async () => {
             setIsLoading(true)
             const [monthlyTotals, skuValues] = await Promise.all([
-                fetchForecastResult<MonthlyTotalsResult>("/api/get-monthly-totals"),
-                fetchForecastResult<SkuForecastValues>("/api/get-sku-forecast-values"),
+                fetchForecastResult<MonthlyTotalsResult>(buildRunScopedUrl("/api/get-monthly-totals", selectedRunId)),
+                fetchForecastResult<SkuForecastValues>(buildRunScopedUrl("/api/get-sku-forecast-values", selectedRunId)),
             ])
 
             if (monthlyTotals) {
@@ -308,7 +354,7 @@ export const ForecastEditor = () => {
         }
 
         loadData()
-    }, [requestedSku, requestedStore])
+    }, [requestedSku, requestedStore, selectedRunId])
 
     const baseFrequency = useMemo(
         () => normalizeFrequency(currentItem?.frequency || skuForecastValues?.frequency || "monthly"),
@@ -332,6 +378,44 @@ export const ForecastEditor = () => {
         setEditingCell(null)
         setRunMessage(null)
     }, [currentItem, baseFrequency])
+
+    useEffect(() => {
+        const loadApprovals = async () => {
+            const map = await listForecastApprovals()
+            setApprovalMap(map)
+        }
+        loadApprovals()
+        return subscribeForecastApprovalChanges(async () => {
+            const map = await listForecastApprovals()
+            setApprovalMap(map)
+        })
+    }, [])
+
+    useEffect(() => {
+        if (!currentItem) {
+            setIsApproved(false)
+            return
+        }
+        setIsApproved(getForecastApproval(approvalMap, currentItem.sku, currentItem.store))
+    }, [approvalMap, currentItem])
+
+    const selectedRun = useMemo(
+        () => runs.find((run) => run.runId === selectedRunId) ?? null,
+        [runs, selectedRunId]
+    )
+
+    useEffect(() => {
+        setCopilotContext({
+            runId: selectedRunId || null,
+            pageId: "forecast-editor",
+            route: pathname || "/forecasts/forecast-editor",
+            contextMode: "analysis",
+            selectedSku: currentItem?.sku || null,
+            selectedStore: currentItem?.store || currentStore || null,
+        })
+
+        return () => setCopilotContext(null)
+    }, [currentItem?.sku, currentItem?.store, currentStore, pathname, selectedRunId, setCopilotContext])
 
     const formatPeriod = (period: string, frequency: string) => {
         if (frequency === "daily" || frequency === "weekly") {
@@ -421,6 +505,25 @@ export const ForecastEditor = () => {
             .map(({ label }) => label)
     }, [displayMonthColumns, displayFormattedColumns, columnVisibility])
 
+    const dirtyCount = editedCells.size
+    const baselineHorizonTotal = useMemo(() => {
+        if (!currentItem) return 0
+        return monthColumns.reduce((sum, period) => sum + Number(currentItem.forecastBaseline?.[period] ?? 0), 0)
+    }, [currentItem, monthColumns])
+
+    const adjustedHorizonTotal = useMemo(() => {
+        if (!currentItem) return 0
+        return monthColumns.reduce(
+            (sum, period) =>
+                sum +
+                Number(currentItem.forecastBaseline?.[period] ?? 0) +
+                Number(adjustments.forecastAdjustment?.[period] ?? 0),
+            0
+        )
+    }, [adjustments.forecastAdjustment, currentItem, monthColumns])
+
+    const totalAdjustmentDelta = adjustedHorizonTotal - baselineHorizonTotal
+
     const handleCellClick = (metricKey: string, period: string, value: number) => {
         const cellKey = `${metricKey}:${period}`
         setEditingCell(cellKey)
@@ -450,6 +553,17 @@ export const ForecastEditor = () => {
         if (e.key === "Enter") {
             handleCellBlur(metricKey, period)
         }
+    }
+
+    const resetChanges = () => {
+        if (!currentItem) return
+        setAdjustments({
+            demandAdjustment: toEditableAdjustmentMap(currentItem.demandAdjustment),
+            forecastAdjustment: toEditableAdjustmentMap(currentItem.forecastAdjustment),
+        })
+        setEditedCells(new Set())
+        setEditingCell(null)
+        setRunMessage(null)
     }
 
     const onPrevSku = () => {
@@ -488,8 +602,10 @@ export const ForecastEditor = () => {
 
         setIsSaving(true)
         setRunMessage(null)
+        setScenarioRunStatus(null)
 
         try {
+            const payloadJson = JSON.stringify(payload)
             const filename = `forecast-adjustments-${currentItem.sku}-${Date.now()}.json`
             const uploadRes = await fetch("/api/upload-url", {
                 method: "POST",
@@ -497,6 +613,7 @@ export const ForecastEditor = () => {
                 body: JSON.stringify({
                     filename,
                     contentType: "application/json",
+                    fileSize: payloadJson.length,
                 }),
             })
 
@@ -510,7 +627,7 @@ export const ForecastEditor = () => {
             const putRes = await fetch(uploadUrl, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify(payload),
+                body: payloadJson,
             })
 
             if (!putRes.ok) {
@@ -526,6 +643,9 @@ export const ForecastEditor = () => {
                     s3Bucket,
                     s3Key,
                     adjustmentsKey: s3Key,
+                    parentRunId: selectedRunId || null,
+                    scenarioLabel: `Manual override for ${currentItem.sku} · ${currentItem.store}`,
+                    editedCellCount: editedCells.size,
                     sku: currentItem.sku,
                     store: currentItem.store,
                     frequency: currentItem.frequency,
@@ -540,7 +660,13 @@ export const ForecastEditor = () => {
                 return
             }
 
-            setRunMessage("Run in progress. Check notifications for status.")
+            setScenarioRunStatus({
+                runId: runJson?.run?.runId,
+                status: runJson?.run?.status,
+                createdAt: runJson?.run?.createdAt,
+                updatedAt: runJson?.run?.updatedAt,
+            })
+            setRunMessage(`Scenario run ${runJson?.run?.runId || ""} started. Track status below.`)
         } catch {
             setRunMessage("Unexpected error while saving adjustments")
         } finally {
@@ -584,7 +710,27 @@ export const ForecastEditor = () => {
             <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
                 <div>
                     <h1 className="text-3xl font-bold text-foreground">Forecast Editor</h1>
-                    <p className="text-muted-foreground mt-1">Review forecast values, apply adjustments, and rerun selected SKU scenarios.</p>
+                    <p className="text-muted-foreground mt-1">Review forecast values, apply adjustments, and rerun selected SKU-location scenarios with run lineage.</p>
+                </div>
+                <Card>
+                    <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <ForecastRunSelector runs={runs} value={selectedRunId} onValueChange={setSelectedRunId} />
+                            <Badge variant="outline">Run created {formatRunTimestamp(selectedRun?.createdAt)}</Badge>
+                            {currentItem ? <Badge variant="secondary">{currentItem.sku} · {currentItem.store}</Badge> : null}
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                            <span>{dirtyCount} edited cells</span>
+                            <span>·</span>
+                            <span>{aggregationType} view</span>
+                        </div>
+                    </CardContent>
+                </Card>
+                <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Baseline Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(baselineHorizonTotal).toLocaleString()}</p></CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Adjusted Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(adjustedHorizonTotal).toLocaleString()}</p></CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Scenario Delta</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(totalAdjustmentDelta).toLocaleString()}</p></CardContent></Card>
+                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Approval State</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{isApproved ? "Approved" : "Pending"}</p></CardContent></Card>
                 </div>
                 <div className="rounded-md border bg-background">
                     <ForecastEditorControlsRow
@@ -600,11 +746,17 @@ export const ForecastEditor = () => {
                         onSave={() => setShowConfirm(true)}
                         isSaving={isSaving}
                         disableSave={labelToFrequency(aggregationType) !== baseFrequency}
-                        monthColumns={displayMonthColumns}
-                        formattedColumns={displayFormattedColumns}
-                        columnVisibility={columnVisibility}
-                        setColumnVisibility={setColumnVisibility}
                         onExport={handleExport}
+                        isApproved={isApproved}
+                        onToggleApproval={() => {
+                            if (!currentItem) return
+                            const next = !isApproved
+                            updateForecastApproval(currentItem.sku, next, currentItem.store)
+                            setIsApproved(next)
+                        }}
+                        disableApproval={!currentItem}
+                        onReset={resetChanges}
+                        dirtyCount={dirtyCount}
                     />
                     <div className="flex overflow-x-auto">
                         <ForecastEditorMainContentLeft summaryData={summaryData} isLoading={isLoading}/>
@@ -639,6 +791,29 @@ export const ForecastEditor = () => {
                         {runMessage}
                     </div>
                 )}
+                {scenarioRunStatus?.runId ? (
+                    <Card className="border-blue-200 bg-blue-50/70">
+                        <CardContent className="space-y-2 p-4 text-sm text-blue-900">
+                            <div className="font-medium">Scenario Run {scenarioRunStatus.runId}</div>
+                            <div>Status: {scenarioRunStatus.status || "IN_PROGRESS"}</div>
+                            <div>Parent run: {selectedRunId || "--"}</div>
+                            <div>Edited cells: {dirtyCount}</div>
+                            {scenarioRunStatus.message ? <div>{scenarioRunStatus.message}</div> : null}
+                            <div className="flex flex-wrap gap-2 pt-1">
+                                <Button size="sm" variant="outline" asChild>
+                                    <Link href={`/forecasts/forecast-navigator?sku=${encodeURIComponent(currentItem?.sku || "")}&store=${encodeURIComponent(currentItem?.store || "")}&runId=${encodeURIComponent(scenarioRunStatus.runId || "")}`}>
+                                        Open Scenario In Navigator
+                                    </Link>
+                                </Button>
+                                <Button size="sm" variant="outline" asChild>
+                                    <Link href={`/forecasts/forecasting-summary?runId=${encodeURIComponent(scenarioRunStatus.runId || "")}`}>
+                                        Open Scenario In Summary
+                                    </Link>
+                                </Button>
+                            </div>
+                        </CardContent>
+                    </Card>
+                ) : null}
             </div>
 
             <Dialog open={showConfirm} onOpenChange={setShowConfirm}>

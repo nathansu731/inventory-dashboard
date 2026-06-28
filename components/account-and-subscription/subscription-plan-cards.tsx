@@ -10,21 +10,33 @@ type SubscriptionPlanCardsProps = {
     isReadOnly?: boolean
     planPrices?: Partial<Record<PlanType, { displayPrice: string }>>
     isLaunchTrialActive?: boolean
+    accessRestricted?: boolean
 }
 
 const displayPlanPrice = (plan: PlanType, planPrices?: Partial<Record<PlanType, { displayPrice: string }>>) => {
+    if (plan === "enterprise") return "Custom"
     const livePrice = planPrices?.[plan]?.displayPrice
-    if (livePrice) return livePrice.replace("/month", "")
-    if (plan === "launch") return "$99"
-    if (plan === "professional") return "$199"
+    if (livePrice) return livePrice.replace("/month", "/mo")
+    if (plan === "launch") return "$99/mo"
+    if (plan === "professional") return "$199/mo"
     return "Custom"
 }
 
-export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly = false, planPrices, isLaunchTrialActive = false }: SubscriptionPlanCardsProps) => {
-    const isCurrent = (plan: PlanType) => currentPlan === plan
+export const SubscriptionPlanCards = ({
+    handlePlanClick,
+    currentPlan,
+    isReadOnly = false,
+    planPrices,
+    isLaunchTrialActive = false,
+    accessRestricted = false,
+}: SubscriptionPlanCardsProps) => {
+    const isRestrictedLaunch = accessRestricted && currentPlan === "launch"
+    const isPurchasableLaunchTrial = isLaunchTrialActive && currentPlan === "launch"
+    const isCurrent = (plan: PlanType) => currentPlan === plan && !(plan === "launch" && isRestrictedLaunch)
     const hasPaidPlan = currentPlan === "professional" || currentPlan === "enterprise"
     const handleCardClick = (plan: PlanType) => {
-        if (!isReadOnly && !isCurrent(plan) && !(plan === "launch" && hasPaidPlan)) {
+        const isSelectableCurrentTrialPlan = plan === "launch" && isPurchasableLaunchTrial
+        if (!isReadOnly && (!isCurrent(plan) || isSelectableCurrentTrialPlan) && !(plan === "launch" && hasPaidPlan)) {
             handlePlanClick(plan)
         }
     }
@@ -32,7 +44,7 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly 
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <Card
-                className={`relative h-full bg-card border-border hover:shadow-lg transition-shadow ${isCurrent("launch") ? "border-primary" : ""} ${isCurrent("launch") ? "cursor-default" : "cursor-pointer"} flex flex-col`}
+                className={`relative h-full bg-card border-border hover:shadow-lg transition-shadow ${isCurrent("launch") ? "border-primary" : ""} ${isCurrent("launch") && !isPurchasableLaunchTrial ? "cursor-default" : "cursor-pointer"} flex flex-col`}
                 onClick={() => handleCardClick("launch")}
             >
                 {isLaunchTrialActive && (
@@ -80,9 +92,9 @@ export const SubscriptionPlanCards = ({handlePlanClick, currentPlan, isReadOnly 
                     <Button
                         variant="outline"
                         className="mt-auto w-full bg-transparent"
-                        disabled={isCurrent("launch") || isReadOnly || hasPaidPlan}
+                        disabled={(isCurrent("launch") && !isPurchasableLaunchTrial) || isReadOnly || hasPaidPlan}
                     >
-                        {isCurrent("launch") ? "Current Plan" : hasPaidPlan ? "Current Plan" : isReadOnly ? "Read Only" : "Purchase Launch"}
+                        {hasPaidPlan ? "Current Plan" : isReadOnly ? "Read Only" : "Purchase Launch"}
                     </Button>
                 </CardContent>
             </Card>

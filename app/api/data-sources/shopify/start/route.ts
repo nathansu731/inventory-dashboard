@@ -10,19 +10,14 @@ const SHOPIFY_STATE_COOKIE = "shopify_oauth_state"
 const isValidShopDomain = (value: string) => /^[a-z0-9][a-z0-9-]*\.myshopify\.com$/i.test(value)
 
 export async function GET(request: NextRequest) {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    const unauthorized = NextResponse.redirect(new URL("/data-input?shopify=unauthorized", request.url))
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { cookiesToSet, tokenCtx, errorCode } = await getAuthenticatedApiContext()
+  if (!tokenCtx) {
+    const target =
+      errorCode === "trial_expired" ? "/account-and-subscription?reason=trial_expired" : "/data-input?shopify=unauthorized"
+    const unauthorized = NextResponse.redirect(new URL(target, request.url))
     for (const cookie of cookiesToSet) unauthorized.cookies.set(cookie.name, cookie.value, cookie.options)
     return unauthorized
-  }
-
-  const tokenCtx = getTokenUserContext(idToken)
-  if (!tokenCtx) {
-    const missing = NextResponse.redirect(new URL("/data-input?shopify=missing_tenant", request.url))
-    for (const cookie of cookiesToSet) missing.cookies.set(cookie.name, cookie.value, cookie.options)
-    return missing
   }
 
   const tableName = getTenantsTableName()

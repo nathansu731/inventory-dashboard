@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
-import { getValidIdToken } from "@/lib/server-auth"
+import { getAuthenticatedApiContext } from "@/lib/server-auth"
 
 type PlanKey = "launch" | "professional" | "enterprise"
 
 const PLAN_PRICE_IDS: Record<PlanKey, string> = {
-  launch: process.env.STRIPE_PRICE_ID_LAUNCH || "",
-  professional: process.env.STRIPE_PRICE_ID_PROFESSIONAL || "",
-  enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || "",
+  launch: process.env.STRIPE_PRICE_ID_LAUNCH || process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_LAUNCH || "",
+  professional:
+    process.env.STRIPE_PRICE_ID_PROFESSIONAL || process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PROFESSIONAL || "",
+  enterprise: process.env.STRIPE_PRICE_ID_ENTERPRISE || process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ENTERPRISE || "",
 }
 
 const formatAmount = (unitAmount: number | null, currency: string, interval: string) => {
@@ -22,10 +23,8 @@ const formatAmount = (unitAmount: number | null, currency: string, interval: str
 }
 
 export async function GET() {
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext({ allowRestricted: true })
+  if (errorResponse || !idToken) return errorResponse!
 
   const responsePlans: Record<PlanKey, { priceId: string; unitAmount: number | null; currency: string; interval: string; displayPrice: string }> = {
     launch: { priceId: PLAN_PRICE_IDS.launch, unitAmount: 9900, currency: "usd", interval: "month", displayPrice: "$99/month" },

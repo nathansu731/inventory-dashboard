@@ -1,229 +1,312 @@
-# Data Source Connectivity Architecture (Phases 1-4)
+# Data Source Architecture
+
+This document describes the current source-ingestion architecture used by ARK Forecasting across the dashboard (`inventory-dashboard`) and orchestration layer (`forecasting-core`).
 
 ## Purpose
-This document describes the current multi-tenant connector architecture implemented for ARK Forecasting, including what was delivered in Phases 1-4, the main files touched, security controls, runbook steps, and recommended next improvements.
 
-## Scope
-The architecture currently covers:
-- Data source onboarding and configuration in `/data-input`
-- Shopify OAuth connection as first connector
-- Manual and scheduled sync flows
-- Sync locking/retry/audit/notifications
-- Scale-ready storage via dedicated `data_sources` table
-- Backfill and scheduler plumbing for production rollout
+The data-source layer exists to get forecast-compatible demand and inventory data into the app in a controlled, tenant-scoped way.
 
-## High-Level Architecture
-1. Admin connects a provider from `/data-input`.
-2. OAuth callback validates request and stores source metadata + encrypted token.
-3. Source configuration is written to tenant record and dedicated data-sources table.
-4. Sync can be triggered manually or by worker due-run.
-5. Sync updates source state, retry counters, run history, and next schedule.
-6. Audit events and user-facing notifications are emitted.
-7. Health/activity panels surface connector status.
+The product currently supports two main ingestion patterns:
+- direct CSV upload from `/data-input`
+- connected-source extraction from Shopify, QuickBooks, BigCommerce, and Amazon
 
-## Data Model
-Primary source entity fields (logical):
-- `id`
-- `provider`
-- `accountName`, `accountId`
-- `state` (`connected`, `error`, `not_connected`)
-- `selectedTables`
-- `syncMode` (`manual`, `every-6h`, `daily`, `weekly`)
-- `syncStartDate`
-- `lastImportAt`, `nextImportAt`
-- `retryCount`, `lastError`
-- `runs[]`
-- `createdAt`, `updatedAt`
+Both paths are normalized toward the same canonical forecasting shape before forecast execution.
 
-Supporting tenant-level structures:
-- `dataSources` (compatibility/primary tenant blob)
-- `dataSourceSecrets` (encrypted connector credentials)
-- `dataSourceAudit` (activity feed)
-- `syncLock` and `syncSourceLocks` (concurrency controls)
+## Architectural Summary
 
-Dedicated scale table:
-- DynamoDB `data_sources` table
-- GSI `byDueAt` (`GSI1PK`, `GSI1SK`) for due-worker query path
-- GSI `byProvider` (`GSI2PK`, `GSI2SK`) for provider-level filtering/operations
+At a high level:
+1. A tenant admin chooses either file upload or a connected provider from `/data-input`.
+2. Connected providers store credentials and configuration server-side.
+3. A source sync extracts provider data into a canonical normalized CSV plus summary metadata.
+4. The normalized file is stored in raw S3 under the tenant’s prefix.
+5. Forecast runs consume either:
+   - a tenant-uploaded CSV, or
+   - the latest normalized connector import
+6. Forecast orchestration produces run artifacts in the artifact bucket.
+7. Pages such as Dashboard, KPIs, Forecast Navigator, Replenishments, and Reports read those run artifacts through API routes.
 
-## Phase 1: Foundation
-### Delivered
-- Added connector configuration UX in `/data-input` using existing data widgets.
-- Added source CRUD APIs and source normalization.
-- Added role-aware behavior (Admin can manage sources; Managers restricted).
+## Current Input Modes
 
-### Main files
+### 1. Main sales-history upload
+
+Handled in:
 - `components/data-input-page/data-input-page.tsx`
+- `components/data-input-page/use-data-input-controller.ts`
+- `app/api/upload-url/route.ts`
+- `app/api/forecast/start/route.ts`
+
+This path:
+- accepts a CSV file
+- validates structure and scope
+- uploads to a tenant-scoped quarantine prefix in raw S3
+- promotes the file to an accepted prefix before forecast execution
+
+Optional fields such as `on_hand`, `price`, `holiday`, `promotion`, and open-status can be mapped from the uploaded file.
+
+### 2. Separate inventory snapshot upload
+
+Handled in:
+- `components/data-input-page/inventory-upload-section.tsx`
+- `components/data-input-page/use-data-input-controller.ts`
+- `app/api/inventory-snapshot/route.ts`
+- `lib/inventory-snapshot.ts`
+
+This path stores current stock-on-hand separately from sales history. It is used mainly by replenishment and stock-risk calculations.
+
+### 3. Connected sources
+
+Handled in:
 - `components/data-input-page/data-source-selection.tsx`
 - `components/data-input-page/data-configuration.tsx`
-- `app/api/data-sources/route.ts`
-- `app/api/data-sources/[sourceId]/route.ts`
+- `app/api/data-sources/*`
+- `lib/data-source-sync.ts`
+- `lib/data-source-extraction.ts`
+
+Supported providers:
+- Shopify
+- QuickBooks
+- BigCommerce
+- Amazon SP-API
+
+These sources are configured per tenant and can be manually or periodically synced.
+
+## Connector Data Model
+
+Primary source fields are defined in:
 - `lib/data-sources.ts`
 
-## Phase 2: Connector MVP (Shopify)
-### Delivered
-- Implemented Shopify OAuth start/callback API flow.
-- Added secure token handling: encrypted at rest in tenant secret map.
-- Added source reconnect/update semantics.
-- Added source-level sync trigger endpoint.
+Important fields:
+- `id`
+- `provider`
+- `accountName`
+- `accountId`
+- `state`
+- `availableTables`
+- `selectedTables`
+- `syncMode`
+- `lastImportAt`
+- `nextImportAt`
+- `retryCount`
+- `lastError`
+- `sourceConfig`
+- `diagnostics`
+- `latestImport`
+- `runs`
 
-### Main files
-- `app/api/data-sources/shopify/start/route.ts`
-- `app/api/data-sources/shopify/callback/route.ts`
-- `app/api/data-sources/[sourceId]/sync/route.ts`
-- `lib/data-source-secrets.ts`
-- `lib/data-source-sync.ts`
+Tenant-level supporting structures include:
+- `dataSources`
+- `dataSourceAdapters`
+- `dataSourceSecrets`
+- `dataSourceAudit`
 
-## Phase 3: Reliability + Observability
-### Delivered
-- Added sync engine abstraction with:
-  - provider-specific execution path
-  - retry scheduling
-  - run history updates
-- Added lock strategy:
-  - tenant lock for worker scans
-  - per-source lock for individual sync execution
-- Added connector notifications on sync outcomes.
-- Added connector audit trail events.
-- Added health endpoint and UI visibility.
-
-### Main files
-- `lib/data-source-sync.ts`
-- `lib/data-source-worker.ts`
-- `lib/connector-notifications.ts`
-- `lib/data-source-audit.ts`
-- `app/api/data-sources/sync-due/route.ts`
-- `app/api/data-sources/health/route.ts`
-- `components/data-input-page/data-input-page.tsx`
-
-## Phase 4: Scale + Production Operations
-### Delivered
-- Added dedicated table support and dual-write behavior.
-- Added read fallback strategy (dedicated table first, tenant blob fallback).
-- Added due-index worker path using `byDueAt` GSI.
-- Added internal backfill endpoint for migration/cutover.
-- Added internal worker endpoint for due-run execution.
-- Added optional EventBridge scheduler infra in Terraform.
-
-### Main files (app)
+The app also supports a dedicated table path for data sources via:
 - `lib/data-sources-repo.ts`
-- `app/api/internal/data-sources/run-due/route.ts`
-- `app/api/internal/data-sources/backfill/route.ts`
-- `app/api/data-sources/route.ts`
-- `app/api/data-sources/[sourceId]/route.ts`
+
+## Provider Configuration Model
+
+Provider setup is not just “connect account”. Each source can also carry an extraction recipe.
+
+Relevant files:
+- `lib/provider-source-config.ts`
+- `components/data-input-page/connector-import-setup-section.tsx`
+- `components/data-input-page/data-configuration.tsx`
+
+Current source configuration includes fields such as:
+- selected sales entity
+- selected catalog entity
+- selected inventory entity
+- date range
+- order date field
+- cancelled-order handling
+- SKU strategy and mapping choices
+
+This lets the app shape provider data into the same forecasting schema used by CSV uploads.
+
+## Canonical Forecast Shape
+
+Connected-source extraction normalizes into a row model like:
+
+```csv
+date,sku,store,sales,price,on_hand
+```
+
+Defined in:
+- `lib/data-source-extraction.ts`
+
+Canonical row fields:
+- `date`
+- `sku`
+- `store`
+- `sales`
+- optional `price`
+- optional `on_hand`
+
+This is the same shape that downstream forecasting expects, even when the original provider schema is more complex.
+
+## Provider Extraction Behavior
+
+The extraction layer currently implements:
+
+### Shopify
+- orders and line items for demand
+- products / variants / inventory levels for stock data where available
+
+### QuickBooks
+- sales receipts or invoices for demand
+- items for SKU metadata and inventory quantities where available
+
+### BigCommerce
+- orders plus order products for demand
+- variants / inventory levels for stock data
+
+### Amazon
+- orders and order items
+- inventory summaries where available
+
+All providers are normalized through:
+- `runProviderExtraction()`
+
+in:
+- `lib/data-source-extraction.ts`
+
+## Connector Sync Flow
+
+Manual sync endpoint:
 - `app/api/data-sources/[sourceId]/sync/route.ts`
+
+Core sync engine:
+- `lib/data-source-sync.ts`
+
+Flow:
+1. Validate current user is an admin.
+2. Acquire a source sync lock.
+3. Validate provider credentials.
+4. Extract provider data.
+5. Enforce plan-based ingestion limits.
+6. Persist the normalized import artifact in raw S3.
+7. Update source metadata and diagnostics.
+8. Emit audit events and connector notifications.
+9. Release the lock.
+
+Scheduled sync support also exists through:
 - `app/api/data-sources/sync-due/route.ts`
-- `app/api/data-sources/shopify/callback/route.ts`
+- `app/api/internal/data-sources/run-due/route.ts`
 
-### Main files (terraform)
-- `forecasting-core/terraform/dynamodb.tf`
-- `forecasting-core/terraform/scheduler.tf`
-- `forecasting-core/terraform/variables.tf`
-- `forecasting-core/terraform/outputs.tf`
-- `forecasting-core/terraform/terraform.tfvars`
-- `forecasting-core/terraform/main.tf`
+## Inventory Snapshot Integration
 
-## Security Measures Implemented
-- OAuth callback protections:
-  - signed state + state cookie validation
-  - Shopify callback HMAC validation
-- Credentials protection:
-  - AES-256-GCM encryption for stored provider access token
-  - server-side only token handling
-- Access control:
-  - role checks for source-management APIs
-  - manager restrictions where applicable
-- Internal operations protection:
-  - worker endpoints require `x-worker-token` header
-  - scheduler injects token via EventBridge connection
-- Concurrency protections:
-  - lock-based source sync gating prevents duplicate simultaneous runs
-- Operational isolation:
-  - notification writes are best-effort and do not block sync completion
+Inventory can come from three places:
+- a dedicated inventory CSV
+- an `on_hand` column in the main uploaded CSV
+- connected-source extraction
 
-## Runtime Configuration
-### Application env vars (inventory-dashboard)
-- `AWS_REGION`
-- `TENANTS_TABLE`
-- `DATA_SOURCES_TABLE`
-- `WORKER_CRON_TOKEN`
-- `DATA_SOURCE_ENCRYPTION_KEY`
-- `DATA_SOURCE_ENCRYPTION_KEY_JSON` (optional alternative)
-- `SHOPIFY_CLIENT_ID`
-- `SHOPIFY_CLIENT_SECRET`
-- `SHOPIFY_SCOPES` (optional)
-- `SHOPIFY_REDIRECT_URI`
-- `QUICKBOOKS_CLIENT_ID`
-- `QUICKBOOKS_CLIENT_SECRET`
-- `QUICKBOOKS_SCOPES` (optional; default present)
-- `QUICKBOOKS_REDIRECT_URI`
-- `BIGCOMMERCE_CLIENT_ID`
-- `BIGCOMMERCE_CLIENT_SECRET`
-- `BIGCOMMERCE_SCOPES` (optional; default present)
-- `BIGCOMMERCE_REDIRECT_URI`
-- `AMAZON_SP_APPLICATION_ID`
-- `AMAZON_LWA_CLIENT_ID`
-- `AMAZON_LWA_CLIENT_SECRET`
-- `AMAZON_REDIRECT_URI`
-- `AMAZON_SELLER_CENTRAL_URL` (optional; default https://sellercentral.amazon.com)
+Stored through:
+- `lib/inventory-snapshot.ts`
 
-Also required for broader existing app features:
-- Cognito variables (`COGNITO_*`, `NEXT_PUBLIC_COGNITO_*`)
-- `NOTIFICATIONS_TABLE`
-- `SAVED_REPORTS_TABLE`
-- `S3_RAW_BUCKET`
-- `APPSYNC_API_URL`
+Inventory snapshots are saved separately from forecast demand history so replenishment can use a current operational stock position without rerunning or mutating the historical sales dataset.
 
-### Terraform variables (forecasting-core)
-- `data_source_worker_run_due_url`
-- `data_source_worker_cron_expression`
-- `data_source_worker_cron_token`
+## Forecast Start Handoff
 
-## Production Rollout Runbook
-1. Deploy Terraform changes (including `data_sources` + optional scheduler).
-2. Deploy dashboard with required environment variables.
-3. Execute one-time backfill:
-   - `POST /api/internal/data-sources/backfill`
-   - Header `x-worker-token: <WORKER_CRON_TOKEN>`
-4. Validate worker endpoint:
-   - `POST /api/internal/data-sources/run-due`
-   - Header `x-worker-token: <WORKER_CRON_TOKEN>`
-5. Verify UI flows:
-   - Connect source
-   - Configure tables/sync mode
-   - Trigger manual sync
-   - Confirm health/activity status
-6. Validate audit + notification entries are produced.
+Forecast start is initiated from:
+- `app/api/forecast/start/route.ts`
 
-## Known Constraints
-- Dedicated table migration is dual-write + fallback, not hard cutover yet.
-- Current provider implementation is Shopify-first; others are placeholders.
-- Encryption key is env-based in current implementation. Secrets Manager/KMS hard integration can be added as follow-up.
+This route can start a run from:
+- an accepted upload in raw S3
+- the latest connector import artifact
 
-## Recommended Next Improvements
-1. Queue-based sync engine
-- Move due-sync execution from API route to SQS/Lambda worker model for better horizontal scale and failure isolation.
+It forwards the forecast input to AppSync / orchestration, including:
+- model
+- mode
+- seasonality
+- date format
+- field mappings
+- forecast horizon
+- future assumptions
 
-2. Secrets + key management hardening
-- Source encryption key from AWS Secrets Manager with KMS CMK and key rotation policy.
-- Add token re-encryption migration job for key rotation.
+## Orchestration Layer
 
-3. Connector depth
-- Implement real Shopify extractors for selected entities (orders/products/inventory) with incremental cursors.
-- Add providers via pluggable adapter interface (Amazon, QuickBooks, BigCommerce).
+The forecast backend reads and manages:
+- tenant settings
+- run records
+- data snapshots
+- artifact retrieval
 
-4. Observability
-- Add structured logging with correlation IDs.
-- Publish metrics (sync lag, success/failure rates, retry volume, lock contention).
-- Alarm on stale due items and repeated failure thresholds.
+Key files:
+- `forecasting-core/src/orchestrator/lib/shared.js`
+- `forecasting-core/src/orchestrator/lib/handlers.js`
 
-5. Cutover hardening
-- Add reconciliation endpoint/report between tenant blob and dedicated table.
-- Add feature flag to switch reads to dedicated table only once reconciliation is clean.
+Important backend responsibilities:
+- validate forecast-start input
+- normalize plan/model/mode choices
+- queue local or direct forecast execution
+- persist run metadata
+- expose artifact retrieval helpers for pages
 
-6. Rate limiting and tenant fairness
-- Add per-tenant and per-provider concurrency budgets.
-- Add backpressure policy for burst traffic.
+## Produced Artifacts
 
-## Current Status
-Phases 1-4 are implemented for MVP-level production readiness of connector management and scheduled sync orchestration, with clear next steps for deeper ingestion, stronger secret governance, and large-scale workload handling.
+Run artifacts are written under:
+- `tenant-artifacts/<tenantId>/runs/<runId>/...`
+
+Common files:
+- `daily_forecasts.json`
+- `monthly_forecasts.json`
+- `monthly_totals.json`
+- `metadata.json`
+- `report_summary.json`
+- `replenishment_signals.json`
+- `sku_forecast_values.json`
+
+These are read back through AppSync result-file accessors and surfaced to the frontend by Next API routes.
+
+## Frontend Consumption Pattern
+
+Frontend pages generally do not talk directly to S3 or DynamoDB. Instead they use:
+- Next API routes in `app/api/*`
+- AppSync-backed result fetches
+- local transformation helpers
+
+Examples:
+- Dashboard: daily forecasts, monthly totals, report summary, replenishment signals, notifications
+- KPIs: report summary, monthly totals, per-series validation metrics, recent runs
+- Replenishments: replenishment signals, metadata, inventory coverage
+- Reports: forecast run list plus parsed run summaries
+- Forecast Navigator / Editor: `sku_forecast_values.json` plus run selection
+
+## Observability And Operations
+
+The source layer currently supports:
+- per-source diagnostics
+- run history
+- activity audit trail
+- connector notifications
+- due-sync scheduling
+- sync locks
+
+Relevant files:
+- `lib/data-source-audit.ts`
+- `lib/connector-notifications.ts`
+- `lib/data-source-worker.ts`
+- `components/data-input-page/source-ops-health-section.tsx`
+- `components/data-input-page/recent-source-activity-section.tsx`
+
+## Security And Guardrails
+
+The data-source layer now includes:
+- tenant-scoped upload keys
+- quarantine-to-accepted upload promotion
+- plan-based row / series / history limits
+- connector sync rate limits
+- upload and forecast-start rate limits
+- audit logging for blocked ingestion attempts
+- structured restriction errors returned to the UI
+
+See:
+- `docs/security-and-guardrails.md`
+
+## Current Boundary
+
+The connector system is now materially beyond “connection only”. It performs real extraction and normalization. However:
+- provider extraction depth still varies by provider
+- this is not yet a general ETL framework
+- the canonical schema is intentionally narrow and forecasting-focused
+
+That is a good constraint for the current product. The architecture is optimized for getting demand and replenishment-ready data into forecasting, not for becoming a full operational data warehouse.

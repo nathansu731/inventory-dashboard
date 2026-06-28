@@ -1,7 +1,7 @@
 import crypto from "crypto"
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextResponse } from "next/server"
-import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
+import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import {
   getTenantsTableName,
   normalizeAuditEvents,
@@ -15,6 +15,8 @@ import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { readSourcesWithFallback, upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
 import { normalizeAdapterMap } from "@/lib/data-source-adapters"
 import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { buildSourceDiagnostics } from "@/lib/data-source-diagnostics"
+import { defaultProviderSetupConfig, normalizeProviderSetupConfig } from "@/lib/provider-source-config"
 
 type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
 
@@ -26,14 +28,10 @@ const withCookies = (response: NextResponse, cookiesToSet: CookieToSet[]) => {
 }
 
 const readContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, tokenCtx: null, idToken }
-  }
-  const tokenCtx = getTokenUserContext(idToken)
-  if (!tokenCtx) {
-    return { error: NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet, tokenCtx: null, idToken }
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { idToken, cookiesToSet, tokenCtx, errorResponse } = await getAuthenticatedApiContext()
+  if (!idToken || !tokenCtx) {
+    return { error: errorResponse, cookiesToSet, tokenCtx: null, idToken }
   }
   return { error: null, cookiesToSet, tokenCtx, idToken }
 }
@@ -45,6 +43,9 @@ const providerFromPayload = (value: unknown): DataSourceProvider => {
   }
   return "other"
 }
+
+const mergeConfiguredTables = (configured: string[], selected: string[]) =>
+  Array.from(new Set([...selected, ...configured.map((item) => item.trim()).filter(Boolean)]))
 
 export async function GET() {
   const ctx = await readContext()
@@ -94,7 +95,14 @@ export async function POST(request: Request) {
   }
 
   const payload = (await request.json().catch(() => null)) as
-    | { provider?: string; accountName?: string; accountId?: string; selectedTables?: unknown; availableTables?: unknown }
+    | {
+        provider?: string
+        accountName?: string
+        accountId?: string
+        selectedTables?: unknown
+        availableTables?: unknown
+        sourceConfig?: unknown
+      }
     | null
 
   const provider = providerFromPayload(payload?.provider)
@@ -120,6 +128,23 @@ export async function POST(request: Request) {
   const now = new Date().toISOString()
   const existing = Object.values(sources).find((source) => source.provider === provider)
   const sourceId = existing?.id || crypto.randomUUID()
+  const sourceConfig = normalizeProviderSetupConfig(provider, payload?.sourceConfig ?? existing?.sourceConfig ?? defaultProviderSetupConfig(provider))
+  const availableTables = sanitizeAvailableObjects(provider, payload?.availableTables ?? existing?.availableTables)
+  const selectedTables = sanitizeSelectedObjects(
+    provider,
+    mergeConfiguredTables(
+      [sourceConfig.salesEntity, sourceConfig.catalogEntity, sourceConfig.inventoryEntity],
+      sanitizeSelectedObjects(provider, payload?.selectedTables ?? existing?.selectedTables)
+    )
+  )
+  const diagnostics = buildSourceDiagnostics({
+    provider,
+    grantedScopes: existing?.diagnostics?.grantedScopes || [],
+    reachableTables: existing?.diagnostics?.reachableTables || availableTables,
+    availableTables,
+    selectedTables,
+    blockingIssues: existing?.diagnostics?.blockingIssues || [],
+  })
 
   const nextSource: DataSourceRecord = {
     id: sourceId,
@@ -128,8 +153,10 @@ export async function POST(request: Request) {
     accountId: accountId || existing?.accountId,
     state: "connected",
     connectedAt: now,
-    availableTables: sanitizeAvailableObjects(provider, payload?.availableTables ?? existing?.availableTables),
-    selectedTables: sanitizeSelectedObjects(provider, payload?.selectedTables ?? existing?.selectedTables),
+    availableTables,
+    selectedTables,
+    sourceConfig,
+    diagnostics,
     syncMode: existing?.syncMode || "manual",
     syncStartDate: existing?.syncStartDate || "",
     lastImportAt: existing?.lastImportAt || null,

@@ -1,9 +1,7 @@
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft, ArrowRight, ChevronDown, Columns, Download, Save } from "lucide-react"
-import React, { useState } from "react"
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
-import { ForecastEditorColumnSelector } from "@/components/forecast-editor/forecast-editor-column-selector"
+import { ArrowLeft, ArrowRight, ChevronDown, Download, RotateCcw, Save } from "lucide-react"
+import React from "react"
 
 type ForecastEditorControlsRowProps = {
     aggregationType: "Daily" | "Weekly" | "Monthly" | "Quarterly" | "Yearly"
@@ -18,11 +16,12 @@ type ForecastEditorControlsRowProps = {
     onSave: () => void
     isSaving: boolean
     disableSave?: boolean
-    monthColumns: string[]
-    formattedColumns: string[]
-    columnVisibility: Record<string, boolean>
-    setColumnVisibility: React.Dispatch<React.SetStateAction<Record<string, boolean>>>
     onExport: () => void
+    isApproved: boolean
+    onToggleApproval: () => void
+    disableApproval?: boolean
+    onReset?: () => void
+    dirtyCount?: number
 }
 
 export const ForecastEditorControlsRow = ({
@@ -38,14 +37,13 @@ export const ForecastEditorControlsRow = ({
     onSave,
     isSaving,
     disableSave = false,
-    monthColumns,
-    formattedColumns,
-    columnVisibility,
-    setColumnVisibility,
     onExport,
+    isApproved,
+    onToggleApproval,
+    disableApproval = false,
+    onReset,
+    dirtyCount = 0,
 }: ForecastEditorControlsRowProps) => {
-    const [isColumnModalOpen, setIsColumnModalOpen] = useState(false)
-
     return (
         <div id="editor-button-panel" className="flex flex-wrap items-center justify-between border-b bg-muted/30 px-6 py-3 gap-3">
             <div className="flex items-center gap-4 mr-3 flex-wrap">
@@ -86,28 +84,19 @@ export const ForecastEditorControlsRow = ({
             </div>
 
             <div className="flex flex-wrap gap-2 items-center gap-responsive-sm">
+                <Button variant={isApproved ? "default" : "outline"} size="sm" onClick={onToggleApproval} disabled={disableApproval}>
+                    {isApproved ? "Approved" : "Approve"}
+                </Button>
+                {onReset ? (
+                    <Button variant="outline" size="sm" onClick={onReset} disabled={dirtyCount === 0}>
+                        <RotateCcw className="h-4 w-4 mr-2"/>
+                        Reset Changes
+                    </Button>
+                ) : null}
                 <Button variant="default" size="sm" onClick={onSave} disabled={isSaving || disableSave}>
                     <Save className="h-4 w-4 mr-2"/>
-                    {isSaving ? "Saving..." : "Save"}
+                    {isSaving ? "Starting..." : "Run Scenario"}
                 </Button>
-                <Dialog open={isColumnModalOpen} onOpenChange={setIsColumnModalOpen}>
-                    <DialogTrigger asChild>
-                        <Button variant="outline" size="sm">
-                            <Columns className="h-4 w-4 mr-2"/>
-                            Columns
-                        </Button>
-                    </DialogTrigger>
-                        <DialogContent className="sm:max-w-md">
-                            <DialogHeader>
-                                <DialogTitle>Choose Columns</DialogTitle>
-                            </DialogHeader>
-                            <ForecastEditorColumnSelector setIsColumnModalOpen={setIsColumnModalOpen}
-                                                       monthColumns={monthColumns}
-                                                       formattedColumns={formattedColumns}
-                                                       columnVisibility={columnVisibility}
-                                                       setColumnVisibility={setColumnVisibility}/>
-                        </DialogContent>
-                    </Dialog>
                 <Button variant="outline" size="sm" onClick={onExport}>
                     <Download className="h-4 w-4 mr-2"/>
                     Export

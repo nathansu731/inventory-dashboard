@@ -9,6 +9,7 @@ import type React from "react";
 import { useEffect, useState } from "react";
 import { useProfile } from "@/hooks/use-profile";
 import type { AssistantUsagePayload } from "@/lib/forecast-assistant";
+import { getSubscriptionAccessState } from "@/lib/subscription-state";
 
 const formatDate = (unixSeconds: number | undefined) => {
     if (!unixSeconds) return "--"
@@ -36,24 +37,28 @@ export const AccountDetailsSection = () => {
             : typeof profile?.tenant_plan === "string"
                 ? profile.tenant_plan
                 : ""
-    const tenantStatusRaw = typeof profile?.tenant_status === "string" ? profile.tenant_status : ""
-    const trialEndsAtRaw = typeof profile?.trial_ends_at === "string" ? profile.trial_ends_at : ""
-    const plan = (() => {
-        const normalized = String(planRaw || "").toLowerCase().trim()
-        if (normalized === "enterprise") return "Enterprise"
-        if (normalized === "professional" || normalized === "core" || normalized === "pro") return "Professional"
-        if (normalized === "launch" || normalized === "free") return "Launch"
-        return "--"
-    })()
+    const accessState = getSubscriptionAccessState({
+        plan: planRaw,
+        tenantStatus: profile?.effective_tenant_status ?? profile?.tenant_status,
+        subscriptionStatus: profile?.["custom:sub_status"],
+        trialEndsAt: profile?.trial_ends_at,
+    })
+    const plan = accessState.plan === "enterprise" ? "Enterprise" : accessState.plan === "professional" ? "Professional" : "Launch"
     const stripeCustomerIdRaw = profile?.["custom:stripe_cus_id"]
     const stripeSubscriptionIdRaw = profile?.["custom:stripe_sub_id"]
     const stripeCustomerId =
         typeof stripeCustomerIdRaw === "string" && stripeCustomerIdRaw !== "unknown" ? stripeCustomerIdRaw : ""
     const stripeSubscriptionId =
         typeof stripeSubscriptionIdRaw === "string" && stripeSubscriptionIdRaw !== "unknown" ? stripeSubscriptionIdRaw : ""
-    const upgradeHref = plan === "Launch"
-        ? "/account-and-subscription?upgrade=professional&step=payment"
-        : "/account-and-subscription?upgrade=enterprise&step=plan-details"
+    const {
+        accessRestricted,
+        billingStatusLabel,
+        isTrialing,
+        restoreAccessHref,
+        trialDaysLeft: accessTrialDaysLeft,
+        trialEndMs,
+        upgradeHref,
+    } = accessState
 
     useEffect(() => {
         const loadUsage = async () => {
@@ -71,22 +76,17 @@ export const AccountDetailsSection = () => {
 
     useEffect(() => {
         const loadBilling = async () => {
-            const toDaysLeft = (targetMs: number) => Math.max(1, Math.ceil((targetMs - Date.now()) / (24 * 60 * 60 * 1000)))
-
             if (!stripeCustomerId) {
                 setNextBillingDate("--")
-                const trialEndMs = Date.parse(trialEndsAtRaw)
-                if (
-                    tenantStatusRaw.toLowerCase() === "trialing" &&
-                    Number.isFinite(trialEndMs) &&
-                    trialEndMs > Date.now()
-                ) {
-                    setBillingStatus("trialing")
-                    setTrialDaysLeft(toDaysLeft(trialEndMs))
-                    setNextBillingDate(new Date(trialEndMs).toLocaleDateString("en-US", { year: "numeric", month: "long" }))
+                if (isTrialing && trialEndMs) {
+                    setBillingStatus(billingStatusLabel)
+                    setTrialDaysLeft(accessTrialDaysLeft)
+                    setNextBillingDate(
+                        new Date(trialEndMs).toLocaleDateString("en-US", { year: "numeric", month: "long" })
+                    )
                 } else {
-                    setTrialDaysLeft(null)
-                    setBillingStatus(plan === "--" ? "--" : "Active")
+                    setTrialDaysLeft(accessRestricted ? 0 : null)
+                    setBillingStatus(billingStatusLabel)
                 }
                 return
             }
@@ -98,7 +98,7 @@ export const AccountDetailsSection = () => {
                 const res = await fetch(`/api/billing?${params.toString()}`, { cache: "no-store" })
                 if (!res.ok) {
                     setNextBillingDate("--")
-                    setBillingStatus(plan === "--" ? "--" : "Active")
+                    setBillingStatus(billingStatusLabel)
                     return
                 }
                 const payload = (await res.json()) as {
@@ -107,20 +107,20 @@ export const AccountDetailsSection = () => {
                 const renewsAt = payload?.subscription?.current_period_end
                 const status = payload?.subscription?.status
                 setNextBillingDate(formatDate(typeof renewsAt === "number" ? renewsAt : undefined))
-                setBillingStatus(status ? status : plan === "--" ? "--" : "Active")
+                setBillingStatus(status ? String(status).replaceAll("_", " ") : billingStatusLabel)
                 if (String(status || "").toLowerCase() === "trialing" && typeof renewsAt === "number") {
-                    setTrialDaysLeft(toDaysLeft(renewsAt * 1000))
+                    setTrialDaysLeft(Math.max(1, Math.ceil((renewsAt * 1000 - Date.now()) / (24 * 60 * 60 * 1000))))
                 } else {
-                    setTrialDaysLeft(null)
+                    setTrialDaysLeft(accessRestricted ? 0 : null)
                 }
             } catch {
                 setNextBillingDate("--")
-                setTrialDaysLeft(null)
-                setBillingStatus(plan === "--" ? "--" : "Active")
+                setTrialDaysLeft(accessRestricted ? 0 : null)
+                setBillingStatus(billingStatusLabel)
             }
         }
         void loadBilling()
-    }, [plan, stripeCustomerId, stripeSubscriptionId, tenantStatusRaw, trialEndsAtRaw])
+    }, [accessRestricted, accessTrialDaysLeft, billingStatusLabel, isTrialing, stripeCustomerId, stripeSubscriptionId, trialEndMs])
 
     return (
         <Card className="mb-8 bg-card border-border">
@@ -162,6 +162,16 @@ export const AccountDetailsSection = () => {
                                 </p>
                                 <Button asChild size="sm" className="mt-2">
                                     <Link href={upgradeHref}>Upgrade Now</Link>
+                                </Button>
+                            </div>
+                        )}
+                        {accessRestricted && (
+                            <div className="mt-3 rounded-md border border-red-300 bg-red-50 p-3">
+                                <p className="text-sm text-red-900">
+                                    Trial access has ended. Upgrade to restore forecasting, reporting, and dashboard access.
+                                </p>
+                                <Button asChild size="sm" className="mt-2">
+                                    <Link href={restoreAccessHref}>Restore Access</Link>
                                 </Button>
                             </div>
                         )}

@@ -1,23 +1,26 @@
 "use client"
 
 import type React from "react"
-import { useEffect, useState } from "react"
+import { useEffect, useRef, useState } from "react"
 import { useProfile } from "@/hooks/use-profile"
 import {ModalStep, PlanType} from "@/components/account-and-subscription/plan-details-types";
 import {AccountDetailsSection} from "@/components/account-and-subscription/account-details-section";
 import {SubscriptionPlanCards} from "@/components/account-and-subscription/subscription-plan-cards";
 import {PlanDetailsModal} from "@/components/account-and-subscription/plan-details-modal";
+import { getSubscriptionAccessState } from "@/lib/subscription-state";
 
 type AccountAndSubscriptionProps = {
     initialUpgradePlan?: string
     initialStep?: string
+    initialReason?: string
 }
 
 type PlanPriceInfo = {
     displayPrice: string
+    priceId?: string
 }
 
-export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: AccountAndSubscriptionProps) => {
+export const AccountAndSubscription = ({ initialUpgradePlan, initialStep, initialReason }: AccountAndSubscriptionProps) => {
     const { profile } = useProfile()
     const customerEmail = typeof profile?.email === "string" ? profile.email : undefined
     const customerId = typeof profile?.sub === "string" ? profile.sub : undefined
@@ -30,15 +33,13 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
             : typeof profile?.tenant_plan === "string"
                 ? profile.tenant_plan
                 : undefined
-    const tenantStatusRaw = typeof profile?.tenant_status === "string" ? profile.tenant_status : ""
-    const trialEndsAtRaw = typeof profile?.trial_ends_at === "string" ? profile.trial_ends_at : ""
-    const normalizedCurrentPlan = (() => {
-        const plan = String(currentPlanRaw || "").toLowerCase().trim()
-        if (plan === "enterprise") return "enterprise"
-        if (plan === "professional" || plan === "core" || plan === "pro") return "professional"
-        if (plan === "launch" || plan === "free") return "launch"
-        return ""
-    })()
+    const accessState = getSubscriptionAccessState({
+        plan: currentPlanRaw,
+        tenantStatus: profile?.effective_tenant_status ?? profile?.tenant_status,
+        subscriptionStatus: profile?.["custom:sub_status"],
+        trialEndsAt: profile?.trial_ends_at,
+    })
+    const normalizedCurrentPlan = accessState.plan
     const currentPlan =
         normalizedCurrentPlan &&
         (["launch", "professional", "enterprise"] as const).includes(
@@ -46,17 +47,16 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
         )
             ? (normalizedCurrentPlan as PlanType)
             : undefined
-    const isLaunchTrialActive =
-        currentPlan === "launch" &&
-        tenantStatusRaw.toLowerCase() === "trialing" &&
-        Boolean(trialEndsAtRaw) &&
-        new Date(trialEndsAtRaw).getTime() > Date.now()
+    const isLaunchTrialActive = currentPlan === "launch" && accessState.isTrialing
     const [selectedPlan, setSelectedPlan] = useState<PlanType | null>(null)
     const [isModalOpen, setIsModalOpen] = useState(false)
     const [modalStep, setModalStep] = useState<ModalStep>("plan-details")
     const [planPrices, setPlanPrices] = useState<Partial<Record<PlanType, PlanPriceInfo>>>({})
+    const lastAppliedInitialRouteStateKey = useRef<string | null>(null)
     const role = typeof profile?.app_role === "string" ? profile.app_role : "admin"
     const isReadOnly = role === "manager"
+    const initialPlanFromRoute = initialUpgradePlan?.toLowerCase()
+    const initialModalStateKey = `${initialReason ?? ""}|${initialPlanFromRoute ?? ""}|${initialStep ?? ""}`
 
     const handlePlanClick = (plan: PlanType) => {
         if (isReadOnly) return
@@ -76,20 +76,24 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
     }
 
     const handleBackToPlan = () => {
+        setIsModalOpen(false)
+        setSelectedPlan(null)
         setModalStep("plan-details")
     }
 
     useEffect(() => {
+        if (lastAppliedInitialRouteStateKey.current === initialModalStateKey) return
+        lastAppliedInitialRouteStateKey.current = initialModalStateKey
         if (isReadOnly) return
-        const normalized = initialUpgradePlan?.toLowerCase()
-        const mapped = normalized === "core" ? "professional" : normalized
+        if (initialReason === "trial_expired" && !initialUpgradePlan) return
+        const mapped = initialPlanFromRoute === "core" ? "professional" : initialPlanFromRoute
         if (mapped === "launch" || mapped === "professional" || mapped === "enterprise") {
             const upgradePlan = mapped as PlanType
             setSelectedPlan(upgradePlan)
             setModalStep(initialStep === "payment" ? "payment" : "plan-details")
             setIsModalOpen(true)
         }
-    }, [initialUpgradePlan, initialStep, isReadOnly])
+    }, [initialModalStateKey, isReadOnly])
 
     useEffect(() => {
         const loadPlanPrices = async () => {
@@ -116,6 +120,15 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
                     <h1 className="text-3xl font-bold text-foreground">Account and Subscription</h1>
                     <p className="text-muted-foreground mt-1">Manage your account details and subscription plan.</p>
                 </div>
+                {accessState.accessRestricted && (
+                    <div className="rounded-xl border border-red-300 bg-red-50 p-5">
+                        <h2 className="text-lg font-semibold text-red-950">Trial ended. Choose a plan to continue.</h2>
+                        <p className="mt-1 text-sm text-red-900">
+                            Forecasting features are locked until you reactivate the account. Select Launch, Professional,
+                            or Enterprise below to review pricing and continue.
+                        </p>
+                    </div>
+                )}
                 <AccountDetailsSection/>
                 <div>
                     <h2 className="text-2xl font-bold text-foreground mb-2">Choose Your Plan</h2>
@@ -132,6 +145,7 @@ export const AccountAndSubscription = ({ initialUpgradePlan, initialStep }: Acco
                     isReadOnly={isReadOnly}
                     planPrices={planPrices}
                     isLaunchTrialActive={isLaunchTrialActive}
+                    accessRestricted={accessState.accessRestricted}
                 />
                 <div className="text-center">
                     <p className="text-sm text-muted-foreground">

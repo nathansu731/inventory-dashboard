@@ -14,14 +14,10 @@ const withCookies = (response: NextResponse, cookiesToSet: CookieToSet[]) => {
 }
 
 const readContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, tokenCtx: null }
-  }
-  const tokenCtx = getTokenUserContext(idToken)
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { cookiesToSet, tokenCtx, errorResponse } = await getAuthenticatedApiContext()
   if (!tokenCtx) {
-    return { error: NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet, tokenCtx: null }
+    return { error: errorResponse, cookiesToSet, tokenCtx: null }
   }
   return { error: null, cookiesToSet, tokenCtx }
 }

@@ -10,9 +10,16 @@ export type SavedReportSnapshot = {
   runCount: number
   doneCount: number
   failedCount: number
+  scenarioCount?: number
   averageSmape: number | null
   averageAccuracy: number | null
   averageTotalSkus: number | null
+  totalSeries?: number
+  highErrorSeries?: number
+  assumptionsAffected?: number
+  assumptionDelta?: number
+  bestRunId?: string | null
+  worstRunId?: string | null
   periodStart: string | null
   periodEnd: string | null
   generatedAt: string
@@ -63,9 +70,16 @@ const parseSnapshot = (value: unknown): SavedReportSnapshot | null => {
     runCount,
     doneCount,
     failedCount,
+    scenarioCount: typeof input.scenarioCount === "number" && Number.isFinite(input.scenarioCount) ? Math.max(0, Math.floor(input.scenarioCount)) : 0,
     averageSmape: parseNumber(input.averageSmape),
     averageAccuracy: parseNumber(input.averageAccuracy),
     averageTotalSkus: parseNumber(input.averageTotalSkus),
+    totalSeries: typeof input.totalSeries === "number" && Number.isFinite(input.totalSeries) ? Math.max(0, Math.floor(input.totalSeries)) : 0,
+    highErrorSeries: typeof input.highErrorSeries === "number" && Number.isFinite(input.highErrorSeries) ? Math.max(0, Math.floor(input.highErrorSeries)) : 0,
+    assumptionsAffected: typeof input.assumptionsAffected === "number" && Number.isFinite(input.assumptionsAffected) ? Math.max(0, Math.floor(input.assumptionsAffected)) : 0,
+    assumptionDelta: parseNumber(input.assumptionDelta) ?? 0,
+    bestRunId: typeof input.bestRunId === "string" ? input.bestRunId : null,
+    worstRunId: typeof input.worstRunId === "string" ? input.worstRunId : null,
     periodStart: typeof input.periodStart === "string" ? input.periodStart : null,
     periodEnd: typeof input.periodEnd === "string" ? input.periodEnd : null,
     generatedAt: typeof input.generatedAt === "string" ? input.generatedAt : "",

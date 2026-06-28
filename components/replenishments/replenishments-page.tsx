@@ -19,6 +19,11 @@ import {
   type ReplenishmentRow,
   summarizeReplenishment,
 } from "@/lib/replenishments"
+import {
+  matchesReplenishmentPreset,
+  REPLENISHMENT_EXCEPTION_PRESETS,
+  type ReplenishmentExceptionPreset,
+} from "@/lib/replenishment-exceptions"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -27,6 +32,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useForecastCopilot } from "@/components/copilot/forecast-copilot-provider"
 
 type SkuMetadata = {
   store?: string
@@ -37,11 +43,13 @@ type SkuMetadata = {
 
 type DailyForecast = {
   sku: string
+  store?: string
   date: string
   forecast: number
 }
 
 type ReplenishmentSignalItem = {
+  seriesKey?: string
   sku: string
   store?: string
   skuDesc?: string
@@ -57,11 +65,20 @@ type ReplenishmentSignalItem = {
   leadTimeDays?: number
   safetyStockDays?: number
   risk?: ReplenishmentRiskTier
+  reason?: string
 }
 
 type ReplenishmentSignalResult = {
   generatedAt?: string | null
   horizonDays?: number
+  inventoryCoverage?: {
+    totalSeries?: number
+    providedCount?: number
+    estimatedCount?: number
+    snapshotUploadedAt?: string | null
+    snapshotAsOfDate?: string | null
+    sourceType?: string | null
+  }
   items?: ReplenishmentSignalItem[]
 }
 
@@ -85,6 +102,7 @@ export const ReplenishmentsPage = () => {
   const router = useRouter()
   const pathname = usePathname()
   const searchParams = useSearchParams()
+  const { setCopilotContext } = useForecastCopilot()
 
   const initialQuery = searchParams.get("q") ?? ""
   const initialStore = searchParams.get("store") ?? "all"
@@ -104,8 +122,9 @@ export const ReplenishmentsPage = () => {
   const [selectedStore, setSelectedStore] = useState(initialStore)
   const [selectedRisk, setSelectedRisk] = useState<"all" | ReplenishmentRiskTier>(initialRisk)
   const [horizonDays, setHorizonDays] = useState<"14" | "30" | "60">(initialHorizon)
+  const [selectedPreset, setSelectedPreset] = useState<ReplenishmentExceptionPreset>("all")
   const [selectedRow, setSelectedRow] = useState<ReplenishmentRow | null>(null)
-  const [hasProvidedInventory, setHasProvidedInventory] = useState(false)
+  const [inventoryCoverage, setInventoryCoverage] = useState<ReplenishmentSignalResult["inventoryCoverage"] | null>(null)
 
   useEffect(() => {
     const nextQuery = searchParams.get("q") ?? ""
@@ -154,7 +173,7 @@ export const ReplenishmentsPage = () => {
 
       try {
         const [signals, metadata, dailyForecasts] = await Promise.all([
-          fetchForecastResult<ReplenishmentSignalResult>("/api/get-replenishment-signals"),
+          fetchForecastResult<ReplenishmentSignalResult>(`/api/get-replenishment-signals?horizon=${horizonDays}`),
           fetchForecastResult<Record<string, SkuMetadata>>("/api/get-skus-metadata"),
           fetchForecastResult<DailyForecast[]>("/api/get-daily-forecasts"),
         ])
@@ -162,6 +181,7 @@ export const ReplenishmentsPage = () => {
         const signalItems = Array.isArray(signals?.items) ? signals.items : []
         if (signalItems.length > 0) {
           const mappedRows: ReplenishmentRow[] = signalItems.map((item) => ({
+            seriesKey: item.seriesKey || `${item.sku}::${item.store || "Unknown"}`,
             sku: item.sku,
             skuDesc: item.skuDesc || "N/A",
             store: item.store || "Unknown",
@@ -177,19 +197,20 @@ export const ReplenishmentsPage = () => {
             leadTimeDays: Number(item.leadTimeDays ?? 0),
             safetyStockDays: Number(item.safetyStockDays ?? 0),
             risk: item.risk || "Healthy",
+            reason: item.reason || "No risk explanation available.",
           }))
           const sortedRows = [...mappedRows].sort((a, b) => {
             const rank = (risk: ReplenishmentRiskTier) =>
               risk === "Critical" ? 4 : risk === "High" ? 3 : risk === "Medium" ? 2 : 1
             const byRisk = rank(b.risk) - rank(a.risk)
             if (byRisk !== 0) return byRisk
-            if (!a.predictedStockoutDate && !b.predictedStockoutDate) return a.sku.localeCompare(b.sku)
+            if (!a.predictedStockoutDate && !b.predictedStockoutDate) return a.seriesKey.localeCompare(b.seriesKey)
             if (!a.predictedStockoutDate) return 1
             if (!b.predictedStockoutDate) return -1
             return a.predictedStockoutDate.localeCompare(b.predictedStockoutDate)
           })
           setRows(sortedRows)
-          setHasProvidedInventory(sortedRows.some((row) => row.onHandSource === "provided"))
+          setInventoryCoverage(signals?.inventoryCoverage || null)
           setLoading(false)
           return
         }
@@ -203,7 +224,7 @@ export const ReplenishmentsPage = () => {
 
         const computedRows = buildReplenishmentRows(metadata, dailyForecasts, Number(horizonDays))
         setRows(computedRows)
-        setHasProvidedInventory(false)
+        setInventoryCoverage(null)
       } catch {
         setRows([])
         setError("Could not load replenishment data.")
@@ -232,14 +253,48 @@ export const ReplenishmentsPage = () => {
       const matchesSearch =
         !searchTerm ||
         row.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        row.skuDesc.toLowerCase().includes(searchTerm.toLowerCase())
+        row.skuDesc.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        row.store.toLowerCase().includes(searchTerm.toLowerCase())
       const matchesStore = selectedStore === "all" || row.store === selectedStore
       const matchesRisk = selectedRisk === "all" || row.risk === selectedRisk
-      return matchesSearch && matchesStore && matchesRisk
+      const matchesPreset = matchesReplenishmentPreset(row, selectedPreset)
+      return matchesSearch && matchesStore && matchesRisk && matchesPreset
     })
-  }, [rows, searchTerm, selectedStore, selectedRisk])
+  }, [rows, searchTerm, selectedStore, selectedRisk, selectedPreset])
+
+  useEffect(() => {
+    setCopilotContext({
+      pageId: "replenishments",
+      route: pathname || "/replenishments",
+      contextMode: "analysis",
+      selectedSku: selectedRow?.sku || null,
+      selectedStore: selectedRow?.store || (selectedStore !== "all" ? selectedStore : null),
+    })
+
+    return () => setCopilotContext(null)
+  }, [pathname, selectedRow?.sku, selectedRow?.store, selectedStore, setCopilotContext])
 
   const summary = useMemo(() => summarizeReplenishment(filteredRows), [filteredRows])
+  const providedInventoryCount = inventoryCoverage?.providedCount ?? rows.filter((row) => row.onHandSource === "provided").length
+  const estimatedInventoryCount = inventoryCoverage?.estimatedCount ?? Math.max(0, rows.length - providedInventoryCount)
+
+  const demandAtRisk = useMemo(
+    () => filteredRows.filter((row) => row.risk !== "Healthy").reduce((sum, row) => sum + row.horizonDemand, 0),
+    [filteredRows]
+  )
+
+  const aClassAtRisk = useMemo(
+    () => filteredRows.filter((row) => row.abcClass === "A" && row.risk !== "Healthy").length,
+    [filteredRows]
+  )
+
+  const avgDaysCover = useMemo(
+    () =>
+      filteredRows.length > 0
+        ? filteredRows.reduce((sum, row) => sum + row.daysOfCover, 0) / filteredRows.length
+        : 0,
+    [filteredRows]
+  )
 
   const topSuggestions = useMemo(() => {
     return filteredRows
@@ -257,14 +312,16 @@ export const ReplenishmentsPage = () => {
           </p>
         </div>
 
-        <Card className="border-blue-100 bg-blue-50/70">
+        <Card className="border-blue-100 bg-blue-50/70 py-0">
           <CardContent className="flex flex-col gap-2 p-4 text-sm text-blue-900 md:flex-row md:items-center md:justify-between">
             <div className="flex items-start gap-2">
               <CircleAlert className="mt-0.5 h-4 w-4 shrink-0" />
               <p>
-                {hasProvidedInventory
-                  ? "Live inventory inputs are connected for this tenant. Replenishment signals are based on stock-on-hand and forecast demand."
-                  : "Inventory on-hand is missing for some SKUs. Forecast-derived proxy values are used where live stock is unavailable."}
+                {providedInventoryCount > 0 && estimatedInventoryCount === 0
+                  ? "Inventory snapshot is connected for all forecasted SKU-location pairs. Replenishment signals are based on provided stock-on-hand and forecast demand."
+                  : providedInventoryCount > 0
+                    ? `Inventory snapshot covers ${providedInventoryCount} SKU-location pairs. ${estimatedInventoryCount} pair(s) still use forecast-derived stock estimates.`
+                    : "No inventory snapshot is connected for this tenant yet. Replenishment uses forecast-derived stock estimates until stock-on-hand is uploaded."}
               </p>
             </div>
             <Button asChild size="sm" className="bg-blue-600 text-white hover:bg-blue-700">
@@ -297,19 +354,46 @@ export const ReplenishmentsPage = () => {
           </Card>
           <Card>
             <CardHeader className="pb-2">
-              <CardDescription>Total SKUs Reviewed</CardDescription>
-              <CardTitle className="text-2xl">{summary.totalSkus}</CardTitle>
+              <CardDescription>Demand Exposure At Risk</CardDescription>
+              <CardTitle className="text-2xl">{formatNumber(demandAtRisk)}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">Forecast units tied to non-healthy rows</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>A-Class At Risk</CardDescription>
+              <CardTitle className="text-2xl">{aClassAtRisk}</CardTitle>
+            </CardHeader>
+            <CardContent className="text-xs text-muted-foreground">High-value items requiring attention</CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="pb-2">
+              <CardDescription>Average Days Of Cover</CardDescription>
+              <CardTitle className="text-2xl">{avgDaysCover.toFixed(1)}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">Current filter scope</CardContent>
           </Card>
         </div>
 
-        <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
+        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+          {REPLENISHMENT_EXCEPTION_PRESETS.map((preset) => (
+            <Badge
+              key={preset.value}
+              variant={selectedPreset === preset.value ? "default" : "outline"}
+              className="cursor-pointer"
+              onClick={() => setSelectedPreset(preset.value)}
+            >
+              {preset.label}
+            </Badge>
+          ))}
+        </div>
+
+        <div className="space-y-4">
           <Card>
             <CardHeader className="space-y-4">
               <div>
-                <CardTitle className="text-lg">Outage Risk Table</CardTitle>
-                <CardDescription>Prioritized by risk severity and nearest projected stockout date.</CardDescription>
+                <CardTitle className="text-lg">SKU Worklist</CardTitle>
+                <CardDescription>Prioritized by risk severity, reorder urgency, and projected stockout timing.</CardDescription>
               </div>
               <div className="grid gap-3 md:grid-cols-4">
                 <div className="md:col-span-2">
@@ -380,44 +464,50 @@ export const ReplenishmentsPage = () => {
                   No SKUs found for current filters. Upload data or change filter values.
                 </div>
               ) : (
-                <div className="overflow-x-auto">
-                  <Table>
+                <div className="w-full max-w-full overflow-x-auto">
+                  <Table className="min-w-[1360px]">
                     <TableHeader>
                       <TableRow>
-                        <TableHead>SKU</TableHead>
-                        <TableHead>Store</TableHead>
+                        <TableHead>SKU-Location</TableHead>
+                        <TableHead>ABC</TableHead>
                         <TableHead className="text-right">Avg Daily</TableHead>
+                        <TableHead className="text-right">Horizon Demand</TableHead>
                         <TableHead className="text-right">On Hand</TableHead>
                         <TableHead className="text-right">Days Cover</TableHead>
                         <TableHead>Stockout</TableHead>
                         <TableHead className="text-right">Reorder Qty</TableHead>
                         <TableHead>Reorder By</TableHead>
                         <TableHead>Risk</TableHead>
-                        <TableHead className="text-right">Details</TableHead>
+                        <TableHead className="min-w-[320px]">Reason</TableHead>
+                        <TableHead className="w-[96px] text-right">Details</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {filteredRows.map((row) => (
-                        <TableRow key={row.sku}>
-                          <TableCell className="font-medium">{row.sku}</TableCell>
-                          <TableCell>{row.store}</TableCell>
-                          <TableCell className="text-right">{formatNumber(Math.round(row.avgDailyDemand))}</TableCell>
-                          <TableCell className="text-right">
+                        <TableRow key={row.seriesKey}>
+                          <TableCell className="font-medium align-top">{row.sku} · {row.store}</TableCell>
+                          <TableCell className="align-top">{row.abcClass}</TableCell>
+                          <TableCell className="text-right align-top">{formatNumber(Math.round(row.avgDailyDemand))}</TableCell>
+                          <TableCell className="text-right align-top">{formatNumber(row.horizonDemand)}</TableCell>
+                          <TableCell className="text-right align-top">
                             {formatNumber(row.estimatedOnHand)}
                             {row.onHandSource === "estimated" && (
                               <span className="ml-1 text-[10px] text-muted-foreground">(est.)</span>
                             )}
                           </TableCell>
-                          <TableCell className="text-right">{row.daysOfCover.toFixed(1)}</TableCell>
-                          <TableCell>{formatDate(row.predictedStockoutDate)}</TableCell>
-                          <TableCell className="text-right">{formatNumber(row.recommendedReorderQty)}</TableCell>
-                          <TableCell>{formatDate(row.reorderByDate)}</TableCell>
-                          <TableCell>
+                          <TableCell className="text-right align-top">{row.daysOfCover.toFixed(1)}</TableCell>
+                          <TableCell className="align-top">{formatDate(row.predictedStockoutDate)}</TableCell>
+                          <TableCell className="text-right align-top">{formatNumber(row.recommendedReorderQty)}</TableCell>
+                          <TableCell className="align-top">{formatDate(row.reorderByDate)}</TableCell>
+                          <TableCell className="align-top">
                             <Badge variant="outline" className={riskClassName(row.risk)}>
                               {row.risk}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="whitespace-normal break-words text-xs text-muted-foreground align-top">
+                            {row.reason}
+                          </TableCell>
+                          <TableCell className="text-right align-top">
                             <Button variant="ghost" size="sm" onClick={() => setSelectedRow(row)}>
                               View
                             </Button>
@@ -435,19 +525,19 @@ export const ReplenishmentsPage = () => {
             <CardHeader>
               <CardTitle className="flex items-center gap-2 text-lg">
                 <ClipboardList className="h-4 w-4" />
-                Reorder Suggestions
+                Priority Exceptions
               </CardTitle>
-              <CardDescription>Top advisory actions by urgency (no auto-ordering).</CardDescription>
+              <CardDescription>Focus only on the items that need planner review now.</CardDescription>
             </CardHeader>
             <CardContent>
               {topSuggestions.length === 0 ? (
-                <div className="text-sm text-muted-foreground">No urgent reorder actions in this view.</div>
+                <div className="text-sm text-muted-foreground">No urgent replenishment exceptions in this view.</div>
               ) : (
                 <div className="space-y-3">
                   {topSuggestions.map((row) => (
-                    <div key={`${row.sku}-suggestion`} className="rounded-lg border p-3">
+                    <div key={`${row.seriesKey}-suggestion`} className="rounded-lg border p-3">
                       <div className="flex items-center justify-between gap-2">
-                        <div className="text-sm font-medium">{row.sku}</div>
+                        <div className="text-sm font-medium">{row.sku} · {row.store}</div>
                         <Badge variant="outline" className={riskClassName(row.risk)}>
                           {row.risk}
                         </Badge>
@@ -455,6 +545,7 @@ export const ReplenishmentsPage = () => {
                       <div className="mt-2 text-xs text-muted-foreground">
                         Order {formatNumber(row.recommendedReorderQty)} units by {formatDate(row.reorderByDate)}
                       </div>
+                      <div className="mt-2 text-xs text-muted-foreground">{row.reason}</div>
                     </div>
                   ))}
                 </div>
@@ -506,9 +597,15 @@ export const ReplenishmentsPage = () => {
                   </p>
                 </div>
                 <div className="rounded-md border p-3">
-                  <div className="mb-1 text-xs text-muted-foreground">Assumptions</div>
+                  <div className="mb-1 text-xs text-muted-foreground">Why flagged</div>
+                  <p className="text-xs text-muted-foreground">{selectedRow.reason}</p>
+                </div>
+                <div className="rounded-md border p-3">
+                  <div className="mb-1 text-xs text-muted-foreground">Inventory basis</div>
                   <p className="text-xs text-muted-foreground">
-                    This Phase 1 module uses forecast-derived stock proxies; connect live inventory to improve precision.
+                    {selectedRow.onHandSource === "provided"
+                      ? "Risk is based on provided stock-on-hand values."
+                      : "Risk is based on forecast-derived inventory proxies; connect live inventory to improve precision."}
                   </p>
                 </div>
               </div>

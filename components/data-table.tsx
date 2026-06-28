@@ -52,16 +52,6 @@ import {
 } from "@/components/ui/chart"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
-  Drawer,
-  DrawerClose,
-  DrawerContent,
-  DrawerDescription,
-  DrawerFooter,
-  DrawerHeader,
-  DrawerTitle,
-  DrawerTrigger,
-} from "@/components/ui/drawer"
-import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -94,6 +84,8 @@ import {
 import {DataTableDropDownMenu} from "@/components/data-table-drop-down-menu";
 import {TabsContentInnerOne} from "@/components/tabs-content-inner-one";
 import {DrawerMiddle} from "@/components/drawer-middle";
+import { ResponsiveDrawer } from "@/components/ui/responsive-drawer";
+import { X } from "lucide-react";
 
 export const schema = z.object({
   id: z.number(),
@@ -524,29 +516,33 @@ const chartConfig = {
 
 function TableCellViewer({ item }: { item: z.infer<typeof schema> }) {
   const isMobile = useIsMobile() === true
+  const [open, setOpen] = React.useState(false)
 
   return (
-    <Drawer direction={isMobile ? "bottom" : "right"}>
-      <DrawerTrigger asChild>
-        <Button variant="link" className="text-foreground w-fit px-0 text-left">
-          {item.header}
-        </Button>
-      </DrawerTrigger>
-      <DrawerContent>
-        <DrawerHeader className="gap-1">
-          <DrawerTitle>{item.header}</DrawerTitle>
-          <DrawerDescription>
-            Showing total visitors for the last 6 months
-          </DrawerDescription>
-        </DrawerHeader>
+    <>
+      <Button variant="link" className="text-foreground w-fit px-0 text-left" onClick={() => setOpen(true)}>
+        {item.header}
+      </Button>
+      <ResponsiveDrawer open={open} onOpenChange={setOpen} desktopClassName="w-96">
+        <div className="flex h-full flex-col">
+          <div className="flex items-start justify-between border-b p-4">
+            <div>
+              <h2 className="font-semibold">{item.header}</h2>
+              <p className="text-muted-foreground text-sm">
+                Showing total visitors for the last 6 months
+              </p>
+            </div>
+            <Button variant="ghost" size="sm" className="h-8 w-8 p-0" onClick={() => setOpen(false)}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
         <DrawerMiddle item={item} isMobile={isMobile} chartData={chartData} chartConfig={chartConfig} />
-        <DrawerFooter>
-          <Button>Submit</Button>
-          <DrawerClose asChild>
-            <Button variant="outline">Done</Button>
-          </DrawerClose>
-        </DrawerFooter>
-      </DrawerContent>
-    </Drawer>
+          <div className="mt-auto flex flex-col gap-2 border-t p-4">
+            <Button>Submit</Button>
+            <Button variant="outline" onClick={() => setOpen(false)}>Done</Button>
+          </div>
+        </div>
+      </ResponsiveDrawer>
+    </>
   )
 }

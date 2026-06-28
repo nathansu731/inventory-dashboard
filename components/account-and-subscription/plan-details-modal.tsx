@@ -17,7 +17,7 @@ type PlanDetailsModalProps = {
     customerEmail?: string,
     customerId?: string,
     stripeCustomerId?: string,
-    planPrices?: Partial<Record<PlanType, { displayPrice: string }>>,
+    planPrices?: Partial<Record<PlanType, { displayPrice: string; priceId?: string }>>,
 }
 
 export const PlanDetailsModal = ({
@@ -34,20 +34,24 @@ export const PlanDetailsModal = ({
      planPrices,
      }: PlanDetailsModalProps) => {
     const livePrice = selectedPlan ? planPrices?.[selectedPlan]?.displayPrice : undefined
+    const livePriceId = selectedPlan ? planPrices?.[selectedPlan]?.priceId : undefined
     const modalPrice = livePrice || (selectedPlan ? `${planDetails[selectedPlan].price}/month` : "")
     const dueTodayPrice = livePrice ? livePrice.split("/")[0] : selectedPlan ? planDetails[selectedPlan].price : ""
     const [checkoutError, setCheckoutError] = useState<string | null>(null)
     const [isRedirectingToCheckout, setIsRedirectingToCheckout] = useState(false)
     const isEnterprise = selectedPlan === "enterprise"
-    const hasTrial = selectedPlan === "launch" || selectedPlan === "professional"
 
     const startCheckout = async () => {
         if (!selectedPlan || isRedirectingToCheckout || isEnterprise) return
         setCheckoutError(null)
         setIsRedirectingToCheckout(true)
         try {
+            const priceId = livePriceId || planDetails[selectedPlan].priceId
+            if (!priceId) {
+                throw new Error("Price is not configured for this plan")
+            }
             await handleSubscribeTeam({
-                priceId: planDetails[selectedPlan].priceId,
+                priceId,
                 customerEmail,
                 clientReferenceId: customerId,
                 stripeCustomerId,
@@ -174,12 +178,10 @@ export const PlanDetailsModal = ({
                                         </div>
                                         <div className="flex items-center justify-between font-semibold">
                                             <span>Due today</span>
-                                            <span>{hasTrial ? "$0 (trial)" : dueTodayPrice}</span>
+                                            <span>{dueTodayPrice}</span>
                                         </div>
                                         <p className="text-xs text-muted-foreground mt-2">
-                                            {hasTrial
-                                                ? "30-day free trial. Switching plans during trial starts paid billing immediately."
-                                                : "Billed monthly until you cancel."}
+                                            Billing starts immediately after checkout. Cancel anytime from your account settings.
                                         </p>
                                     </div>
                                     <div className="p-6 border border-border rounded-lg text-center">
@@ -197,7 +199,7 @@ export const PlanDetailsModal = ({
                                     </div>
                                     <div className="flex gap-3 pt-4">
                                         <Button variant="outline" onClick={handleBackToPlan} className="flex-1 bg-transparent">
-                                            Back to Plan
+                                            Choose Different Plan
                                         </Button>
                                         {isEnterprise ? (
                                             <Button asChild className="flex-1">

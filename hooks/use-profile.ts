@@ -10,6 +10,12 @@ export type UserProfile = Record<string, unknown> & {
     picture?: string;
     sub?: string;
     app_role?: "admin" | "manager";
+    tenant_plan?: string | null;
+    tenant_status?: string | null;
+    effective_tenant_status?: string | null;
+    trial_ends_at?: string | null;
+    trial_days_left?: number | null;
+    access_restricted?: boolean;
 };
 
 type UseProfileState = {

@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server"
 import { appsyncRequest } from "@/lib/appsync"
-import { getValidIdToken } from "@/lib/server-auth"
+import { getAuthenticatedApiContext } from "@/lib/server-auth"
 
 export async function GET() {
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
   const query = `
     query GetAssistantUsage {

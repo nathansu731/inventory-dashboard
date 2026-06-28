@@ -35,7 +35,7 @@ export const FileUploadSection = ({handleFileUpload, handleFileDrop, uploadedFil
                     <Upload className="h-5 w-5" />
                     File Upload
                 </CardTitle>
-                <CardDescription>Upload your data files for forecasting analysis</CardDescription>
+                <CardDescription>Upload the main sales history CSV for forecasting. Recent, clean sales history only. If it includes an `on_hand` column, inventory can be inferred automatically.</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
                 <Label htmlFor="file-upload" className="cursor-pointer">
@@ -47,7 +47,7 @@ export const FileUploadSection = ({handleFileUpload, handleFileDrop, uploadedFil
                     <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
                     <div className="space-y-2">
                         <p className="text-sm font-medium">Drop files here or click to browse</p>
-                        <p className="text-xs text-muted-foreground">Supports CSV files up to 10MB</p>
+                        <p className="text-xs text-muted-foreground">Supports CSV files up to 10MB with recent forecast history only, typically up to the last 2 years depending on plan</p>
                     </div>
                     <Input
                         type="file"

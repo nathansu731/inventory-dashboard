@@ -1,15 +1,10 @@
-import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import type React from "react"
 
 type ForecastingOptionsSectionProps = {
-  dateFormat: string
-  setDateFormat: React.Dispatch<React.SetStateAction<string>>
-  targetVariable: string
-  setTargetVariable: React.Dispatch<React.SetStateAction<string>>
-  priceColumnName: string
-  setPriceColumnName: React.Dispatch<React.SetStateAction<string>>
+  forecastHorizon: string
+  setForecastHorizon: React.Dispatch<React.SetStateAction<string>>
   plan: string
   mode: string
   setMode: React.Dispatch<React.SetStateAction<string>>
@@ -22,12 +17,8 @@ type ForecastingOptionsSectionProps = {
 }
 
 export const ForecastingOptionsSection = ({
-  dateFormat,
-  setDateFormat,
-  targetVariable,
-  setTargetVariable,
-  priceColumnName,
-  setPriceColumnName,
+  forecastHorizon,
+  setForecastHorizon,
   plan,
   mode,
   setMode,
@@ -40,40 +31,6 @@ export const ForecastingOptionsSection = ({
 }: ForecastingOptionsSectionProps) => {
   return (
     <div className="space-y-4">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <div className="space-y-2">
-          <Label htmlFor="date-format">Date Format</Label>
-          <Select value={dateFormat} onValueChange={setDateFormat}>
-            <SelectTrigger id="date-format">
-              <SelectValue placeholder="Select date format" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="dd/mm/yyyy">dd/mm/yyyy</SelectItem>
-              <SelectItem value="mm/dd/yyyy">mm/dd/yyyy</SelectItem>
-              <SelectItem value="yyyy-mm-dd">yyyy-mm-dd</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="target-variable">Target variable for forecast</Label>
-          <Input
-            id="target-variable"
-            value={targetVariable}
-            onChange={(event) => setTargetVariable(event.target.value)}
-            placeholder="quantity"
-          />
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor="price-column-name">Price column name</Label>
-          <Input
-            id="price-column-name"
-            value={priceColumnName}
-            onChange={(event) => setPriceColumnName(event.target.value)}
-            placeholder="price"
-          />
-        </div>
-      </div>
-
       <div className="space-y-3">
         <h4 className="text-sm font-medium">Forecasting Options</h4>
         <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
@@ -90,7 +47,7 @@ export const ForecastingOptionsSection = ({
               <SelectContent>
                 <SelectItem value="local">Local</SelectItem>
                 <SelectItem value="global" disabled={!allowGlobal}>
-                  Global (Enterprise)
+                  Global
                 </SelectItem>
               </SelectContent>
             </Select>
@@ -107,6 +64,20 @@ export const ForecastingOptionsSection = ({
                     {option.toUpperCase()}
                   </SelectItem>
                 ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-2">
+            <Label>Forecast Horizon</Label>
+            <Select value={forecastHorizon} onValueChange={setForecastHorizon}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select horizon" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="14">14 periods</SelectItem>
+                <SelectItem value="30">30 periods</SelectItem>
+                <SelectItem value="60">60 periods</SelectItem>
+                <SelectItem value="90">90 periods</SelectItem>
               </SelectContent>
             </Select>
           </div>

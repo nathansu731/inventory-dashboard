@@ -29,6 +29,7 @@ import {
   ToggleGroup,
   ToggleGroupItem,
 } from "@/components/ui/toggle-group"
+import { buildMergedDailyForecasts } from "@/lib/merged-forecast-views"
 
 export const description = "An interactive area chart"
 
@@ -58,20 +59,21 @@ export function ChartAreaInteractive() {
   React.useEffect(() => {
     const loadDailyForecasts = async () => {
       setIsLoading(true)
-      const res = await fetch("/api/get-daily-forecasts")
+      const res = await fetch("/api/get-merged-sku-forecast-values")
       if (!res.ok) {
         setIsLoading(false)
         return
       }
       const json = await res.json()
       const result = typeof json.result === "string" ? JSON.parse(json.result) : json.result
-      if (!Array.isArray(result)) {
+      const mergedDaily = buildMergedDailyForecasts({ items: result?.items ?? [] }, 120)
+      if (!Array.isArray(mergedDaily)) {
         setIsLoading(false)
         return
       }
 
       const totals: Record<string, { forecast: number; upper80: number }> = {}
-      for (const row of result) {
+      for (const row of mergedDaily) {
         const date = row.date
         if (!date) continue
         if (!totals[date]) totals[date] = { forecast: 0, upper80: 0 }

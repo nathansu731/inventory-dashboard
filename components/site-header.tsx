@@ -7,11 +7,14 @@ import { Bell } from "lucide-react"
 import { useEffect, useState } from "react"
 import {LogoutButton} from "@/components/logout/logout-button";
 import { useProfile } from "@/hooks/use-profile";
+import { CopilotGemIcon, useForecastCopilot } from "@/components/copilot/forecast-copilot-provider";
+import { getSubscriptionAccessState } from "@/lib/subscription-state";
 
 
 export function SiteHeader() {
   const [unreadCount, setUnreadCount] = useState(0)
   const { profile } = useProfile()
+  const { openCopilot } = useForecastCopilot()
 
   useEffect(() => {
     const loadNotifications = async () => {
@@ -32,38 +35,35 @@ export function SiteHeader() {
       : typeof profile?.tenant_plan === "string"
         ? profile.tenant_plan
         : "launch"
-  const planNormalized = String(planRaw).toLowerCase()
+  const accessState = getSubscriptionAccessState({
+    plan: planRaw,
+    tenantStatus: profile?.effective_tenant_status ?? profile?.tenant_status,
+    subscriptionStatus: profile?.["custom:sub_status"],
+    trialEndsAt: profile?.trial_ends_at,
+  })
   const planName =
-    planNormalized === "enterprise"
-      ? "Enterprise"
-      : planNormalized === "professional" || planNormalized === "core"
-        ? "Professional"
-        : "Launch"
-  const tenantStatus = typeof profile?.tenant_status === "string" ? profile.tenant_status.toLowerCase() : ""
-  const subStatus =
-    typeof profile?.["custom:sub_status"] === "string" ? String(profile["custom:sub_status"]).toLowerCase() : ""
-  const trialEndsAt = typeof profile?.trial_ends_at === "string" ? profile.trial_ends_at : ""
-  const trialEndMs = Date.parse(trialEndsAt)
-  const trialing = (tenantStatus === "trialing" || subStatus === "trialing") && Number.isFinite(trialEndMs) && trialEndMs > Date.now()
-  const trialDaysLeft = trialing ? Math.max(1, Math.ceil((trialEndMs - Date.now()) / (24 * 60 * 60 * 1000))) : null
-  const upgradeHref =
-    planName === "Launch"
-      ? "/account-and-subscription?upgrade=professional&step=payment"
-      : "/account-and-subscription?upgrade=enterprise&step=plan-details"
+    accessState.plan === "enterprise" ? "Enterprise" : accessState.plan === "professional" ? "Professional" : "Launch"
 
   return (
     <header className="flex h-(--header-height) shrink-0 items-center gap-2 border-b transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-(--header-height)">
       <div className="flex w-full items-center gap-1 px-4 py-1 lg:gap-2 lg:px-6">
-        {trialDaysLeft && (
-          <div className="hidden md:flex items-center gap-3 text-sm text-amber-900 px-1 py-1">
-            <span>
-              You have {trialDaysLeft} day{trialDaysLeft === 1 ? "" : "s"} left in your {planName} free trial.
-            </span>
+        {accessState.accessRestricted ? (
+          <div className="hidden md:flex items-center gap-3 rounded-md bg-red-50 px-3 py-1 text-sm text-red-900">
+            <span>Your free trial has ended. Upgrade to restore access.</span>
             <Button asChild size="sm" className="h-7">
-              <Link href={upgradeHref}>Upgrade Now</Link>
+              <Link href={accessState.restoreAccessHref}>Restore Access</Link>
             </Button>
           </div>
-        )}
+        ) : accessState.trialDaysLeft ? (
+          <div className="hidden md:flex items-center gap-3 text-sm text-amber-900 px-1 py-1">
+            <span>
+              You have {accessState.trialDaysLeft} day{accessState.trialDaysLeft === 1 ? "" : "s"} left in your {planName} free trial.
+            </span>
+            <Button asChild size="sm" className="h-7">
+              <Link href={accessState.upgradeHref}>Upgrade Now</Link>
+            </Button>
+          </div>
+        ) : null}
         <div className="ml-auto flex items-center gap-2">
           <Button size="icon" variant="ghost" className="relative">
             <a href="/notifications">
@@ -84,14 +84,9 @@ export function SiteHeader() {
             orientation="vertical"
             className="mx-2 data-[orientation=vertical]:h-4"
           />
-          <Button variant="ghost" asChild size="sm" className="hidden sm:flex">
-            <a
-              href="/data-input"
-              rel="noopener noreferrer"
-              className="dark:text-foreground"
-            >
-              Connect
-            </a>
+          <Button variant="ghost" size="sm" onClick={openCopilot}>
+            <CopilotGemIcon />
+            Copilot
           </Button>
         </div>
       </div>

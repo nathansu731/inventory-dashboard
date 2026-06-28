@@ -4,6 +4,7 @@ import {cn} from "@/lib/utils";
 import {Badge} from "@/components/ui/badge";
 import {JSX} from "react";
 import {JobStatusColorClass, Notification} from "./notifications-types"
+import { formatJobStatusLabel } from "@/lib/run-status"
 
 type NotificationsListProps = {
     sortedNotifications: Notification[],
@@ -15,7 +16,7 @@ type NotificationsListProps = {
 
 export const NotificationsList = ({sortedNotifications, selectedNotification, handleNotificationClick, getNotificationIcon,getJobStatusColor }: NotificationsListProps) => {
     return (
-        <div className="space-y-1">
+        <div>
             {sortedNotifications.length === 0 ? (
                 <Card>
                     <CardContent className="p-8 text-center">
@@ -29,9 +30,9 @@ export const NotificationsList = ({sortedNotifications, selectedNotification, ha
                     <Card
                         key={notification.id}
                         className={cn(
-                            "cursor-pointer transition-colors rounded-2xl border",
-                            !notification.read && "border-l-4 border-l-blue-600 bg-blue-50/80",
-                            notification.type === "job" && "bg-blue-50/60 border-blue-100",
+                            "mb-4 cursor-pointer rounded-2xl border transition-colors last:mb-0 py-0",
+                            !notification.read && "border-l-4 border-l-blue-600",
+                            notification.type === "job" && "border-blue-100",
                             selectedNotification?.id === notification.id && "ring-2 ring-primary",
                         )}
                         onClick={() => handleNotificationClick(notification)}
@@ -49,16 +50,16 @@ export const NotificationsList = ({sortedNotifications, selectedNotification, ha
 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-start justify-between gap-2 mb-1">
-                                        <h3 className={cn("font-semibold truncate text-base", !notification.read && "text-slate-900")}>
+                                        <h3 className={cn("font-semibold truncate text-xl", !notification.read && "text-slate-900")}>
                                             {notification.title}
                                         </h3>
                                         <div className="flex items-center gap-1 flex-shrink-0">
                                             {notification.type === "job" && notification.jobStatus && (
                                                 <Badge
                                                     variant="secondary"
-                                                    className={cn("text-xs h-6 px-2 rounded-full capitalize", getJobStatusColor(notification.jobStatus))}
+                                                    className={cn("text-xs h-6 px-2 rounded-full", getJobStatusColor(notification.jobStatus))}
                                                 >
-                                                    {notification.jobStatus}
+                                                    {formatJobStatusLabel(notification.jobStatus)}
                                                 </Badge>
                                             )}
                                             {!notification.read && <div className="w-2 h-2 bg-blue-600 rounded-full" />}

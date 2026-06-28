@@ -1,8 +1,7 @@
 import { NextResponse } from "next/server";
 import { headers } from "next/headers";
 import { stripe } from "../../../lib/stripe";
-
-const TRIAL_ELIGIBLE_PLANS = new Set(["launch", "professional"]);
+import { getAuthenticatedApiContext } from "@/lib/server-auth";
 
 const normalizePlanKey = (value) => {
     const plan = String(value || "").toLowerCase().trim();
@@ -14,17 +13,28 @@ const normalizePlanKey = (value) => {
 
 export async function POST(request) {
     try {
+        const { errorResponse, tenantRecord } = await getAuthenticatedApiContext({ allowRestricted: true });
+        if (errorResponse) return errorResponse;
+
         const headersList = await headers();
         const origin = headersList.get("origin");
 
         const body = await request.json();
         const { price, mode, metadata, customerEmail, clientReferenceId, stripeCustomerId } = body;
+        const tenantCustomerId = typeof tenantRecord?.stripeCustomerId === "string" ? tenantRecord.stripeCustomerId : "";
+        const tenantEmail = typeof tenantRecord?.primaryUserEmail === "string" ? tenantRecord.primaryUserEmail : "";
 
         if (!price || !mode) {
             return NextResponse.json(
                 { error: "Missing price or mode" },
                 { status: 400 },
             );
+        }
+        if (stripeCustomerId && tenantCustomerId && stripeCustomerId !== tenantCustomerId) {
+            return NextResponse.json({ error: "forbidden" }, { status: 403 });
+        }
+        if (customerEmail && tenantEmail && customerEmail.toLowerCase() !== tenantEmail.toLowerCase()) {
+            return NextResponse.json({ error: "forbidden" }, { status: 403 });
         }
 
         const planKey = normalizePlanKey(metadata?.plan_key || metadata?.plan);
@@ -61,11 +71,6 @@ export async function POST(request) {
             await stripe.subscriptions.cancel(trialingSub.id, { prorate: false, invoice_now: false });
         }
 
-        const canApplyTrial =
-            TRIAL_ELIGIBLE_PLANS.has(planKey) &&
-            existingSubscriptions.length === 0 &&
-            !isPlanChangeDuringTrial;
-
         const sessionPayload = {
             line_items: [
                 {
@@ -84,7 +89,6 @@ export async function POST(request) {
 
         if (mode === "subscription") {
             sessionPayload.subscription_data = {
-                trial_period_days: canApplyTrial ? 30 : undefined,
                 metadata: {
                     plan_key: planKey || undefined,
                 },

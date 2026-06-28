@@ -19,14 +19,14 @@ export type SkuDetail = {
 type DashboardDetailModalProps = {
   isModalOpen: boolean
   setIsModalOpen: React.Dispatch<React.SetStateAction<boolean>>
-  selectedSku: string | null
+  selectedSeriesKey: string | null
   getSelectedSkuData: () => SkuDetail | null
 }
 
 export const DashboardDetailModal = ({
   isModalOpen,
   setIsModalOpen,
-  selectedSku,
+  selectedSeriesKey,
   getSelectedSkuData,
 }: DashboardDetailModalProps) => {
   const detail = getSelectedSkuData()
@@ -37,7 +37,7 @@ export const DashboardDetailModal = ({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Package className="w-5 h-5" />
-            {selectedSku} {detail?.skuDesc ? `- ${detail.skuDesc}` : ""}
+            {detail?.sku ?? selectedSeriesKey} {detail?.skuDesc ? `- ${detail.skuDesc}` : ""}
           </DialogTitle>
         </DialogHeader>
 

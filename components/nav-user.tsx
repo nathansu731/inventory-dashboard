@@ -12,6 +12,7 @@ import {
 } from "lucide-react"
 import Link from "next/link"
 import { useProfile } from "@/hooks/use-profile"
+import { getSubscriptionAccessState } from "@/lib/subscription-state"
 
 import {
   Avatar,
@@ -54,9 +55,14 @@ export function NavUser({
     user?.avatar || (typeof profile?.picture === "string" ? profile.picture : "")
   const planRaw =
     (typeof profile?.["custom:plan"] === "string" && profile["custom:plan"]) || ""
-  const plan = (planRaw || "launch").toLowerCase()
+  const accessState = getSubscriptionAccessState({
+    plan: planRaw || profile?.tenant_plan,
+    tenantStatus: profile?.effective_tenant_status ?? profile?.tenant_status,
+    subscriptionStatus: profile?.["custom:sub_status"],
+    trialEndsAt: profile?.trial_ends_at,
+  })
   const appRole = typeof profile?.app_role === "string" ? profile.app_role : "admin"
-  const showUpgrade = appRole !== "manager" && plan !== "professional" && plan !== "enterprise"
+  const showUpgrade = appRole !== "manager" && accessState.plan === "launch"
 
   const initials = (displayName === "--" ? "" : displayName)
     .split(" ")
@@ -125,29 +131,33 @@ export function NavUser({
                 </Link>
               </DropdownMenuItem>
               <DropdownMenuItem asChild>
-                <Link href="/help-center">
-                  <LifeBuoy />
-                  Help Center
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
                 <Link href="/billing">
                   <CreditCard />
                   Billing
                 </Link>
               </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/users">
-                  <Users />
-                  Manage Users
-                </Link>
-              </DropdownMenuItem>
-              <DropdownMenuItem asChild>
-                <Link href="/notifications">
-                  <Bell />
-                  Notifications
-                </Link>
-              </DropdownMenuItem>
+              {!accessState.accessRestricted && (
+                <>
+                  <DropdownMenuItem asChild>
+                    <Link href="/help-center">
+                      <LifeBuoy />
+                      Help Center
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/users">
+                      <Users />
+                      Manage Users
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild>
+                    <Link href="/notifications">
+                      <Bell />
+                      Notifications
+                    </Link>
+                  </DropdownMenuItem>
+                </>
+              )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>

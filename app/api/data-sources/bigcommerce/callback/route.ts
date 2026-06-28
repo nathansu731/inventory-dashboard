@@ -14,6 +14,8 @@ import { encryptSecret } from "@/lib/data-source-secrets"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
 import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { buildSourceDiagnostics } from "@/lib/data-source-diagnostics"
+import { defaultProviderSetupConfig } from "@/lib/provider-source-config"
 
 const BIGCOMMERCE_STATE_COOKIE = "bigcommerce_oauth_state"
 
@@ -149,6 +151,14 @@ export async function GET(request: NextRequest) {
     nextImportAt: existing?.nextImportAt || null,
     retryCount: existing?.retryCount || 0,
     lastError: existing?.lastError || null,
+    sourceConfig: existing?.sourceConfig || defaultProviderSetupConfig("bigcommerce"),
+    diagnostics: buildSourceDiagnostics({
+      provider: "bigcommerce",
+      grantedScopes: (tokenPayload.scope || scope).split(" ").map((item) => item.trim()).filter(Boolean),
+      availableTables: sanitizeAvailableObjects("bigcommerce", statePayload.availableTables ?? existing?.availableTables),
+      selectedTables: sanitizeSelectedObjects("bigcommerce", statePayload.selectedTables ?? existing?.selectedTables),
+      userMessage: `BigCommerce store ${storeHash} connected. Review catalog and variant-level access before preview.`,
+    }),
     runs: existing?.runs || [],
     createdAt: existing?.createdAt || now,
     updatedAt: now,

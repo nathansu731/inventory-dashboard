@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from "react"
 import Link from "next/link"
-import { Mail, Pencil, Trash2, UserPlus } from "lucide-react"
+import { Check, Mail, Pencil, ShieldCheck, Trash2, UserPlus } from "lucide-react"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -90,6 +90,8 @@ export const UsersPage = () => {
   }, [loadUsers])
 
   const adminCount = useMemo(() => users.filter((user) => user.role === "admin").length, [users])
+  const activeUsers = useMemo(() => users.filter((user) => user.inviteState === "accepted"), [users])
+  const pendingUsers = useMemo(() => users.filter((user) => user.inviteState === "sent"), [users])
   const isProtectedFinalAdmin = useCallback(
     (user: UserRow | null) => Boolean(user && user.role === "admin" && user.isActive && adminCount <= 1),
     [adminCount]
@@ -235,7 +237,7 @@ export const UsersPage = () => {
         )}
 
         {typeof seatLimit === "number" && (
-          <Card className={inviteBlockedBySeats ? "border-amber-200 bg-amber-50/70" : ""}>
+          <Card className={inviteBlockedBySeats ? "border-amber-200 bg-amber-50/70 py-0" : "py-0"}>
             <CardContent className="p-4 text-sm flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <div>
                 <span className="font-medium">{planName} plan seats:</span> {seatsUsed}/{seatLimit}
@@ -261,7 +263,7 @@ export const UsersPage = () => {
         <Card>
           <CardHeader>
             <CardTitle>Tenant Users</CardTitle>
-            <CardDescription>{users.length} users, {adminCount} admins</CardDescription>
+            <CardDescription>{users.length} users, {activeUsers.length} active, {pendingUsers.length} pending, {adminCount} admins</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-hidden rounded-lg border">
@@ -271,7 +273,7 @@ export const UsersPage = () => {
                     <TableHead>Name</TableHead>
                     <TableHead>Email</TableHead>
                     <TableHead>Role</TableHead>
-                    <TableHead>Invite</TableHead>
+                    <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -282,14 +284,14 @@ export const UsersPage = () => {
                         Loading users...
                       </TableCell>
                     </TableRow>
-                  ) : users.length === 0 ? (
+                  ) : activeUsers.length === 0 ? (
                     <TableRow>
                       <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
-                        No users found for this tenant.
+                        No active users found for this tenant.
                       </TableCell>
                     </TableRow>
                   ) : (
-                    users.map((user) => (
+                    activeUsers.map((user) => (
                       <TableRow key={user.userId}>
                         <TableCell className="font-medium">{user.name}</TableCell>
                         <TableCell>{user.email}</TableCell>
@@ -299,9 +301,7 @@ export const UsersPage = () => {
                           </Badge>
                         </TableCell>
                         <TableCell>
-                          <Badge variant={inviteBadgeVariant(user.inviteState)}>
-                            {user.inviteState === "accepted" ? "Accepted" : "Invite Sent"}
-                          </Badge>
+                          <Badge variant={inviteBadgeVariant(user.inviteState)}>Active</Badge>
                         </TableCell>
                         <TableCell className="text-right">
                           <div className="inline-flex items-center gap-2">
@@ -312,10 +312,10 @@ export const UsersPage = () => {
                             <Button
                               size="icon"
                               variant="outline"
-                              disabled={isManager || saving || user.inviteState !== "sent"}
+                              disabled
                               onClick={() => resendInvite(user)}
                             >
-                              <span className="sr-only">Resend invite</span>
+                              <span className="sr-only">Invite already accepted</span>
                               <Mail className="h-4 w-4" />
                             </Button>
                             <Button
@@ -334,6 +334,133 @@ export const UsersPage = () => {
                   )}
                 </TableBody>
               </Table>
+            </div>
+
+            <div className="mt-5">
+              <div className="mb-3">
+                <h3 className="text-sm font-medium text-foreground">Pending Invites</h3>
+                <p className="text-sm text-muted-foreground">
+                  Invitations waiting for the recipient to sign in and accept access.
+                </p>
+              </div>
+              <div className="overflow-hidden rounded-lg border">
+                <Table>
+                  <TableHeader className="bg-muted">
+                    <TableRow>
+                      <TableHead>Name</TableHead>
+                      <TableHead>Email</TableHead>
+                      <TableHead>Role</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead className="text-right">Actions</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {loading ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                          Loading invites...
+                        </TableCell>
+                      </TableRow>
+                    ) : pendingUsers.length === 0 ? (
+                      <TableRow>
+                        <TableCell colSpan={5} className="h-20 text-center text-muted-foreground">
+                          No pending invites. New invitations will appear here until accepted.
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      pendingUsers.map((user) => (
+                        <TableRow key={user.userId}>
+                          <TableCell className="font-medium">{user.name}</TableCell>
+                          <TableCell>{user.email}</TableCell>
+                          <TableCell>
+                            <Badge variant={user.role === "admin" ? "default" : "outline"}>
+                              {user.role === "admin" ? "Admin" : "Manager"}
+                            </Badge>
+                          </TableCell>
+                          <TableCell>
+                            <Badge variant={inviteBadgeVariant(user.inviteState)}>Invite Sent</Badge>
+                          </TableCell>
+                          <TableCell className="text-right">
+                            <div className="inline-flex items-center gap-2">
+                              <Button size="icon" variant="outline" disabled={isManager} onClick={() => openEdit(user)}>
+                                <span className="sr-only">Edit invited user</span>
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                disabled={isManager || saving}
+                                onClick={() => resendInvite(user)}
+                              >
+                                <span className="sr-only">Resend invite</span>
+                                <Mail className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                size="icon"
+                                variant="outline"
+                                disabled={isManager || isProtectedFinalAdmin(user)}
+                                onClick={() => openDelete(user)}
+                              >
+                                <span className="sr-only">Delete invited user</span>
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Role Access</CardTitle>
+            <CardDescription>Two permission levels are available in this workspace.</CardDescription>
+          </CardHeader>
+          <CardContent className="grid gap-3 lg:grid-cols-2">
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="flex items-center gap-2">
+                <Badge>Admin</Badge>
+                <span className="text-sm font-medium text-foreground">Full workspace control</span>
+              </div>
+              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>Invite, edit, remove, and resend invites for tenant users.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>Manage billing, subscription upgrades, and connected data sources.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>Configure forecast inputs, approvals, and operational settings.</span>
+                </div>
+              </div>
+            </div>
+            <div className="rounded-lg border bg-muted/20 p-4">
+              <div className="flex items-center gap-2">
+                <Badge variant="outline">Manager</Badge>
+                <span className="text-sm font-medium text-foreground">Operational read-only access</span>
+              </div>
+              <div className="mt-3 space-y-2 text-sm text-muted-foreground">
+                <div className="flex items-start gap-2">
+                  <Check className="mt-0.5 h-4 w-4 text-emerald-600" />
+                  <span>View dashboards, forecasts, KPIs, replenishment, and saved reports.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-amber-600" />
+                  <span>Cannot manage users, subscription settings, or third-party connections.</span>
+                </div>
+                <div className="flex items-start gap-2">
+                  <ShieldCheck className="mt-0.5 h-4 w-4 text-amber-600" />
+                  <span>Sees the same planning outputs, but with administrative controls disabled.</span>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>

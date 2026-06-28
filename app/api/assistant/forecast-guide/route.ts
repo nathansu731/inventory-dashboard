@@ -1,17 +1,19 @@
 import { NextResponse } from "next/server"
 import { appsyncRequest } from "@/lib/appsync"
-import { getValidIdToken } from "@/lib/server-auth"
+import { getAuthenticatedApiContext } from "@/lib/server-auth"
 
 export async function POST(request: Request) {
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
   const payload = (await request.json().catch(() => null)) as {
     command?: string
     runId?: string
     contextMode?: string
+    pageId?: string
+    route?: string
+    selectedSku?: string
+    selectedStore?: string
   } | null
 
   const command = String(payload?.command || "Guide me through getting my first forecast").trim()
@@ -28,6 +30,15 @@ export async function POST(request: Request) {
         context
         checklist
         suggestedPrompts
+        confidence
+        evidence {
+          source
+          title
+          detail
+        }
+        warnings
+        usedTools
+        answerVersion
         steps {
           id
           title
@@ -50,6 +61,10 @@ export async function POST(request: Request) {
         command,
         runId: payload?.runId || null,
         contextMode: payload?.contextMode || "onboarding",
+        pageId: payload?.pageId || null,
+        route: payload?.route || null,
+        selectedSku: payload?.selectedSku || null,
+        selectedStore: payload?.selectedStore || null,
       },
     })
 

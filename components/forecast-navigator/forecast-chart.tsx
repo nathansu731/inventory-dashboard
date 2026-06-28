@@ -14,6 +14,8 @@ type ForecastChartProps = {
         month: string
         demand: number | null
         forecastBaseline: number | null
+        adjustedForecast?: number | null
+        compareAdjustedForecast?: number | null
     }[]
 }
 
@@ -35,6 +37,14 @@ export const ForecastChart = ({ data }: ForecastChartProps) => {
                         forecastBaseline: {
                             label: "Forecast Baseline",
                             color: "hsl(var(--chart-2))",
+                        },
+                        adjustedForecast: {
+                            label: "Adjusted Forecast",
+                            color: "hsl(var(--chart-3))",
+                        },
+                        compareAdjustedForecast: {
+                            label: "Compare Run Adjusted Forecast",
+                            color: "hsl(var(--chart-4))",
                         },
                     }}
                     className="h-[300px] w-full"
@@ -69,6 +79,22 @@ export const ForecastChart = ({ data }: ForecastChartProps) => {
                                 name="Forecast Baseline"
                                 strokeWidth={2}
                                 dot={{ r: 4 }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="adjustedForecast"
+                                stroke="#10b981"
+                                name="Adjusted Forecast"
+                                strokeWidth={2}
+                                dot={{ r: 4 }}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="compareAdjustedForecast"
+                                stroke="#7c3aed"
+                                name="Compare Adjusted Forecast"
+                                strokeWidth={2}
+                                dot={{ r: 3 }}
                             />
                         </LineChart>
                     </ResponsiveContainer>

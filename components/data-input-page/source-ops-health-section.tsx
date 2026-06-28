@@ -28,6 +28,19 @@ type SourceOpsHealthSectionProps = {
 }
 
 export const SourceOpsHealthSection = ({ summary, providers }: SourceOpsHealthSectionProps) => {
+  const hasData =
+    summary.totalSources > 0 ||
+    providers.length > 0 ||
+    summary.connected > 0 ||
+    summary.errored > 0 ||
+    summary.scheduled > 0 ||
+    summary.stale > 0 ||
+    summary.totalRetries > 0 ||
+    summary.success24h > 0 ||
+    summary.failures24h > 0
+
+  if (!hasData) return null
+
   return (
     <div className="mt-4 rounded-lg border p-4 text-sm">
       <div className="font-medium">Source Ops Health</div>

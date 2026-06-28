@@ -79,10 +79,13 @@ export function SectionCards() {
   }, [isProfileLoading, profile?.sub, profile?.email])
 
   const formatValue = (value?: number) =>
-      value !== undefined ? value.toLocaleString() : "--"
+      typeof value === "number" && Number.isFinite(value) ? value.toLocaleString() : "--"
 
   const formatPercent = (variance?: number) =>
-      variance !== undefined ? `${(variance * 100).toFixed(1)}%` : "--"
+      typeof variance === "number" && Number.isFinite(variance) ? `${(variance * 100).toFixed(1)}%` : "--"
+
+  const formatPercentValue = (value?: number) =>
+      typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(1)}%` : "--"
 
   const TrendIcon = ({ status }: { status?: string }) =>
       status === "negative" ? <IconTrendingDown /> : <IconTrendingUp />
@@ -171,7 +174,7 @@ export function SectionCards() {
           <CardHeader>
             <CardDescription>Growth Rate</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {formatPercent(data?.growthRate?.variance)}
+              {formatPercentValue(data?.growthRate?.value)}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">

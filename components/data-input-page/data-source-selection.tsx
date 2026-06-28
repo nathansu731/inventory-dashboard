@@ -2,9 +2,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Settings, Link2, CheckCircle2, AlertTriangle } from "lucide-react"
 import { Label } from "@/components/ui/label"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
 import React from "react"
+import type { DataSourceDiagnostics } from "@/lib/data-sources"
+import type { ProviderBlueprint } from "@/lib/provider-source-config"
 
 export type ConnectorProvider = "csv" | "shopify" | "amazon" | "quickbooks" | "bigcommerce" | "other"
 
@@ -19,6 +22,8 @@ type DataSourceSelectionProps = {
   connectedAccount: string
   connectedAt: string | null
   canManageSources: boolean
+  blueprint: ProviderBlueprint | null
+  diagnostics: DataSourceDiagnostics | null
   onConnect: (payload: { accountName: string; accountId: string; availableTables: string[]; selectedTables: string[] }) => void
   onDisconnect: () => void
 }
@@ -41,6 +46,14 @@ const providerOptions: Array<{ value: ConnectorProvider; label: string }> = [
   { value: "other", label: "Other" },
 ]
 
+const providerActionLabel = (provider: ConnectorProvider) => {
+  if (provider === "shopify") return "Continue to Shopify"
+  if (provider === "quickbooks") return "Continue to QuickBooks"
+  if (provider === "bigcommerce") return "Continue to BigCommerce"
+  if (provider === "amazon") return "Continue to Amazon"
+  return "Connect"
+}
+
 export const DataSourceSelection = ({
   availableObjects,
   defaultSelectedObjects,
@@ -50,6 +63,8 @@ export const DataSourceSelection = ({
   connectedAccount,
   connectedAt,
   canManageSources,
+  blueprint,
+  diagnostics,
   onConnect,
   onDisconnect,
 }: DataSourceSelectionProps) => {
@@ -89,37 +104,96 @@ export const DataSourceSelection = ({
     })
   }
 
+  const blockers = diagnostics?.blockingIssues || []
+
   return (
     <>
-      <Card className="mb-6">
+      <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
             <Settings className="h-5 w-5" />
             Data Source Configuration
           </CardTitle>
-          <CardDescription>Configure file uploads and connect commerce/accounting platforms</CardDescription>
+          <CardDescription>Choose how this app connects, what permissions are required, and which operational data will feed forecasts.</CardDescription>
         </CardHeader>
-        <CardContent>
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-1">
-            <div className="space-y-2">
-              <Label htmlFor="provider">Provider</Label>
-              <div className="flex flex-wrap gap-2">
-                {providerOptions.map((option) => (
-                  <Button
-                    key={option.value}
-                    type="button"
-                    variant={provider === option.value ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setProvider(option.value)}
-                  >
-                    {option.label}
-                  </Button>
-                ))}
-              </div>
+        <CardContent className="space-y-5">
+          <div className="space-y-2">
+            <Label htmlFor="provider">Provider</Label>
+            <div className="flex flex-wrap gap-2">
+              {providerOptions.map((option) => (
+                <Button
+                  key={option.value}
+                  type="button"
+                  variant={provider === option.value ? "default" : "outline"}
+                  size="sm"
+                  onClick={() => setProvider(option.value)}
+                >
+                  {option.label}
+                </Button>
+              ))}
             </div>
           </div>
 
-          <div className="mt-5 rounded-lg border p-4">
+          {!isCsvProvider && blueprint && (
+            <div className="rounded-lg border p-4">
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="text-sm font-medium">{blueprint.label}</div>
+                  <div className="text-xs uppercase tracking-wide text-muted-foreground">{blueprint.authStyle}</div>
+                  <p className="max-w-2xl text-sm text-muted-foreground">{blueprint.description}</p>
+                </div>
+                <Badge variant="outline">{blueprint.authStyle}</Badge>
+              </div>
+
+              <div className="mt-4 grid gap-4 md:grid-cols-2">
+                <div className="space-y-2">
+                  <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Connection flow</div>
+                  <div className="space-y-2 text-sm text-muted-foreground">
+                    {blueprint.connectionSteps.map((step, index) => (
+                      <div key={step} className="flex gap-2">
+                        <span className="text-foreground">{index + 1}.</span>
+                        <span>{step}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                <div className="space-y-3">
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Required entities</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {blueprint.requiredEntities.map((item) => (
+                        <Badge key={item} variant="secondary">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Optional entities</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {blueprint.optionalEntities.map((item) => (
+                        <Badge key={item} variant="outline">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                  <div>
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Forecast-ready fields</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {blueprint.forecastFields.map((item) => (
+                        <Badge key={item} variant="outline">
+                          {item}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div className="rounded-lg border p-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
                 <div className="text-sm font-medium">Connection Status</div>
@@ -165,13 +239,48 @@ export const DataSourceSelection = ({
                 </div>
               )}
             </div>
+
+            {!isCsvProvider && diagnostics?.userMessage && (
+              <div className="mt-4 rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                <div className="font-medium text-foreground">{diagnostics.statusSummary || "Connector status"}</div>
+                <div className="mt-1">{diagnostics.userMessage}</div>
+                {diagnostics.grantedScopes?.length ? (
+                  <div className="mt-3">
+                    <div className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Granted scopes</div>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {diagnostics.grantedScopes.map((scope) => (
+                        <Badge key={scope} variant="outline">
+                          {scope}
+                        </Badge>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
+              </div>
+            )}
+
+            {!isCsvProvider && blockers.length > 0 && (
+              <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
+                <div className="font-medium">Blocked right now</div>
+                <div className="mt-2 space-y-1">
+                  {blockers.map((issue) => (
+                    <div key={issue}>• {issue}</div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          {connectionState === "error" && !isCsvProvider && (
-            <div className="mt-3 rounded-md border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900">
-              Connection issue detected. Reconnect your provider to continue syncing.
+          {!isCsvProvider && blueprint?.notes?.length ? (
+            <div className="rounded-lg border p-4">
+              <div className="text-sm font-medium">What happens after connect</div>
+              <div className="mt-2 space-y-2 text-sm text-muted-foreground">
+                {blueprint.notes.map((note) => (
+                  <div key={note}>• {note}</div>
+                ))}
+              </div>
             </div>
-          )}
+          ) : null}
         </CardContent>
       </Card>
 
@@ -181,14 +290,24 @@ export const DataSourceSelection = ({
             <DialogHeader>
               <DialogTitle>Connect {providerLabel(provider)}</DialogTitle>
               <DialogDescription>
-                {provider === "shopify" || provider === "other"
-                  ? "Provide source details to establish the connection."
-                  : "You will be redirected to the provider OAuth screen to grant access."}
+                {blueprint?.description || "Connect this provider and then review the discovered entities, permissions, and date strategy before importing."}
               </DialogDescription>
             </DialogHeader>
             <div className="grid gap-4 py-2">
+              {blueprint && (
+                <div className="rounded-md border bg-muted/30 p-3 text-sm text-muted-foreground">
+                  <div className="font-medium text-foreground">High-level connection steps</div>
+                  <div className="mt-2 space-y-1">
+                    {blueprint.connectionSteps.map((step, index) => (
+                      <div key={step}>
+                        {index + 1}. {step}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
               <div className="grid gap-2">
-                <Label>Tables / Objects to import</Label>
+                <Label>Seed entities to request</Label>
                 <div className="max-h-40 space-y-2 overflow-auto rounded-md border p-3">
                   {availableObjects.length > 0 ? (
                     availableObjects.map((objectName) => (
@@ -204,7 +323,7 @@ export const DataSourceSelection = ({
                     ))
                   ) : (
                     <div className="text-sm text-muted-foreground">
-                      No objects discovered yet for this provider. Connect first, then sync metadata.
+                      No provider objects discovered yet. The app will validate permissions after connection and populate them here.
                     </div>
                   )}
                 </div>
@@ -220,12 +339,12 @@ export const DataSourceSelection = ({
                   />
                 </div>
               )}
-              {provider === "other" && (
+              {(provider === "quickbooks" || provider === "bigcommerce" || provider === "amazon" || provider === "other") && (
                 <div className="grid gap-2">
-                  <Label htmlFor="account-id">Account ID (optional)</Label>
+                  <Label htmlFor="account-id">Company / Account ID (optional)</Label>
                   <Input
                     id="account-id"
-                    placeholder="e.g., shop_12345"
+                    placeholder={provider === "quickbooks" ? "realmId is detected after consent" : "Optional account identifier"}
                     value={accountId}
                     onChange={(event) => setAccountId(event.target.value)}
                   />
@@ -240,7 +359,7 @@ export const DataSourceSelection = ({
                 onClick={connectNow}
                 disabled={(provider === "shopify" || provider === "other") && !accountName.trim()}
               >
-                {provider === "shopify" || provider === "other" ? "Connect" : "Continue to OAuth"}
+                {providerActionLabel(provider)}
               </Button>
             </DialogFooter>
           </DialogContent>

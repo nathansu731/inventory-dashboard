@@ -6,6 +6,7 @@ type DataInputActionsRowProps = {
   canRunImportNow: boolean
   isProcessing: boolean
   hasUploadedFile: boolean
+  startForecastButtonId?: string
   onRunDueImports: () => void
   onRunImportNow: () => void
   onStartForecasting: () => void
@@ -17,6 +18,7 @@ export const DataInputActionsRow = ({
   canRunImportNow,
   isProcessing,
   hasUploadedFile,
+  startForecastButtonId,
   onRunDueImports,
   onRunImportNow,
   onStartForecasting,
@@ -29,7 +31,7 @@ export const DataInputActionsRow = ({
       <Button variant="outline" disabled={!canRunImportNow || isImportRunning} onClick={onRunImportNow}>
         {isImportRunning ? "Importing..." : "Run Import Now"}
       </Button>
-      <Button disabled={!hasUploadedFile || isProcessing} className="min-w-32" onClick={onStartForecasting}>
+      <Button id={startForecastButtonId} disabled={!hasUploadedFile || isProcessing} className="min-w-32" onClick={onStartForecasting}>
         {isProcessing ? "Processing..." : "Start Forecasting"}
       </Button>
     </div>

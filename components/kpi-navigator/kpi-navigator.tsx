@@ -1,20 +1,14 @@
 "use client"
 
+import Link from "next/link"
 import { useCallback, useEffect, useMemo, useState } from "react"
 import { CircleHelp, Download, RefreshCw } from "lucide-react"
-import {
-    Line,
-    LineChart,
-    CartesianGrid,
-    ResponsiveContainer,
-    XAxis,
-    YAxis,
-} from "recharts"
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, XAxis, YAxis } from "recharts"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 import {
@@ -27,14 +21,16 @@ import {
     labelToFrequency,
     normalizeFrequency,
 } from "@/lib/forecast-aggregation"
+import { buildForecastSeriesKey, getForecastMetadata } from "@/lib/forecast-metadata"
 
 type SkuMetadata = {
-    store: string
-    skuDesc: string
-    forecastMethod: string
-    ABCclass: string
-    ABCpercentage: number
-    isApproved: boolean
+    sku?: string
+    store?: string
+    skuDesc?: string
+    forecastMethod?: string
+    ABCclass?: string
+    ABCpercentage?: number
+    isApproved?: boolean
 }
 
 type ForecastItem = {
@@ -44,10 +40,6 @@ type ForecastItem = {
     periods: string[]
     demand?: Record<string, number | null>
     forecastBaseline?: Record<string, number | null>
-    demandAdjustment?: Record<string, number | null>
-    forecastAdjustment?: Record<string, number | null>
-    lower80?: Record<string, number | null>
-    upper80?: Record<string, number | null>
 }
 
 type ForecastValuesPayload = {
@@ -55,15 +47,75 @@ type ForecastValuesPayload = {
     items?: ForecastItem[]
 }
 
-type MetricKey = "accuracy" | "error" | "bias" | "demand" | "forecast"
+type ValidationMetrics = {
+    mae?: number
+    rmse?: number
+    smape?: number
+}
 
-const METRIC_OPTIONS: Array<{ value: MetricKey; label: string }> = [
-    { value: "accuracy", label: "Accuracy (%)" },
-    { value: "error", label: "Error (%)" },
-    { value: "bias", label: "Bias (%)" },
-    { value: "demand", label: "Demand" },
-    { value: "forecast", label: "Forecast" },
-]
+type ValidationPerSeries = {
+    seriesKey?: string
+    sku?: string
+    store?: string
+    windows?: number
+    modelUsed?: string
+    plannedMethod?: string
+    metrics?: ValidationMetrics
+}
+
+type ValidationSelectedModel = {
+    model?: string
+    mode?: string
+    metrics?: ValidationMetrics
+    perSeries?: ValidationPerSeries[]
+}
+
+type ReportSummaryPayload = {
+    runConfig?: {
+        executedModel?: string
+        executedMode?: string
+        detectedFrequency?: string
+    }
+    validation?: {
+        selectedModel?: ValidationSelectedModel
+    }
+}
+
+type ReplenishmentSignalItem = {
+    sku?: string
+    store?: string
+    risk?: string
+    daysOfCover?: number
+    horizonDemand?: number
+    predictedStockoutDate?: string | null
+    recommendedReorderQty?: number
+    reorderByDate?: string | null
+}
+
+type ValidationMetricKey = "smape" | "mae" | "rmse"
+type PeriodMetricKey = "demand" | "forecast"
+type ExceptionPreset = "all" | "a-class" | "low-accuracy" | "high-risk" | "stockout" | "low-confidence"
+type ValidationSortKey = "smape" | "mae" | "rmse" | "demand" | "cover"
+
+type ValidationRow = {
+    seriesKey: string
+    sku: string
+    store: string
+    skuLabel: string
+    skuDesc: string
+    abcClass: string
+    method: string
+    smape: number
+    mae: number
+    rmse: number
+    windows: number
+    risk: string
+    daysOfCover: number
+    horizonDemand: number
+    predictedStockoutDate: string | null
+    recommendedReorderQty: number
+    action: string
+}
 
 const parseResult = <T,>(payload: unknown): T | null => {
     if (!payload || typeof payload !== "object") return null
@@ -78,38 +130,43 @@ const parseResult = <T,>(payload: unknown): T | null => {
     return (raw as T) ?? null
 }
 
-const metricValue = (demandMap: Record<string, number | null>, forecastMap: Record<string, number | null>, period: string, metric: MetricKey) => {
-    const demand = Number(demandMap[period] ?? 0)
-    const forecast = Number(forecastMap[period] ?? 0)
-    const denom = Math.max(1, Math.abs(demand))
-
-    if (metric === "demand") return demand
-    if (metric === "forecast") return forecast
-    if (metric === "error") return (Math.abs(forecast - demand) / denom) * 100
-    if (metric === "bias") return ((forecast - demand) / denom) * 100
-    return 100 - (Math.abs(forecast - demand) / denom) * 100
+const toFiniteNumber = (value: unknown, fallback = 0) => {
+    const parsed = typeof value === "number" ? value : Number(value)
+    return Number.isFinite(parsed) ? parsed : fallback
 }
 
-const cellClass = (value: number, metric: MetricKey) => {
-    if (metric === "accuracy") {
-        if (value >= 85) return "bg-emerald-50 text-emerald-700"
-        if (value >= 70) return "bg-amber-50 text-amber-700"
-        return "bg-red-50 text-red-700"
-    }
-    if (metric === "error") {
-        if (value <= 10) return "bg-emerald-50 text-emerald-700"
-        if (value <= 20) return "bg-amber-50 text-amber-700"
-        return "bg-red-50 text-red-700"
-    }
-    if (metric === "bias") {
-        const abs = Math.abs(value)
-        if (abs <= 5) return "bg-emerald-50 text-emerald-700"
-        if (abs <= 15) return "bg-amber-50 text-amber-700"
-        return "bg-red-50 text-red-700"
-    }
-    return ""
+const compactNumber = (value: number) =>
+    new Intl.NumberFormat("en-AU", {
+        notation: Math.abs(value) >= 1000 ? "compact" : "standard",
+        maximumFractionDigits: Math.abs(value) >= 1000 ? 1 : 0,
+    }).format(value)
+
+const formatMetricValue = (value: number) => value.toFixed(2)
+
+const formatDateLabel = (value?: string | null) => {
+    if (!value) return "--"
+    const parsed = new Date(value)
+    return Number.isFinite(parsed.getTime())
+        ? parsed.toLocaleDateString("en-AU", { day: "2-digit", month: "short" })
+        : value
 }
 
+const getAction = (row: ValidationRow) => {
+    if (row.risk === "Critical") return "Replenish immediately"
+    if (row.risk === "High" && row.smape >= 25) return "Replenish and review override"
+    if (row.smape >= 30) return "Review forecast override"
+    if (row.risk === "High" || row.risk === "Medium") return "Monitor replenishment risk"
+    return "Monitor only"
+}
+
+const hasStockoutSoon = (value?: string | null) => {
+    if (!value) return false
+    const target = new Date(value)
+    if (!Number.isFinite(target.getTime())) return false
+    const now = new Date()
+    const days = (target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)
+    return days <= 7
+}
 
 const MetricHelp = ({ formula }: { formula: string }) => (
     <Tooltip>
@@ -122,12 +179,68 @@ const MetricHelp = ({ formula }: { formula: string }) => (
     </Tooltip>
 )
 
+const buildValidationRows = (
+    metadata: Record<string, SkuMetadata>,
+    reportSummary: ReportSummaryPayload | null,
+    replenishmentSignals: ReplenishmentSignalItem[]
+) => {
+    const replenishmentBySeries = new Map<string, ReplenishmentSignalItem>()
+    replenishmentSignals.forEach((item) => {
+        replenishmentBySeries.set(buildForecastSeriesKey(item.sku, item.store), item)
+    })
+
+    const perSeries = reportSummary?.validation?.selectedModel?.perSeries ?? []
+    return perSeries.map((item) => {
+        const sku = item.sku || item.seriesKey?.split("::")[0] || "Unknown"
+        const store =
+            item.store ||
+            item.seriesKey?.split("::")[1] ||
+            getForecastMetadata(metadata, sku, item.store)?.store ||
+            "Unknown"
+        const meta = getForecastMetadata(metadata, sku, store)
+        const seriesKey = item.seriesKey || buildForecastSeriesKey(sku, store)
+        const replenishment = replenishmentBySeries.get(seriesKey)
+        const row: ValidationRow = {
+            seriesKey,
+            sku,
+            store,
+            skuLabel: `${sku} · ${store}`,
+            skuDesc: meta?.skuDesc || "N/A",
+            abcClass: meta?.ABCclass ?? "C",
+            method:
+                meta?.forecastMethod ??
+                item.modelUsed ??
+                item.plannedMethod ??
+                reportSummary?.validation?.selectedModel?.model ??
+                "-",
+            smape: toFiniteNumber(item.metrics?.smape, 0),
+            mae: toFiniteNumber(item.metrics?.mae, 0),
+            rmse: toFiniteNumber(item.metrics?.rmse, 0),
+            windows: toFiniteNumber(item.windows, 0),
+            risk: replenishment?.risk ?? "Healthy",
+            daysOfCover: toFiniteNumber(replenishment?.daysOfCover, 0),
+            horizonDemand: toFiniteNumber(replenishment?.horizonDemand, 0),
+            predictedStockoutDate: replenishment?.predictedStockoutDate ?? null,
+            recommendedReorderQty: toFiniteNumber(replenishment?.recommendedReorderQty, 0),
+            action: "Monitor only",
+        }
+        row.action = getAction(row)
+        return row
+    })
+}
+
 export const KpiNavigator = () => {
     const [metadata, setMetadata] = useState<Record<string, SkuMetadata>>({})
     const [payload, setPayload] = useState<ForecastValuesPayload>({ items: [] })
-    const [metric, setMetric] = useState<MetricKey>("accuracy")
+    const [reportSummary, setReportSummary] = useState<ReportSummaryPayload | null>(null)
+    const [replenishmentSignals, setReplenishmentSignals] = useState<ReplenishmentSignalItem[]>([])
+    const [activeView, setActiveView] = useState<"validation" | "period">("validation")
     const [storeFilter, setStoreFilter] = useState("all")
-    const [selectedSku, setSelectedSku] = useState("")
+    const [selectedSeriesKey, setSelectedSeriesKey] = useState("")
+    const [validationMetric, setValidationMetric] = useState<ValidationMetricKey>("smape")
+    const [validationSort, setValidationSort] = useState<ValidationSortKey>("smape")
+    const [exceptionPreset, setExceptionPreset] = useState<ExceptionPreset>("all")
+    const [periodMetric, setPeriodMetric] = useState<PeriodMetricKey>("forecast")
     const [aggregationType, setAggregationType] = useState<AggregationLabel>("Monthly")
     const [isLoading, setIsLoading] = useState(false)
     const [error, setError] = useState<string | null>(null)
@@ -136,31 +249,43 @@ export const KpiNavigator = () => {
         setIsLoading(true)
         setError(null)
         try {
-            const [metaRes, valuesRes] = await Promise.all([
+            const [metaRes, valuesRes, reportRes, replenishmentRes] = await Promise.all([
                 fetch("/api/get-skus-metadata", { cache: "no-store" }),
-                fetch("/api/get-sku-forecast-values", { cache: "no-store" }),
+                fetch("/api/get-merged-sku-forecast-values", { cache: "no-store" }),
+                fetch("/api/get-report-summary", { cache: "no-store" }),
+                fetch("/api/get-replenishment-signals", { cache: "no-store" }),
             ])
-            if (!metaRes.ok || !valuesRes.ok) {
+
+            if (!metaRes.ok || !valuesRes.ok || !reportRes.ok || !replenishmentRes.ok) {
                 throw new Error("Failed to load KPI navigator data")
             }
 
             const metaJson = await metaRes.json()
             const valuesJson = await valuesRes.json()
+            const reportJson = await reportRes.json()
+            const replenishmentJson = await replenishmentRes.json()
+
             const parsedMeta = parseResult<Record<string, SkuMetadata>>(metaJson) ?? {}
             const parsedValues = parseResult<ForecastValuesPayload>(valuesJson) ?? { items: [] }
-
+            const parsedReport = parseResult<ReportSummaryPayload>(reportJson)
+            const parsedReplenishment = parseResult<{ items?: ReplenishmentSignalItem[] }>(replenishmentJson)
             const items = parsedValues.items ?? []
+
             setMetadata(parsedMeta)
             setPayload({ ...parsedValues, items })
-            setSelectedSku((prev) => {
+            setReportSummary(parsedReport ?? null)
+            setReplenishmentSignals(parsedReplenishment?.items ?? [])
+            setSelectedSeriesKey((prev) => {
                 if (items.length === 0) return ""
-                if (items.some((item) => item.sku === prev)) return prev
-                return items[0].sku
+                if (items.some((item) => buildForecastSeriesKey(item.sku, item.store) === prev)) return prev
+                return buildForecastSeriesKey(items[0].sku, items[0].store)
             })
         } catch (e) {
             setMetadata({})
             setPayload({ items: [] })
-            setSelectedSku("")
+            setReportSummary(null)
+            setReplenishmentSignals([])
+            setSelectedSeriesKey("")
             setError(e instanceof Error ? e.message : "Failed to load KPI navigator")
         } finally {
             setIsLoading(false)
@@ -172,31 +297,71 @@ export const KpiNavigator = () => {
     }, [loadData])
 
     const items = useMemo(() => payload.items ?? [], [payload.items])
+    const validationRows = useMemo(
+        () => buildValidationRows(metadata, reportSummary, replenishmentSignals),
+        [metadata, reportSummary, replenishmentSignals]
+    )
 
     const stores = useMemo(() => {
-        const fromMeta = Object.values(metadata).map((m) => m.store)
-        const fromItems = items.map((i) => i.store).filter((s): s is string => Boolean(s))
-        return Array.from(new Set([...fromMeta, ...fromItems])).sort()
-    }, [items, metadata])
+        const byMeta = Object.values(metadata).map((item) => item.store).filter((value): value is string => Boolean(value))
+        const byValidation = validationRows.map((row) => row.store)
+        return Array.from(new Set([...byMeta, ...byValidation])).sort()
+    }, [metadata, validationRows])
 
     const visibleItems = useMemo(() => {
         if (storeFilter === "all") return items
-        return items.filter((item) => (item.store || metadata[item.sku]?.store || "Unknown") === storeFilter)
+        return items.filter((item) => {
+            const meta = getForecastMetadata(metadata, item.sku, item.store)
+            return (item.store || meta?.store || "Unknown") === storeFilter
+        })
     }, [items, metadata, storeFilter])
 
-    const skuOptions = visibleItems.map((item) => item.sku)
+    const filteredValidationRows = useMemo(() => {
+        const rows = validationRows.filter((row) => (storeFilter === "all" ? true : row.store === storeFilter))
+        const presetRows = rows.filter((row) => {
+            if (exceptionPreset === "all") return true
+            if (exceptionPreset === "a-class") return row.abcClass === "A"
+            if (exceptionPreset === "low-accuracy") return row.smape >= 20
+            if (exceptionPreset === "high-risk") return row.risk === "High" || row.risk === "Critical"
+            if (exceptionPreset === "stockout") return hasStockoutSoon(row.predictedStockoutDate)
+            if (exceptionPreset === "low-confidence") return row.windows <= 1
+            return true
+        })
+        const sorted = [...presetRows].sort((a, b) => {
+            if (validationSort === "smape") return b.smape - a.smape
+            if (validationSort === "mae") return b.mae - a.mae
+            if (validationSort === "rmse") return b.rmse - a.rmse
+            if (validationSort === "demand") return b.horizonDemand - a.horizonDemand
+            return a.daysOfCover - b.daysOfCover
+        })
+        return sorted
+    }, [exceptionPreset, storeFilter, validationRows, validationSort])
+
+    const skuOptions = visibleItems.map((item) => ({
+        value: buildForecastSeriesKey(item.sku, item.store),
+        sku: item.sku,
+        store: item.store || getForecastMetadata(metadata, item.sku, item.store)?.store || "Unknown",
+    }))
 
     useEffect(() => {
         if (visibleItems.length === 0) {
-            setSelectedSku("")
+            setSelectedSeriesKey("")
             return
         }
-        if (!visibleItems.some((item) => item.sku === selectedSku)) {
-            setSelectedSku(visibleItems[0].sku)
+        if (!visibleItems.some((item) => buildForecastSeriesKey(item.sku, item.store) === selectedSeriesKey)) {
+            setSelectedSeriesKey(buildForecastSeriesKey(visibleItems[0].sku, visibleItems[0].store))
         }
-    }, [selectedSku, visibleItems])
+    }, [selectedSeriesKey, visibleItems])
 
-    const selectedItem = useMemo(() => visibleItems.find((i) => i.sku === selectedSku), [selectedSku, visibleItems])
+    const selectedItem = useMemo(
+        () => visibleItems.find((item) => buildForecastSeriesKey(item.sku, item.store) === selectedSeriesKey),
+        [selectedSeriesKey, visibleItems]
+    )
+    const selectedValidationRow = useMemo(
+        () => validationRows.find((row) => row.seriesKey === selectedSeriesKey) ?? filteredValidationRows[0] ?? null,
+        [filteredValidationRows, selectedSeriesKey, validationRows]
+    )
+
     const baseFrequency = useMemo(
         () => normalizeFrequency(selectedItem?.frequency || payload.frequency || "monthly"),
         [selectedItem?.frequency, payload.frequency]
@@ -214,217 +379,439 @@ export const KpiNavigator = () => {
         return buildAggregationBuckets(selectedItem.periods ?? [], baseFrequency, targetFrequency).periods
     }, [selectedItem, baseFrequency, targetFrequency])
 
-    const tableRows = useMemo(() => {
+    const periodRows = useMemo(() => {
         return visibleItems.map((item) => {
             const itemBase = normalizeFrequency(item.frequency || payload.frequency || "monthly")
             const buckets = buildAggregationBuckets(item.periods ?? [], itemBase, targetFrequency)
             const demandMap = aggregateValueMap(item.demand, item.periods ?? [], buckets)
             const forecastMap = aggregateValueMap(item.forecastBaseline, item.periods ?? [], buckets)
-            const values = periods.map((period) => metricValue(demandMap, forecastMap, period, metric))
-            const avg = values.length > 0 ? values.reduce((a, b) => a + b, 0) / values.length : 0
-            const meta = metadata[item.sku]
+            const values = periods.map((period) =>
+                periodMetric === "demand" ? toFiniteNumber(demandMap[period], 0) : toFiniteNumber(forecastMap[period], 0)
+            )
+            const average = values.length > 0 ? values.reduce((sum, value) => sum + value, 0) / values.length : 0
+            const meta = getForecastMetadata(metadata, item.sku, item.store)
             return {
+                seriesKey: buildForecastSeriesKey(item.sku, item.store),
                 sku: item.sku,
                 store: item.store || meta?.store || "Unknown",
-                abcClass: meta?.ABCclass ?? "-",
-                method: meta?.forecastMethod ?? "-",
-                average: avg,
+                abcClass: meta?.ABCclass ?? "C",
+                method: meta?.forecastMethod ?? reportSummary?.runConfig?.executedModel ?? "-",
+                average,
                 values,
             }
         })
-    }, [metric, metadata, payload.frequency, periods, targetFrequency, visibleItems])
+    }, [metadata, payload.frequency, periodMetric, periods, reportSummary, targetFrequency, visibleItems])
 
     const selectedTrend = useMemo(() => {
         if (!selectedItem) return []
-        const buckets = buildAggregationBuckets(selectedItem.periods ?? [], baseFrequency, targetFrequency)
-        const demandMap = aggregateValueMap(selectedItem.demand, selectedItem.periods ?? [], buckets)
-        const forecastMap = aggregateValueMap(selectedItem.forecastBaseline, selectedItem.periods ?? [], buckets)
-        return periods.map((period) => ({
-            period: formatPeriodByFrequency(period, targetFrequency),
-            value: Number(metricValue(demandMap, forecastMap, period, metric).toFixed(2)),
-        }))
-    }, [baseFrequency, metric, periods, selectedItem, targetFrequency])
+        const buildTrendPoints = (frequency: ReturnType<typeof labelToFrequency>) => {
+            const trendPeriods = buildAggregationBuckets(selectedItem.periods ?? [], baseFrequency, frequency).periods
+            const buckets = buildAggregationBuckets(selectedItem.periods ?? [], baseFrequency, frequency)
+            const demandMap = aggregateValueMap(selectedItem.demand, selectedItem.periods ?? [], buckets)
+            const forecastMap = aggregateValueMap(selectedItem.forecastBaseline, selectedItem.periods ?? [], buckets)
+            return trendPeriods.map((period) => ({
+                period: formatPeriodByFrequency(period, frequency),
+                value:
+                    periodMetric === "demand"
+                        ? Number(toFiniteNumber(demandMap[period], 0).toFixed(2))
+                        : Number(toFiniteNumber(forecastMap[period], 0).toFixed(2)),
+            }))
+        }
 
-    const goToRelativeSku = (direction: -1 | 1) => {
-        if (skuOptions.length === 0 || !selectedSku) return
-        const idx = skuOptions.findIndex((sku) => sku === selectedSku)
-        if (idx === -1) return
-        const next = (idx + direction + skuOptions.length) % skuOptions.length
-        setSelectedSku(skuOptions[next])
-    }
+        const aggregatedPoints = buildTrendPoints(targetFrequency)
+        if (aggregatedPoints.length > 1 || targetFrequency === baseFrequency) {
+            return aggregatedPoints
+        }
+        return buildTrendPoints(baseFrequency)
+    }, [baseFrequency, periodMetric, selectedItem, targetFrequency])
 
     const exportCsv = () => {
-        if (tableRows.length === 0) return
+        if (activeView === "validation") {
+            if (filteredValidationRows.length === 0) return
+            const headers = ["SKU", "Store", "ABC", "Method", "sMAPE", "MAE", "RMSE", "Windows", "Risk", "Days Of Cover", "Action"]
+            const rows = filteredValidationRows.map((row) => [
+                row.sku,
+                row.store,
+                row.abcClass,
+                row.method,
+                row.smape.toFixed(2),
+                row.mae.toFixed(2),
+                row.rmse.toFixed(2),
+                row.windows.toFixed(0),
+                row.risk,
+                row.daysOfCover.toFixed(1),
+                row.action,
+            ])
+            const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
+            const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
+            const url = URL.createObjectURL(blob)
+            const link = document.createElement("a")
+            link.href = url
+            link.setAttribute("download", "kpi-explorer-validation.csv")
+            document.body.appendChild(link)
+            link.click()
+            document.body.removeChild(link)
+            URL.revokeObjectURL(url)
+            return
+        }
+
+        if (periodRows.length === 0) return
         const headers = ["SKU", "Store", "ABC", "Method", "Average", ...periods.map((period) => formatPeriodByFrequency(period, targetFrequency))]
-        const rows = tableRows.map((row) => [
+        const rows = periodRows.map((row) => [
             row.sku,
             row.store,
             row.abcClass,
             row.method,
             row.average.toFixed(2),
-            ...row.values.map((v) => v.toFixed(2)),
+            ...row.values.map((value) => value.toFixed(2)),
         ])
-        const csv = [headers.join(","), ...rows.map((r) => r.join(","))].join("\n")
+        const csv = [headers.join(","), ...rows.map((row) => row.join(","))].join("\n")
         const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" })
         const url = URL.createObjectURL(blob)
         const link = document.createElement("a")
         link.href = url
-        link.setAttribute("download", `kpi-navigator-${metric}.csv`)
+        link.setAttribute("download", "kpi-explorer-period.csv")
         document.body.appendChild(link)
         link.click()
         document.body.removeChild(link)
         URL.revokeObjectURL(url)
     }
 
+    const goToRelativeSku = (direction: -1 | 1) => {
+        if (skuOptions.length === 0 || !selectedSeriesKey) return
+        const currentIndex = skuOptions.findIndex((option) => option.value === selectedSeriesKey)
+        if (currentIndex === -1) return
+        const nextIndex = (currentIndex + direction + skuOptions.length) % skuOptions.length
+        setSelectedSeriesKey(skuOptions[nextIndex].value)
+    }
+
     return (
         <div className="min-h-screen bg-background">
-            <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
+            <div className="container mx-auto max-w-[2000px] space-y-5 p-5 min-w-0">
                 <div>
-                    <h1 className="text-3xl font-bold text-foreground mb-2">KPI Navigator</h1>
-                    <p className="text-muted-foreground">Drill into KPI performance by store, SKU, and period.</p>
+                    <h1 className="mb-2 text-3xl font-bold text-foreground">KPI Explorer</h1>
+                    <p className="text-muted-foreground">Switch between validation diagnostics and period-level demand or forecast exploration.</p>
                 </div>
 
-                <Card>
-                    <CardContent className="p-3 flex flex-wrap items-center justify-between gap-3">
-                        <div className="flex flex-wrap items-center gap-2">
-                            <Select value={storeFilter} onValueChange={setStoreFilter}>
-                                <SelectTrigger className="w-[180px]"><SelectValue placeholder="Store" /></SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All stores</SelectItem>
-                                    {stores.map((store) => (
-                                        <SelectItem key={store} value={store}>{store}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-3">
+                    <div className="flex flex-wrap items-center gap-2">
+                        <Select value={storeFilter} onValueChange={setStoreFilter}>
+                            <SelectTrigger className="w-[180px]"><SelectValue placeholder="Store" /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All stores</SelectItem>
+                                {stores.map((store) => (
+                                    <SelectItem key={store} value={store}>{store}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                        <Badge variant="outline">Model: {(reportSummary?.runConfig?.executedModel || reportSummary?.validation?.selectedModel?.model || "-").toUpperCase()}</Badge>
+                        <Badge variant="outline">Mode: {(reportSummary?.runConfig?.executedMode || reportSummary?.validation?.selectedModel?.mode || "-").toUpperCase()}</Badge>
+                        <Badge variant="outline">Frequency: {(reportSummary?.runConfig?.detectedFrequency || payload.frequency || "-").toUpperCase()}</Badge>
+                    </div>
 
-                            <Button variant="outline" size="sm" onClick={() => goToRelativeSku(-1)} disabled={skuOptions.length <= 1}>Prev SKU</Button>
-                            <Select value={selectedSku || undefined} onValueChange={setSelectedSku}>
-                                <SelectTrigger className="w-[220px]"><SelectValue placeholder="Select SKU" /></SelectTrigger>
-                                <SelectContent>
-                                    {skuOptions.map((sku) => (
-                                        <SelectItem key={sku} value={sku}>{sku}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Button variant="outline" size="sm" onClick={() => goToRelativeSku(1)} disabled={skuOptions.length <= 1}>Next SKU</Button>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" size="icon" onClick={loadData} disabled={isLoading} aria-label="Refresh">
+                            <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={exportCsv} aria-label="Export CSV">
+                            <Download className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
 
-                            <Select value={metric} onValueChange={(v: MetricKey) => setMetric(v)}>
-                                <SelectTrigger className="w-[180px]"><SelectValue placeholder="KPI metric" /></SelectTrigger>
-                                <SelectContent>
-                                    {METRIC_OPTIONS.map((option) => (
-                                        <SelectItem key={option.value} value={option.value}>{option.label}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Select value={aggregationType} onValueChange={(value) => setAggregationType(value as AggregationLabel)}>
-                                <SelectTrigger className="w-[160px]"><SelectValue placeholder="Aggregation" /></SelectTrigger>
-                                <SelectContent>
-                                    {availableAggregations.map((option) => (
-                                        <SelectItem key={option} value={option}>{option}</SelectItem>
-                                    ))}
-                                </SelectContent>
-                            </Select>
-                            <Badge variant="outline">Frequency: {selectedItem?.frequency ?? payload.frequency ?? "unknown"}</Badge>
-                        </div>
-
-                        <div className="flex items-center gap-2">
-                            <Button variant="outline" size="icon" onClick={loadData} disabled={isLoading} aria-label="Refresh">
-                                <RefreshCw className={`h-4 w-4 ${isLoading ? "animate-spin" : ""}`} />
-                            </Button>
-                            <Button variant="outline" size="icon" onClick={exportCsv} disabled={tableRows.length === 0} aria-label="Export CSV">
-                                <Download className="h-4 w-4" />
-                            </Button>
-                        </div>
-                    </CardContent>
-                </Card>
-
-                <Card>
-                    <CardContent className="p-3 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <Badge variant="outline">Accuracy: good &gt;= 85%</Badge>
-                        <Badge variant="outline">Error: good &lt;= 10%</Badge>
-                        <Badge variant="outline">Bias: good if |bias| &lt;= 5%</Badge>
-                        <Badge variant="outline">Demand/Forecast: raw quantities</Badge>
-                    </CardContent>
-                </Card>
+                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                    <Badge variant="outline">Validation view uses latest-run series summaries</Badge>
+                    <Badge variant="outline">Period view uses aggregated direct Demand and Forecast values</Badge>
+                    <Badge variant="outline">SKU-location is the primary key</Badge>
+                </div>
 
                 {error ? (
                     <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
-                        Failed to load KPI navigator. {error}
+                        Failed to load KPI explorer. {error}
                     </div>
-                ) : tableRows.length === 0 ? (
+                ) : (activeView === "validation" ? filteredValidationRows.length === 0 : periodRows.length === 0) ? (
                     <div className="rounded-md border bg-muted/30 p-8 text-center">
-                        <p className="text-base font-medium">No KPI navigator data available</p>
-                        <p className="text-sm text-muted-foreground mt-1">Run a forecast first to populate this view.</p>
+                        <p className="text-base font-medium">No KPI explorer data available</p>
+                        <p className="mt-1 text-sm text-muted-foreground">Run a forecast first to populate this view.</p>
                     </div>
                 ) : (
-                    <>
-                        <Card>
-                            <CardHeader>
-                                <CardTitle className="inline-flex items-center gap-2">{METRIC_OPTIONS.find((m) => m.value === metric)?.label} Matrix<MetricHelp formula={metric === "accuracy" ? "Accuracy = 100 - (|Forecast - Demand| / max(1, |Demand|)) * 100" : metric === "error" ? "Error = (|Forecast - Demand| / max(1, |Demand|)) * 100" : metric === "bias" ? "Bias = ((Forecast - Demand) / max(1, |Demand|)) * 100" : "Demand/Forecast are direct values from output artifacts"} /></CardTitle>
-                            </CardHeader>
-                            <CardContent className="overflow-auto">
-                                <Table className="min-w-[980px]">
-                                    <TableHeader>
-                                        <TableRow>
-                                            <TableHead>SKU</TableHead>
-                                            <TableHead>Store</TableHead>
-                                            <TableHead>ABC</TableHead>
-                                            <TableHead>Method</TableHead>
-                                            <TableHead className="text-right">Average</TableHead>
-                                            {periods.map((period) => (
-                                                <TableHead key={period} className="text-right">{formatPeriodByFrequency(period, targetFrequency)}</TableHead>
-                                            ))}
-                                        </TableRow>
-                                    </TableHeader>
-                                    <TableBody>
-                                        {tableRows.map((row) => (
-                                            <TableRow key={`${row.store}-${row.sku}`} className={row.sku === selectedSku ? "bg-muted/40" : ""}>
-                                                <TableCell className="font-medium">{row.sku}</TableCell>
-                                                <TableCell>{row.store}</TableCell>
-                                                <TableCell>{row.abcClass}</TableCell>
-                                                <TableCell>{row.method}</TableCell>
-                                                <TableCell className={`text-right font-medium ${cellClass(row.average, metric)}`}>
-                                                    {row.average.toFixed(2)}
-                                                </TableCell>
-                                                {row.values.map((value, idx) => (
-                                                    <TableCell key={idx} className={`text-right ${cellClass(value, metric)}`}>
-                                                        {value.toFixed(2)}
-                                                    </TableCell>
+                    <Tabs value={activeView} onValueChange={(value) => setActiveView(value as "validation" | "period")} className="w-full">
+                        <TabsList className="grid w-full grid-cols-2">
+                            <TabsTrigger value="validation">Validation View</TabsTrigger>
+                            <TabsTrigger value="period">Period View</TabsTrigger>
+                        </TabsList>
+
+                        <TabsContent value="validation" className="mt-4 space-y-4">
+                            <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+                                <Select value={exceptionPreset} onValueChange={(value) => setExceptionPreset(value as ExceptionPreset)}>
+                                    <SelectTrigger className="w-[210px]"><SelectValue placeholder="Exception preset" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="all">All items</SelectItem>
+                                        <SelectItem value="a-class">A-class only</SelectItem>
+                                        <SelectItem value="low-accuracy">Low accuracy</SelectItem>
+                                        <SelectItem value="high-risk">High replenishment risk</SelectItem>
+                                        <SelectItem value="stockout">Stockout soon</SelectItem>
+                                        <SelectItem value="low-confidence">Low confidence</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={validationSort} onValueChange={(value) => setValidationSort(value as ValidationSortKey)}>
+                                    <SelectTrigger className="w-[200px]"><SelectValue placeholder="Sort by" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="smape">Sort by sMAPE</SelectItem>
+                                        <SelectItem value="mae">Sort by MAE</SelectItem>
+                                        <SelectItem value="rmse">Sort by RMSE</SelectItem>
+                                        <SelectItem value="demand">Sort by demand exposure</SelectItem>
+                                        <SelectItem value="cover">Sort by days of cover</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={validationMetric} onValueChange={(value) => setValidationMetric(value as ValidationMetricKey)}>
+                                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Metric" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="smape">sMAPE (%)</SelectItem>
+                                        <SelectItem value="mae">MAE</SelectItem>
+                                        <SelectItem value="rmse">RMSE</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Badge variant="outline">Rows: {filteredValidationRows.length}</Badge>
+                            </div>
+
+                            <div className="grid gap-4 grid-cols-1 xl:grid-cols-3">
+                                <div className="xl:col-span-2 rounded-lg border">
+                                    <div className="p-6 pb-3">
+                                        <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
+                                            Validation Exceptions
+                                            <MetricHelp formula={validationMetric === "smape" ? "sMAPE = mean(2 * |Forecast - Demand| / (|Forecast| + |Demand|)) * 100" : validationMetric === "mae" ? "MAE = mean(|Forecast - Demand|)" : "RMSE = sqrt(mean((Forecast - Demand)^2))"} />
+                                        </h2>
+                                    </div>
+                                    <div className="overflow-auto px-6 pb-6">
+                                        <Table className="min-w-[1080px]">
+                                            <TableHeader>
+                                                <TableRow>
+                                                    <TableHead>SKU-Location</TableHead>
+                                                    <TableHead>ABC</TableHead>
+                                                    <TableHead>Method</TableHead>
+                                                    <TableHead className="text-right">sMAPE</TableHead>
+                                                    <TableHead className="text-right">MAE</TableHead>
+                                                    <TableHead className="text-right">RMSE</TableHead>
+                                                    <TableHead className="text-right">Windows</TableHead>
+                                                    <TableHead>Risk</TableHead>
+                                                    <TableHead>Action</TableHead>
+                                                </TableRow>
+                                            </TableHeader>
+                                            <TableBody>
+                                                {filteredValidationRows.slice(0, 20).map((row) => (
+                                                    <TableRow
+                                                        key={row.seriesKey}
+                                                        className={row.seriesKey === selectedValidationRow?.seriesKey ? "bg-muted/40" : ""}
+                                                        onClick={() => setSelectedSeriesKey(row.seriesKey)}
+                                                    >
+                                                        <TableCell className="font-medium">{row.skuLabel}</TableCell>
+                                                        <TableCell>{row.abcClass}</TableCell>
+                                                        <TableCell>{row.method}</TableCell>
+                                                        <TableCell className="text-right">{row.smape.toFixed(2)}%</TableCell>
+                                                        <TableCell className="text-right">{row.mae.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right">{row.rmse.toFixed(2)}</TableCell>
+                                                        <TableCell className="text-right">{row.windows.toFixed(0)}</TableCell>
+                                                        <TableCell>{row.risk}</TableCell>
+                                                        <TableCell>{row.action}</TableCell>
+                                                    </TableRow>
+                                                ))}
+                                            </TableBody>
+                                        </Table>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border p-6">
+                                    <h2 className="text-lg font-semibold">Selected Exception</h2>
+                                    <div className="mt-4 space-y-3 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground">Item</p>
+                                            <p className="font-medium">{selectedValidationRow?.skuLabel ?? "--"}</p>
+                                            <p className="text-muted-foreground">{selectedValidationRow?.skuDesc ?? ""}</p>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-3">
+                                            <div>
+                                                <p className="text-muted-foreground">sMAPE</p>
+                                                <p className="font-medium">{selectedValidationRow ? `${selectedValidationRow.smape.toFixed(2)}%` : "--"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">Windows</p>
+                                                <p className="font-medium">{selectedValidationRow?.windows.toFixed(0) ?? "--"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">MAE</p>
+                                                <p className="font-medium">{selectedValidationRow?.mae.toFixed(2) ?? "--"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">RMSE</p>
+                                                <p className="font-medium">{selectedValidationRow?.rmse.toFixed(2) ?? "--"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">Risk</p>
+                                                <p className="font-medium">{selectedValidationRow?.risk ?? "--"}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-muted-foreground">Days of cover</p>
+                                                <p className="font-medium">{selectedValidationRow?.daysOfCover.toFixed(1) ?? "--"}</p>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Demand exposure</p>
+                                            <p className="font-medium">{selectedValidationRow ? compactNumber(selectedValidationRow.horizonDemand) : "--"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Recommended action</p>
+                                            <p className="font-medium">{selectedValidationRow?.action ?? "--"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Stockout date</p>
+                                            <p className="font-medium">{formatDateLabel(selectedValidationRow?.predictedStockoutDate)}</p>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2 pt-2">
+                                            {selectedValidationRow ? (
+                                                <Button variant="outline" size="sm" asChild>
+                                                    <Link href={`/forecasts/forecast-editor?sku=${encodeURIComponent(selectedValidationRow.sku)}&store=${encodeURIComponent(selectedValidationRow.store)}`}>
+                                                        Open Editor
+                                                    </Link>
+                                                </Button>
+                                            ) : null}
+                                            <Button variant="outline" size="sm" asChild>
+                                                <Link href="/replenishments">Open Replenishment</Link>
+                                            </Button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </TabsContent>
+
+                        <TabsContent value="period" className="mt-4 space-y-4">
+                            <div className="flex flex-wrap items-center gap-2 rounded-lg border p-3">
+                                <Button variant="outline" size="sm" onClick={() => goToRelativeSku(-1)} disabled={skuOptions.length <= 1}>Prev SKU</Button>
+                                <Select value={selectedSeriesKey || undefined} onValueChange={setSelectedSeriesKey}>
+                                    <SelectTrigger className="w-[260px]"><SelectValue placeholder="Select SKU" /></SelectTrigger>
+                                    <SelectContent>
+                                        {skuOptions.map((option) => (
+                                            <SelectItem key={option.value} value={option.value}>{option.sku} · {option.store}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                                <Button variant="outline" size="sm" onClick={() => goToRelativeSku(1)} disabled={skuOptions.length <= 1}>Next SKU</Button>
+                                <Select value={periodMetric} onValueChange={(value) => setPeriodMetric(value as PeriodMetricKey)}>
+                                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Metric" /></SelectTrigger>
+                                    <SelectContent>
+                                        <SelectItem value="forecast">Forecast</SelectItem>
+                                        <SelectItem value="demand">Demand</SelectItem>
+                                    </SelectContent>
+                                </Select>
+                                <Select value={aggregationType} onValueChange={(value) => setAggregationType(value as AggregationLabel)}>
+                                    <SelectTrigger className="w-[180px]"><SelectValue placeholder="Aggregation" /></SelectTrigger>
+                                    <SelectContent>
+                                        {availableAggregations.map((option) => (
+                                            <SelectItem key={option} value={option}>{option}</SelectItem>
+                                        ))}
+                                    </SelectContent>
+                                </Select>
+                            </div>
+
+                            <div className="grid gap-4 grid-cols-1 xl:grid-cols-3">
+                                <div className="xl:col-span-2 rounded-lg border">
+                                    <div className="p-6 pb-3">
+                                        <h2 className="inline-flex items-center gap-2 text-lg font-semibold">
+                                            Selected SKU Trend
+                                            <MetricHelp formula={periodMetric === "forecast" ? "Forecast values are aggregated from the generated forecast output." : "Demand values are aggregated from the observed history in the merged forecast output."} />
+                                        </h2>
+                                    </div>
+                                    <div className="px-6 pb-6">
+                                        <ChartContainer
+                                            config={{
+                                                value: {
+                                                    label: periodMetric === "forecast" ? "Forecast" : "Demand",
+                                                    color: "hsl(var(--chart-1))",
+                                                },
+                                            }}
+                                            className="h-[260px] w-full"
+                                        >
+                                            <ResponsiveContainer width="100%" height="100%">
+                                                <LineChart data={selectedTrend} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="period" tick={{ fontSize: 12 }} />
+                                                    <YAxis tick={{ fontSize: 12 }} />
+                                                    <ChartTooltip content={<ChartTooltipContent />} />
+                                                    <Line type="monotone" dataKey="value" stroke="var(--color-value)" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+                                                </LineChart>
+                                            </ResponsiveContainer>
+                                        </ChartContainer>
+                                    </div>
+                                </div>
+
+                                <div className="rounded-lg border p-6">
+                                    <h2 className="text-lg font-semibold">Selected SKU Detail</h2>
+                                    <div className="mt-4 space-y-3 text-sm">
+                                        <div>
+                                            <p className="text-muted-foreground">Item</p>
+                                            <p className="font-medium">
+                                                {selectedItem
+                                                    ? `${selectedItem.sku} · ${selectedItem.store || getForecastMetadata(metadata, selectedItem.sku, selectedItem.store)?.store || "Unknown"}`
+                                                    : "--"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Validation snapshot</p>
+                                            <p className="font-medium">
+                                                {selectedValidationRow
+                                                    ? `sMAPE ${selectedValidationRow.smape.toFixed(2)}%, ${selectedValidationRow.risk} risk`
+                                                    : "--"}
+                                            </p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Recommended reorder</p>
+                                            <p className="font-medium">{selectedValidationRow ? compactNumber(selectedValidationRow.recommendedReorderQty) : "--"}</p>
+                                        </div>
+                                        <div>
+                                            <p className="text-muted-foreground">Action</p>
+                                            <p className="font-medium">{selectedValidationRow?.action ?? "--"}</p>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border">
+                                <div className="p-6 pb-3">
+                                    <h2 className="text-lg font-semibold">{periodMetric === "forecast" ? "Forecast" : "Demand"} Matrix</h2>
+                                </div>
+                                <div className="overflow-auto px-6 pb-6">
+                                    <Table className="min-w-[980px]">
+                                        <TableHeader>
+                                            <TableRow>
+                                                <TableHead>SKU</TableHead>
+                                                <TableHead>Store</TableHead>
+                                                <TableHead>ABC</TableHead>
+                                                <TableHead>Method</TableHead>
+                                                <TableHead className="text-right">Average</TableHead>
+                                                {periods.map((period) => (
+                                                    <TableHead key={period} className="text-right">{formatPeriodByFrequency(period, targetFrequency)}</TableHead>
                                                 ))}
                                             </TableRow>
-                                        ))}
-                                    </TableBody>
-                                </Table>
-                            </CardContent>
-                        </Card>
-
-                        <Card>
-                            <CardHeader>
-                                <CardTitle>Selected SKU Trend ({selectedSku || "-"})</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <ChartContainer
-                                    config={{
-                                        value: {
-                                            label: METRIC_OPTIONS.find((m) => m.value === metric)?.label ?? "Value",
-                                            color: "hsl(var(--chart-1))",
-                                        },
-                                    }}
-                                    className="h-[250px] w-full"
-                                >
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <LineChart data={selectedTrend} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
-                                            <CartesianGrid strokeDasharray="3 3" />
-                                            <XAxis dataKey="period" tick={{ fontSize: 12 }} />
-                                            <YAxis tick={{ fontSize: 12 }} />
-                                            <ChartTooltip content={<ChartTooltipContent />} />
-                                            <Line type="monotone" dataKey="value" stroke="var(--color-value)" strokeWidth={2} dot={false} />
-                                        </LineChart>
-                                    </ResponsiveContainer>
-                                </ChartContainer>
-                            </CardContent>
-                        </Card>
-                    </>
+                                        </TableHeader>
+                                        <TableBody>
+                                            {periodRows.map((row) => (
+                                                <TableRow key={row.seriesKey} className={row.seriesKey === selectedSeriesKey ? "bg-muted/40" : ""} onClick={() => setSelectedSeriesKey(row.seriesKey)}>
+                                                    <TableCell className="font-medium">{row.sku}</TableCell>
+                                                    <TableCell>{row.store}</TableCell>
+                                                    <TableCell>{row.abcClass}</TableCell>
+                                                    <TableCell>{row.method}</TableCell>
+                                                    <TableCell className="text-right font-medium">{formatMetricValue(row.average)}</TableCell>
+                                                    {row.values.map((value, index) => (
+                                                        <TableCell key={index} className="text-right">{formatMetricValue(value)}</TableCell>
+                                                    ))}
+                                                </TableRow>
+                                            ))}
+                                        </TableBody>
+                                        </Table>
+                                </div>
+                            </div>
+                        </TabsContent>
+                    </Tabs>
                 )}
             </div>
         </div>

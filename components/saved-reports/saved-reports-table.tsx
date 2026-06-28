@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Checkbox } from "@/components/ui/checkbox"
 import { Button } from "@/components/ui/button"
+import { Badge } from "@/components/ui/badge"
 import type { SavedReportDefinition } from "@/lib/saved-reports"
 
 type SavedReportsTableProps = {
@@ -21,7 +22,8 @@ type SavedReportsTableProps = {
     handleDeleteOne: (reportId: string) => void
 }
 
-const formatDate = (value: string) => {
+const formatDate = (value: string | null | undefined) => {
+    if (!value) return "-"
     const parsed = new Date(value)
     if (Number.isNaN(parsed.getTime())) return "-"
     return format(parsed, "yyyy-MM-dd HH:mm")
@@ -36,6 +38,9 @@ const dateRangeLabel = (from: string, to: string) => {
     if (!from && !to) return "Any"
     return `${from || "..."} to ${to || "..."}`
 }
+
+const percent = (value: number | null | undefined) =>
+    typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(1)}%` : "-"
 
 export const SavedReportsTable = ({
     isAllSelected,
@@ -52,13 +57,13 @@ export const SavedReportsTable = ({
     const selectAllState: CheckedState = isIndeterminate ? "indeterminate" : isAllSelected
 
     return (
-        <div className="px-6">
-            <Card>
-                <CardHeader>
-                    <CardTitle>Your Saved Report Criteria</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
+        <Card>
+            <CardHeader>
+                <CardTitle>Your Saved Report Library</CardTitle>
+            </CardHeader>
+            <CardContent>
+                <div className="overflow-x-auto">
+                    <Table className="min-w-[1300px]">
                         <TableHeader>
                             <TableRow>
                                 <TableHead className="w-12">
@@ -69,20 +74,22 @@ export const SavedReportsTable = ({
                                     />
                                 </TableHead>
                                 <TableHead>Name</TableHead>
-                                <TableHead>Query</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Model</TableHead>
+                                <TableHead>Criteria</TableHead>
                                 <TableHead className="text-right">Runs</TableHead>
+                                <TableHead className="text-right">Scenarios</TableHead>
                                 <TableHead className="text-right">Avg Accuracy</TableHead>
-                                <TableHead>Date Range</TableHead>
-                                <TableHead>Updated</TableHead>
+                                <TableHead className="text-right">Avg sMAPE</TableHead>
+                                <TableHead className="text-right">High Error</TableHead>
+                                <TableHead className="text-right">Assumption Points</TableHead>
+                                <TableHead>Best / Worst</TableHead>
+                                <TableHead>Generated</TableHead>
                                 <TableHead className="text-right">Actions</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
                             {filteredReports.length === 0 ? (
                                 <TableRow>
-                                    <TableCell colSpan={10} className="text-center py-8 text-muted-foreground">
+                                    <TableCell colSpan={12} className="text-center py-8 text-muted-foreground">
                                         {searchTerm ? `No saved reports matching "${searchTerm}"` : "No saved reports yet"}
                                     </TableCell>
                                 </TableRow>
@@ -96,18 +103,32 @@ export const SavedReportsTable = ({
                                                 aria-label={`Select ${report.name}`}
                                             />
                                         </TableCell>
-                                        <TableCell className="font-medium">{report.name}</TableCell>
-                                        <TableCell className="max-w-[220px] truncate" title={report.criteria.searchText || "Any"}>
-                                            {report.criteria.searchText || "Any"}
+                                        <TableCell className="font-medium">
+                                            <div>{report.name}</div>
+                                            <div className="text-xs text-muted-foreground">Updated {formatDate(report.updatedAt)}</div>
                                         </TableCell>
-                                        <TableCell>{toLabel(report.criteria.status)}</TableCell>
-                                        <TableCell>{toLabel(report.criteria.model)}</TableCell>
+                                        <TableCell className="max-w-[280px]">
+                                            <div className="flex flex-wrap gap-1">
+                                                <Badge variant="outline">Status {toLabel(report.criteria.status)}</Badge>
+                                                <Badge variant="outline">Model {toLabel(report.criteria.model)}</Badge>
+                                            </div>
+                                            <div className="mt-1 text-xs text-muted-foreground">
+                                                {report.criteria.searchText || "Any query"} · {dateRangeLabel(report.criteria.dateFrom, report.criteria.dateTo)}
+                                            </div>
+                                        </TableCell>
                                         <TableCell className="text-right">{report.snapshot?.runCount ?? "-"}</TableCell>
-                                        <TableCell className="text-right">
-                                            {typeof report.snapshot?.averageAccuracy === "number" ? `${report.snapshot.averageAccuracy.toFixed(2)}%` : "-"}
+                                        <TableCell className="text-right">{report.snapshot?.scenarioCount ?? "-"}</TableCell>
+                                        <TableCell className="text-right">{percent(report.snapshot?.averageAccuracy)}</TableCell>
+                                        <TableCell className="text-right">{percent(report.snapshot?.averageSmape)}</TableCell>
+                                        <TableCell className="text-right">{report.snapshot?.highErrorSeries ?? "-"}</TableCell>
+                                        <TableCell className="text-right">{report.snapshot?.assumptionsAffected ?? "-"}</TableCell>
+                                        <TableCell>
+                                            <div className="text-xs">
+                                                <div>Best: {report.snapshot?.bestRunId ?? "-"}</div>
+                                                <div className="text-muted-foreground">Worst: {report.snapshot?.worstRunId ?? "-"}</div>
+                                            </div>
                                         </TableCell>
-                                        <TableCell>{dateRangeLabel(report.criteria.dateFrom, report.criteria.dateTo)}</TableCell>
-                                        <TableCell className="text-muted-foreground">{formatDate(report.updatedAt)}</TableCell>
+                                        <TableCell className="text-muted-foreground">{formatDate(report.snapshot?.generatedAt)}</TableCell>
                                         <TableCell className="text-right">
                                             <div className="flex justify-end gap-2">
                                                 <Button variant="outline" size="sm" onClick={() => handleDownload(report)} className="h-8 w-8 p-0">
@@ -116,7 +137,7 @@ export const SavedReportsTable = ({
                                                 </Button>
                                                 <Button variant="outline" size="sm" onClick={() => handleRunNow(report.id)} className="h-8 w-8 p-0">
                                                     <Play className="h-4 w-4" />
-                                                    <span className="sr-only">Run {report.name}</span>
+                                                    <span className="sr-only">Open {report.name}</span>
                                                 </Button>
                                                 <Button
                                                     variant="outline"
@@ -134,8 +155,8 @@ export const SavedReportsTable = ({
                             )}
                         </TableBody>
                     </Table>
-                </CardContent>
-            </Card>
-        </div>
+                </div>
+            </CardContent>
+        </Card>
     )
 }

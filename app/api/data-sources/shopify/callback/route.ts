@@ -14,6 +14,8 @@ import { encryptSecret } from "@/lib/data-source-secrets"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
 import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { buildSourceDiagnostics } from "@/lib/data-source-diagnostics"
+import { defaultProviderSetupConfig } from "@/lib/provider-source-config"
 
 const SHOPIFY_STATE_COOKIE = "shopify_oauth_state"
 
@@ -166,6 +168,14 @@ export async function GET(request: NextRequest) {
     nextImportAt: existing?.nextImportAt || null,
     retryCount: existing?.retryCount || 0,
     lastError: existing?.lastError || null,
+    sourceConfig: existing?.sourceConfig || defaultProviderSetupConfig("shopify"),
+    diagnostics: buildSourceDiagnostics({
+      provider: "shopify",
+      grantedScopes: (tokenPayload.scope || "").split(",").map((item) => item.trim()).filter(Boolean),
+      availableTables: sanitizeAvailableObjects("shopify", statePayload.availableTables ?? existing?.availableTables),
+      selectedTables: sanitizeSelectedObjects("shopify", statePayload.selectedTables ?? existing?.selectedTables),
+      userMessage: "Shopify connected. Review reachable sales, catalog, and inventory entities before running preview.",
+    }),
     runs: existing?.runs || [],
     createdAt: existing?.createdAt || now,
     updatedAt: now,

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server"
 import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses"
 import { z } from "zod"
-import { getValidIdToken } from "@/lib/server-auth"
+import { getAuthenticatedApiContext } from "@/lib/server-auth"
+import { getServerAwsRegion } from "@/lib/server-runtime-config"
 
 export const runtime = "nodejs"
 
@@ -27,12 +28,15 @@ const escapeHtml = (value: string) =>
 const wrapBase64 = (value: string) => value.replace(/(.{76})/g, "$1\r\n")
 
 export async function POST(request: Request) {
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
-  const region = process.env.AWS_REGION || ""
+  let region = ""
+  try {
+    region = getServerAwsRegion()
+  } catch {
+    region = ""
+  }
   const fromEmail = process.env.AWS_SES_FROM_EMAIL || ""
   const toEmail = process.env.HELP_CENTER_FORWARD_TO_EMAIL || "info@arkforecasting.com.au"
 
@@ -156,17 +160,8 @@ export async function POST(request: Request) {
 
   const rawMessage = parts.join("\r\n")
 
-  const accessKeyId = process.env.AWS_ACCESS_KEY_ID
-  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY
   const sesClient = new SESClient({
     region,
-    credentials:
-      accessKeyId && secretAccessKey
-        ? {
-            accessKeyId,
-            secretAccessKey,
-          }
-        : undefined,
   })
 
   try {

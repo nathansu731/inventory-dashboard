@@ -1,23 +1,24 @@
-export async function GET() {
+export async function GET(request: Request) {
   const { appsyncRequest } = await import("@/lib/appsync")
-  const { getValidIdToken } = await import("@/lib/server-auth")
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
   const { NextResponse } = await import("next/server")
 
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
+
+  const { searchParams } = new URL(request.url)
+  const runId = searchParams.get("runId")
 
   const query = `
-    query GetReportSummary {
-      getReportSummary {
+    query GetReportSummary($runId: ID) {
+      getReportSummary(runId: $runId) {
         status
         result
       }
     }
   `
 
-  const json = await appsyncRequest(idToken, query)
+  const json = await appsyncRequest(idToken, query, { runId })
   const response = NextResponse.json(json.data.getReportSummary)
   for (const cookie of cookiesToSet) {
     response.cookies.set(cookie.name, cookie.value, cookie.options)

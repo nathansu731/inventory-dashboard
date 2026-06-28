@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
 import crypto from "crypto";
+import { getServerCognitoConfig } from "@/lib/server-runtime-config";
 
 export async function POST(req: NextRequest) {
     const formData = await req.formData();
@@ -11,22 +12,10 @@ export async function POST(req: NextRequest) {
         return NextResponse.redirect(new URL("/login?error=missing_credentials", req.url));
     }
 
-    const clientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || "";
-    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
-
-    let region = process.env.COGNITO_REGION || "";
-    if (!region && domain) {
-        try {
-            const host = new URL(domain).host;
-            const match = host.match(/auth\.([a-z0-9-]+)\.amazoncognito\.com/i);
-            region = match?.[1] || "";
-        } catch {
-            region = "";
-        }
-    }
-
-    if (!clientId || !region) {
+    let cognito;
+    try {
+        cognito = getServerCognitoConfig();
+    } catch {
         return NextResponse.redirect(new URL("/login?error=missing_config", req.url));
     }
 
@@ -35,18 +24,18 @@ export async function POST(req: NextRequest) {
         PASSWORD: String(password),
     };
 
-    if (clientSecret) {
+    if (cognito.clientSecret) {
         const secretHash = crypto
-            .createHmac("sha256", clientSecret)
-            .update(`${username}${clientId}`)
+            .createHmac("sha256", cognito.clientSecret)
+            .update(`${username}${cognito.clientId}`)
             .digest("base64");
         authParams.SECRET_HASH = secretHash;
     }
 
-    const client = new CognitoIdentityProviderClient({ region });
+    const client = new CognitoIdentityProviderClient({ region: cognito.region });
     const command = new InitiateAuthCommand({
         AuthFlow: "USER_PASSWORD_AUTH",
-        ClientId: clientId,
+        ClientId: cognito.clientId,
         AuthParameters: authParams,
     });
 

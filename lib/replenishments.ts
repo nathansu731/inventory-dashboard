@@ -1,4 +1,5 @@
 type SkuMetadata = {
+  sku?: string
   store?: string
   skuDesc?: string
   ABCclass?: string
@@ -7,6 +8,7 @@ type SkuMetadata = {
 
 type DailyForecast = {
   sku: string
+  store?: string
   date: string
   forecast: number
 }
@@ -14,6 +16,7 @@ type DailyForecast = {
 export type ReplenishmentRiskTier = "Critical" | "High" | "Medium" | "Healthy"
 
 export type ReplenishmentRow = {
+  seriesKey: string
   sku: string
   skuDesc: string
   store: string
@@ -29,7 +32,16 @@ export type ReplenishmentRow = {
   leadTimeDays: number
   safetyStockDays: number
   risk: ReplenishmentRiskTier
+  reason: string
 }
+
+export type InventorySnapshotLookup = Record<
+  string,
+  {
+    onHand: number
+    asOfDate?: string | null
+  }
+>
 
 type RiskSummary = {
   totalSkus: number
@@ -103,23 +115,48 @@ const computeRiskTier = (daysOfCover: number, leadTimeDays: number, safetyStockD
   return "Healthy"
 }
 
+const buildSeriesKey = (sku: string, store: string) => `${sku}::${store}`
+
+const buildRiskReason = (
+  risk: ReplenishmentRiskTier,
+  daysOfCover: number,
+  leadTimeDays: number,
+  safetyStockDays: number,
+  onHandSource?: "provided" | "estimated" | "unknown"
+) => {
+  const inventoryNote = onHandSource === "estimated" ? " Inventory is estimated." : ""
+  if (risk === "Critical") {
+    return `Days of cover (${daysOfCover.toFixed(1)}) is below 60% of lead time (${leadTimeDays}d).${inventoryNote}`
+  }
+  if (risk === "High") {
+    return `Days of cover (${daysOfCover.toFixed(1)}) is below lead time (${leadTimeDays}d).${inventoryNote}`
+  }
+  if (risk === "Medium") {
+    return `Days of cover (${daysOfCover.toFixed(1)}) is inside the lead time + safety stock buffer (${leadTimeDays + safetyStockDays}d).${inventoryNote}`
+  }
+  return `Coverage is above the lead time + safety stock buffer.${inventoryNote}`
+}
+
 export const buildReplenishmentRows = (
   metadata: Record<string, SkuMetadata>,
   dailyForecasts: DailyForecast[],
-  horizonDays = 30
+  horizonDays = 30,
+  inventorySnapshot: InventorySnapshotLookup = {}
 ): ReplenishmentRow[] => {
   const today = new Date()
   const tomorrow = addDays(today, 1)
   const horizonEnd = addDays(tomorrow, Math.max(1, horizonDays) - 1)
 
-  const rows: ReplenishmentRow[] = Object.entries(metadata).map(([sku, meta]) => {
+  const rows: ReplenishmentRow[] = Object.entries(metadata).map(([seriesKey, meta]) => {
+    const sku = meta.sku || seriesKey.split("::")[0] || seriesKey
+    const store = meta.store || seriesKey.split("::")[1] || "Unknown"
     const abcClass = normalizeClass(meta.ABCclass)
     const leadTimeDays = LEAD_TIME_BY_CLASS[abcClass] ?? LEAD_TIME_BY_CLASS.C
     const safetyStockDays = SAFETY_DAYS_BY_CLASS[abcClass] ?? SAFETY_DAYS_BY_CLASS.C
     const baseCoverDays = COVER_DAYS_PROXY_BY_CLASS[abcClass] ?? COVER_DAYS_PROXY_BY_CLASS.C
 
     const series = dailyForecasts
-      .filter((entry) => entry.sku === sku)
+      .filter((entry) => entry.sku === sku && (entry.store || "Unknown") === store)
       .filter((entry) => {
         const date = parseDate(entry.date)
         return Boolean(date && date >= tomorrow && date <= horizonEnd)
@@ -134,7 +171,10 @@ export const buildReplenishmentRows = (
     const coverAdjustment = variability > 0.7 ? -3 : variability > 0.4 ? -2 : variability > 0.25 ? -1 : 1
     const estimatedCoverDays = Math.max(2, baseCoverDays + coverAdjustment)
     const estimatedOnHand = Math.round(avgDailyDemand * estimatedCoverDays)
-    const daysOfCover = avgDailyDemand > 0 ? estimatedOnHand / avgDailyDemand : 999
+    const providedOnHand = inventorySnapshot[buildSeriesKey(sku, store)]?.onHand
+    const effectiveOnHand = Number.isFinite(providedOnHand) ? Number(providedOnHand) : estimatedOnHand
+    const onHandSource = Number.isFinite(providedOnHand) ? "provided" : "estimated"
+    const daysOfCover = avgDailyDemand > 0 ? effectiveOnHand / avgDailyDemand : 999
 
     const risk = computeRiskTier(daysOfCover, leadTimeDays, safetyStockDays)
     const predictedStockoutDate =
@@ -145,18 +185,19 @@ export const buildReplenishmentRows = (
         : null
     const recommendedReorderQty = Math.max(
       0,
-      Math.ceil((leadTimeDays + safetyStockDays) * avgDailyDemand - estimatedOnHand)
+      Math.ceil((leadTimeDays + safetyStockDays) * avgDailyDemand - effectiveOnHand)
     )
 
     return {
+      seriesKey: buildSeriesKey(sku, store),
       sku,
       skuDesc: meta.skuDesc || "N/A",
-      store: meta.store || "Unknown",
+      store,
       abcClass,
       avgDailyDemand: Number(avgDailyDemand.toFixed(2)),
       horizonDemand: Math.round(horizonDemand),
-      estimatedOnHand,
-      onHandSource: "estimated",
+      estimatedOnHand: Math.round(effectiveOnHand),
+      onHandSource,
       daysOfCover: Number(daysOfCover.toFixed(1)),
       predictedStockoutDate,
       reorderByDate,
@@ -164,6 +205,7 @@ export const buildReplenishmentRows = (
       leadTimeDays,
       safetyStockDays,
       risk,
+      reason: buildRiskReason(risk, Number(daysOfCover.toFixed(1)), leadTimeDays, safetyStockDays, onHandSource),
     }
   })
 

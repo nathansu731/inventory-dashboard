@@ -21,22 +21,17 @@ const withCookies = (response: NextResponse, cookiesToSet: CookieToSet[]) => {
 }
 
 const getContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, idToken: "" }
-  }
-
-  const tokenCtx = getTokenUserContext(idToken)
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { cookiesToSet, tokenCtx, errorResponse } = await getAuthenticatedApiContext()
   if (!tokenCtx) {
-    return { error: NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet, idToken: "" }
+    return { error: errorResponse, cookiesToSet, tokenCtx: null }
   }
   return { error: null, cookiesToSet, tokenCtx }
 }
 
 export async function POST(_request: Request, { params }: { params: Promise<{ userId: string }> }) {
   const ctx = await getContext()
-  if (ctx.error) return withCookies(ctx.error, ctx.cookiesToSet)
+  if (ctx.error || !ctx.tokenCtx) return withCookies(ctx.error!, ctx.cookiesToSet)
 
   const tableName = getTenantsTableName()
   const region = resolveAwsRegion()

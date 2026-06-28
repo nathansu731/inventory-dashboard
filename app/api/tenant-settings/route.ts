@@ -1,12 +1,10 @@
 export async function GET() {
   const { appsyncRequest } = await import("@/lib/appsync")
-  const { getValidIdToken } = await import("@/lib/server-auth")
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
   const { NextResponse } = await import("next/server")
 
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
   const query = `
     query GetTenantSettings {
@@ -16,8 +14,15 @@ export async function GET() {
         mode
         seasonality
         dateFormat
+        skuColumnName
+        storeColumnName
         targetVariable
+        onHandColumnName
         priceColumnName
+        holidayColumnName
+        promotionColumnName
+        openStatusColumnName
+        forecastHorizon
         updatedAt
       }
     }
@@ -32,21 +37,26 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const { appsyncRequest } = await import("@/lib/appsync")
-  const { getValidIdToken } = await import("@/lib/server-auth")
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
   const { NextResponse } = await import("next/server")
 
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
+  if (errorResponse || !idToken) return errorResponse!
 
   const payload = (await request.json().catch(() => null)) as {
     model?: string
     mode?: string
     seasonality?: string
     dateFormat?: string
+    skuColumnName?: string
+    storeColumnName?: string
     targetVariable?: string
+    onHandColumnName?: string
     priceColumnName?: string
+    holidayColumnName?: string
+    promotionColumnName?: string
+    openStatusColumnName?: string
+    forecastHorizon?: number
   } | null
 
   const query = `
@@ -57,8 +67,15 @@ export async function POST(request: Request) {
         mode
         seasonality
         dateFormat
+        skuColumnName
+        storeColumnName
         targetVariable
+        onHandColumnName
         priceColumnName
+        holidayColumnName
+        promotionColumnName
+        openStatusColumnName
+        forecastHorizon
         updatedAt
       }
     }

@@ -13,7 +13,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { buildReplenishmentRows, type ReplenishmentRiskTier, type ReplenishmentRow } from "@/lib/replenishments"
-import { sortMonthKeys } from "@/lib/forecasting"
+import { buildForecastSeriesKey } from "@/lib/forecast-metadata"
 
 type SkuMetadata = {
   store?: string
@@ -26,8 +26,8 @@ type ForecastItem = {
   sku: string
   store?: string
   periods?: string[]
-  demand?: Record<string, number>
-  forecastBaseline?: Record<string, number>
+  demand?: Record<string, number | string | null>
+  forecastBaseline?: Record<string, number | string | null>
 }
 
 type ForecastValuesPayload = {
@@ -36,11 +36,13 @@ type ForecastValuesPayload = {
 
 type DailyForecast = {
   sku: string
+  store?: string
   date: string
   forecast: number
 }
 
 type ReplenishmentSignalItem = {
+  seriesKey?: string
   sku: string
   store?: string
   skuDesc?: string
@@ -56,6 +58,7 @@ type ReplenishmentSignalItem = {
   leadTimeDays?: number
   safetyStockDays?: number
   risk?: ReplenishmentRiskTier
+  reason?: string
 }
 
 type ReplenishmentSignalResult = {
@@ -64,7 +67,8 @@ type ReplenishmentSignalResult = {
 }
 
 type DemandSnapshotRow = {
-  sku: string
+  seriesKey: string
+  label: string
   sales30d: number
   forecast30d: number
   deltaPct: string
@@ -72,7 +76,8 @@ type DemandSnapshotRow = {
 }
 
 type StockRiskRow = {
-  sku: string
+  seriesKey: string
+  label: string
   onHand: number
   daysOfCover: number
   stockoutDate: string
@@ -80,7 +85,8 @@ type StockRiskRow = {
 }
 
 type ForecastAccuracyRow = {
-  sku: string
+  seriesKey: string
+  label: string
   mape: string
   bias: string
   confidence: string
@@ -88,14 +94,18 @@ type ForecastAccuracyRow = {
 }
 
 type PriorityActionRow = {
-  sku: string
+  seriesKey: string
+  label: string
   issueType: string
   severity: "Critical" | "High" | "Moderate"
   recommendation: string
 }
 
 type SkuMetric = {
+  seriesKey: string
   sku: string
+  store: string
+  label: string
   latestDemand: number
   nextForecast: number
   deltaPctRaw: number
@@ -109,6 +119,14 @@ const toDisplayDate = (value: string | null | undefined) => {
   if (Number.isNaN(date.getTime())) return value
   return date.toLocaleDateString("en-US", { month: "short", day: "2-digit", year: "numeric" })
 }
+
+const toFiniteNumber = (value: unknown) => {
+  if (value === null || value === undefined || value === "") return null
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : null
+}
+
+const formatNumberOrDash = (value: number) => (Number.isFinite(value) ? value.toLocaleString() : "--")
 
 const trendFromDelta = (deltaPct: number) => {
   if (deltaPct >= 10) return "Rising"
@@ -148,15 +166,23 @@ async function fetchResult<T>(url: string): Promise<T | null> {
   return (result ?? null) as T | null
 }
 
+const buildSeriesLabel = (sku: string, store: string, showStore: boolean) => (showStore ? `${sku} · ${store}` : sku)
+
 const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
+  const hasMultiStore = new Set(items.map((item) => String(item.store || "Unknown"))).size > 1
   return items.map((item) => {
-    const periods = sortMonthKeys(item.periods ?? [])
+    const periods = [...(item.periods ?? [])].sort()
     const demandMap = item.demand ?? {}
     const forecastMap = item.forecastBaseline ?? {}
+    const store = item.store || "Unknown"
+    const seriesKey = buildForecastSeriesKey(item.sku, store)
 
     const latestDemandPeriod =
-      [...periods].reverse().find((period) => demandMap[period] !== undefined) ??
-      Object.keys(demandMap).sort().pop() ??
+      [...periods].reverse().find((period) => toFiniteNumber(demandMap[period]) !== null) ??
+      Object.keys(demandMap)
+        .sort()
+        .reverse()
+        .find((period) => toFiniteNumber(demandMap[period]) !== null) ??
       null
 
     const demandPeriodIndex = latestDemandPeriod ? periods.indexOf(latestDemandPeriod) : -1
@@ -165,8 +191,13 @@ const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
         ? periods[demandPeriodIndex + 1]
         : periods[0] ?? latestDemandPeriod ?? null
 
-    const latestDemand = Number(latestDemandPeriod ? demandMap[latestDemandPeriod] ?? 0 : 0)
-    const nextForecast = Number(nextForecastPeriod ? forecastMap[nextForecastPeriod] ?? 0 : 0)
+    const actualPeriods = periods
+      .filter((period) => toFiniteNumber(demandMap[period]) !== null)
+      .slice(-30)
+    const forecastPeriods = periods.filter((period) => toFiniteNumber(forecastMap[period]) !== null).slice(-30)
+
+    const latestDemand = actualPeriods.reduce((sum, period) => sum + (toFiniteNumber(demandMap[period]) ?? 0), 0)
+    const nextForecast = forecastPeriods.reduce((sum, period) => sum + (toFiniteNumber(forecastMap[period]) ?? 0), 0)
     const denom = Math.max(1, Math.abs(latestDemand))
     const deltaPctRaw = ((nextForecast - latestDemand) / denom) * 100
 
@@ -174,9 +205,9 @@ const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
     let totalBias = 0
     let points = 0
     for (const period of periods) {
-      if (demandMap[period] === undefined || forecastMap[period] === undefined) continue
-      const demand = Number(demandMap[period] ?? 0)
-      const forecast = Number(forecastMap[period] ?? 0)
+      const demand = toFiniteNumber(demandMap[period])
+      const forecast = toFiniteNumber(forecastMap[period])
+      if (demand === null || forecast === null) continue
       const base = Math.max(1, Math.abs(demand))
       totalError += (Math.abs(forecast - demand) / base) * 100
       totalBias += ((forecast - demand) / base) * 100
@@ -184,7 +215,10 @@ const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
     }
 
     return {
+      seriesKey,
       sku: item.sku,
+      store,
+      label: buildSeriesLabel(item.sku, store, hasMultiStore),
       latestDemand,
       nextForecast,
       deltaPctRaw,
@@ -196,6 +230,7 @@ const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
 
 const mapSignalRows = (signalItems: ReplenishmentSignalItem[]): ReplenishmentRow[] => {
   return signalItems.map((item) => ({
+    seriesKey: item.seriesKey || `${item.sku}::${item.store || "Unknown"}`,
     sku: item.sku,
     skuDesc: item.skuDesc || "N/A",
     store: item.store || "Unknown",
@@ -211,6 +246,7 @@ const mapSignalRows = (signalItems: ReplenishmentSignalItem[]): ReplenishmentRow
     leadTimeDays: Number(item.leadTimeDays ?? 0),
     safetyStockDays: Number(item.safetyStockDays ?? 0),
     risk: item.risk || "Healthy",
+    reason: item.reason || "No risk explanation available.",
   }))
 }
 
@@ -228,7 +264,7 @@ export function OverviewInsights() {
 
       try {
         const [forecastPayload, signals, metadata, dailyForecasts] = await Promise.all([
-          fetchResult<ForecastValuesPayload>("/api/get-sku-forecast-values"),
+          fetchResult<ForecastValuesPayload>("/api/get-merged-sku-forecast-values"),
           fetchResult<ReplenishmentSignalResult>("/api/get-replenishment-signals"),
           fetchResult<Record<string, SkuMetadata>>("/api/get-skus-metadata"),
           fetchResult<DailyForecast[]>("/api/get-daily-forecasts"),
@@ -262,7 +298,8 @@ export function OverviewInsights() {
       .sort((a, b) => Math.abs(b.deltaPctRaw) - Math.abs(a.deltaPctRaw))
       .slice(0, 10)
       .map((row) => ({
-        sku: row.sku,
+        seriesKey: row.seriesKey,
+        label: row.label,
         sales30d: Math.round(row.latestDemand),
         forecast30d: Math.round(row.nextForecast),
         deltaPct: `${row.deltaPctRaw >= 0 ? "+" : ""}${row.deltaPctRaw.toFixed(1)}%`,
@@ -271,8 +308,10 @@ export function OverviewInsights() {
   }, [skuMetrics])
 
   const stockRiskData = useMemo<StockRiskRow[]>(() => {
+    const hasMultiStore = new Set(replenishmentRows.map((row) => row.store || "Unknown")).size > 1
     return replenishmentRows.slice(0, 10).map((row) => ({
-      sku: row.sku,
+      seriesKey: buildForecastSeriesKey(row.sku, row.store || "Unknown"),
+      label: buildSeriesLabel(row.sku, row.store || "Unknown", hasMultiStore),
       onHand: Math.round(row.estimatedOnHand),
       daysOfCover: Number(row.daysOfCover.toFixed(1)),
       stockoutDate: toDisplayDate(row.predictedStockoutDate),
@@ -286,7 +325,8 @@ export function OverviewInsights() {
       .sort((a, b) => b.avgError - a.avgError)
       .slice(0, 10)
       .map((row) => ({
-        sku: row.sku,
+        seriesKey: row.seriesKey,
+        label: row.label,
         mape: `${row.avgError.toFixed(1)}%`,
         bias: `${row.avgBias >= 0 ? "+" : ""}${row.avgBias.toFixed(1)}%`,
         confidence: confidenceFromError(row.avgError),
@@ -295,12 +335,13 @@ export function OverviewInsights() {
   }, [skuMetrics, generatedAt])
 
   const priorityActionData = useMemo<PriorityActionRow[]>(() => {
-    const metricsBySku = new Map<string, SkuMetric>(skuMetrics.map((m) => [m.sku, m]))
+    const metricsBySeriesKey = new Map<string, SkuMetric>(skuMetrics.map((m) => [m.seriesKey, m]))
     const fromRisk = replenishmentRows
       .filter((row) => row.risk !== "Healthy")
       .slice(0, 6)
       .map((row) => {
-        const metric = metricsBySku.get(row.sku)
+        const seriesKey = buildForecastSeriesKey(row.sku, row.store || "Unknown")
+        const metric = metricsBySeriesKey.get(seriesKey)
         const highError = (metric?.avgError ?? 0) > 20
         const issueType = highError ? "Low stock + forecast volatility" : "Low stock risk"
         const severity: PriorityActionRow["severity"] =
@@ -309,15 +350,22 @@ export function OverviewInsights() {
           row.recommendedReorderQty > 0
             ? `Order ${row.recommendedReorderQty.toLocaleString()} units and review lead time coverage.`
             : "Review reorder policy and monitor daily demand variance."
-        return { sku: row.sku, issueType, severity, recommendation }
+        return {
+          seriesKey,
+          label: metric?.label || buildSeriesLabel(row.sku, row.store || "Unknown", true),
+          issueType,
+          severity,
+          recommendation,
+        }
       })
 
     const fromAccuracy = [...skuMetrics]
-      .filter((m) => m.avgError > 20 && !fromRisk.some((r) => r.sku === m.sku))
+      .filter((m) => m.avgError > 20 && !fromRisk.some((r) => r.seriesKey === m.seriesKey))
       .sort((a, b) => b.avgError - a.avgError)
       .slice(0, 4)
       .map((m) => ({
-        sku: m.sku,
+        seriesKey: m.seriesKey,
+        label: m.label,
         issueType: "Low forecast accuracy",
         severity: "Moderate" as const,
         recommendation: "Review model selection, outliers, and demand adjustments for this SKU.",
@@ -377,111 +425,127 @@ export function OverviewInsights() {
 
       <TabsContent value="demand-snapshot" className="mt-0">
         <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted">
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead className="text-right">Last 30d Sales</TableHead>
-                <TableHead className="text-right">Next 30d Forecast</TableHead>
-                <TableHead className="text-right">Forecast Delta</TableHead>
-                <TableHead>Trend</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {demandSnapshotData.map((row) => (
-                <TableRow key={row.sku}>
-                  <TableCell className="font-medium">{row.sku}</TableCell>
-                  <TableCell className="text-right">{row.sales30d.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{row.forecast30d.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{row.deltaPct}</TableCell>
-                  <TableCell>{row.trend}</TableCell>
+          {demandSnapshotData.length > 0 ? (
+            <Table>
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead>SKU / Location</TableHead>
+                  <TableHead className="text-right">Last 30d Sales</TableHead>
+                  <TableHead className="text-right">Next 30d Forecast</TableHead>
+                  <TableHead className="text-right">Forecast Delta</TableHead>
+                  <TableHead>Trend</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {demandSnapshotData.map((row) => (
+                  <TableRow key={row.seriesKey}>
+                    <TableCell className="font-medium">{row.label}</TableCell>
+                    <TableCell className="text-right">{formatNumberOrDash(row.sales30d)}</TableCell>
+                    <TableCell className="text-right">{formatNumberOrDash(row.forecast30d)}</TableCell>
+                    <TableCell className="text-right">{row.deltaPct}</TableCell>
+                    <TableCell>{row.trend}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">No demand snapshot data available.</div>
+          )}
         </div>
       </TabsContent>
 
       <TabsContent value="stock-risk" className="mt-0">
         <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted">
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead className="text-right">On Hand</TableHead>
-                <TableHead className="text-right">Days of Cover</TableHead>
-                <TableHead>Estimated Stockout</TableHead>
-                <TableHead>Risk Level</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {stockRiskData.map((row) => (
-                <TableRow key={row.sku}>
-                  <TableCell className="font-medium">{row.sku}</TableCell>
-                  <TableCell className="text-right">{row.onHand.toLocaleString()}</TableCell>
-                  <TableCell className="text-right">{row.daysOfCover}</TableCell>
-                  <TableCell>{row.stockoutDate}</TableCell>
-                  <TableCell>
-                    <Badge variant={riskBadgeVariant(row.risk)}>{row.risk}</Badge>
-                  </TableCell>
+          {stockRiskData.length > 0 ? (
+            <Table>
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead>SKU / Location</TableHead>
+                  <TableHead className="text-right">On Hand</TableHead>
+                  <TableHead className="text-right">Days of Cover</TableHead>
+                  <TableHead>Estimated Stockout</TableHead>
+                  <TableHead>Risk Level</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {stockRiskData.map((row) => (
+                  <TableRow key={row.seriesKey}>
+                    <TableCell className="font-medium">{row.label}</TableCell>
+                    <TableCell className="text-right">{formatNumberOrDash(row.onHand)}</TableCell>
+                    <TableCell className="text-right">{Number.isFinite(row.daysOfCover) ? row.daysOfCover : "--"}</TableCell>
+                    <TableCell>{row.stockoutDate}</TableCell>
+                    <TableCell>
+                      <Badge variant={riskBadgeVariant(row.risk)}>{row.risk}</Badge>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">No stock risk data available.</div>
+          )}
         </div>
       </TabsContent>
 
       <TabsContent value="forecast-accuracy" className="mt-0">
         <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted">
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead className="text-right">MAPE</TableHead>
-                <TableHead className="text-right">Bias</TableHead>
-                <TableHead>Confidence</TableHead>
-                <TableHead>Last Updated</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {forecastAccuracyData.map((row) => (
-                <TableRow key={row.sku}>
-                  <TableCell className="font-medium">{row.sku}</TableCell>
-                  <TableCell className="text-right">{row.mape}</TableCell>
-                  <TableCell className="text-right">{row.bias}</TableCell>
-                  <TableCell>{row.confidence}</TableCell>
-                  <TableCell>{row.lastUpdated}</TableCell>
+          {forecastAccuracyData.length > 0 ? (
+            <Table>
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead>SKU / Location</TableHead>
+                  <TableHead className="text-right">MAPE</TableHead>
+                  <TableHead className="text-right">Bias</TableHead>
+                  <TableHead>Confidence</TableHead>
+                  <TableHead>Last Updated</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {forecastAccuracyData.map((row) => (
+                  <TableRow key={row.seriesKey}>
+                    <TableCell className="font-medium">{row.label}</TableCell>
+                    <TableCell className="text-right">{row.mape}</TableCell>
+                    <TableCell className="text-right">{row.bias}</TableCell>
+                    <TableCell>{row.confidence}</TableCell>
+                    <TableCell>{row.lastUpdated}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">No forecast accuracy data available.</div>
+          )}
         </div>
       </TabsContent>
 
       <TabsContent value="priority-actions" className="mt-0">
         <div className="overflow-hidden rounded-lg border">
-          <Table>
-            <TableHeader className="bg-muted">
-              <TableRow>
-                <TableHead>SKU</TableHead>
-                <TableHead>Issue Type</TableHead>
-                <TableHead>Severity</TableHead>
-                <TableHead>Recommended Action</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {priorityActionData.map((row) => (
-                <TableRow key={`${row.sku}-${row.issueType}`}>
-                  <TableCell className="font-medium">{row.sku}</TableCell>
-                  <TableCell>{row.issueType}</TableCell>
-                  <TableCell>
-                    <Badge variant={severityBadgeVariant(row.severity)}>{row.severity}</Badge>
-                  </TableCell>
-                  <TableCell>{row.recommendation}</TableCell>
+          {priorityActionData.length > 0 ? (
+            <Table>
+              <TableHeader className="bg-muted">
+                <TableRow>
+                  <TableHead>SKU / Location</TableHead>
+                  <TableHead>Issue Type</TableHead>
+                  <TableHead>Severity</TableHead>
+                  <TableHead>Recommended Action</TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {priorityActionData.map((row) => (
+                  <TableRow key={`${row.seriesKey}-${row.issueType}`}>
+                    <TableCell className="font-medium">{row.label}</TableCell>
+                    <TableCell>{row.issueType}</TableCell>
+                    <TableCell>
+                      <Badge variant={severityBadgeVariant(row.severity)}>{row.severity}</Badge>
+                    </TableCell>
+                    <TableCell>{row.recommendation}</TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="p-8 text-center text-sm text-muted-foreground">No priority actions available.</div>
+          )}
         </div>
       </TabsContent>
     </Tabs>

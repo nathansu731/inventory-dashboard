@@ -1,7 +1,7 @@
 
 export type Notification = {
     id: string;
-    type: "job" | "product" | "subscription" | "general";
+    type: "job" | "connector" | "product" | "subscription" | "general";
     title: string;
     message: string;
     timestamp: Date;
@@ -9,6 +9,7 @@ export type Notification = {
     jobStatus?: "pending" | "in-progress" | "completed" | "failed";
     priority?: "low" | "medium" | "high";
     details?: string;
+    detailItems?: Array<{ label: string; value: string }>;
     relatedUser?: string;
     actionRequired?: boolean;
 };

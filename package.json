@@ -6,7 +6,12 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "validate:deploy-config": "node ./scripts/validate-production-config.js",
+    "validate:develop": "node ./scripts/run-env-validation.js ./.env.develop.generated --optional ./.env.develop.local --label develop",
+    "validate:production": "node ./scripts/run-env-validation.js ./.env.production.generated --optional ./.env.production.local --label production",
+    "validate:all-envs": "npm run validate:develop && npm run validate:production",
+    "smoke:dashboard-flow": "node ./scripts/smoke-prod-flow.js"
   },
   "dependencies": {
     "@apollo/client": "^3.14.0",

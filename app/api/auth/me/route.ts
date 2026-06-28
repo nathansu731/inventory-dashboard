@@ -9,6 +9,7 @@ import {
     resolveAwsRegion,
     roleForUser,
 } from "@/lib/tenant-users";
+import { getSubscriptionAccessState } from "@/lib/subscription-state";
 
 const decodeJwtPayload = (token: string) => {
     const parts = token.split(".");
@@ -52,6 +53,13 @@ export async function GET(req: NextRequest) {
             }
         }
 
+        const accessState = getSubscriptionAccessState({
+            plan: tenantPlan ?? profile["custom:plan"],
+            tenantStatus,
+            subscriptionStatus: profile["custom:sub_status"],
+            trialEndsAt,
+        });
+
         return NextResponse.json(
             {
                 profile: {
@@ -59,7 +67,10 @@ export async function GET(req: NextRequest) {
                     app_role: appRole,
                     tenant_plan: tenantPlan,
                     tenant_status: tenantStatus,
+                    effective_tenant_status: accessState.effectiveStatus || tenantStatus,
                     trial_ends_at: trialEndsAt,
+                    trial_days_left: accessState.trialDaysLeft,
+                    access_restricted: accessState.accessRestricted,
                 },
             },
             {

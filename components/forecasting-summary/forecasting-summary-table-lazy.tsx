@@ -7,6 +7,7 @@ import {useRef, useEffect} from "react";
 import {useVirtualizer} from "@tanstack/react-virtual";
 
 type ForecastDataItem = {
+    seriesKey: string;
     id: string;
     store: string;
     description: string;
@@ -36,6 +37,7 @@ type ForecastingSummaryTableLazyProps = {
     handleSelectItem: (id: string, checked: boolean) => void;
     columnVisibility: ColumnVisibility;
     loadMoreItems: () => void;
+    onViewItem: (item: ForecastDataItem) => void;
 };
 
 export const ForecastingSummaryTableLazy = ({
@@ -45,7 +47,8 @@ export const ForecastingSummaryTableLazy = ({
                                             handleSelectAll,
                                             handleSelectItem,
                                             columnVisibility,
-                                            loadMoreItems
+                                            loadMoreItems,
+                                            onViewItem
                                         }: ForecastingSummaryTableLazyProps) => {
     const parentRef = useRef<HTMLDivElement>(null);
 
@@ -94,20 +97,20 @@ export const ForecastingSummaryTableLazy = ({
                             if (!item) return null;
                             return (
                                 <TableRow
-                                    key={item.id}
+                                    key={item.seriesKey}
                                 >
                                     {columnVisibility.select && (
                                         <TableCell>
                                             <Checkbox
-                                                checked={selectedItems.includes(item.id)}
-                                                onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                                                checked={selectedItems.includes(item.seriesKey)}
+                                                onCheckedChange={(checked) => handleSelectItem(item.seriesKey, checked as boolean)}
                                                 aria-label={`Select ${item.id}`}
                                             />
                                         </TableCell>
                                     )}
                                     {columnVisibility.view && (
                                         <TableCell>
-                                            <Button variant="ghost" size="icon" className="h-8 w-8">
+                                            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewItem(item)}>
                                                 <Eye className="h-4 w-4"/>
                                             </Button>
                                         </TableCell>

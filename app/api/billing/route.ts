@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
+import { getAuthenticatedApiContext, withAuthCookies } from "@/lib/server-auth"
 
 export async function GET(request: Request) {
+    const { cookiesToSet, errorResponse, tenantRecord } = await getAuthenticatedApiContext({ allowRestricted: true })
+    if (errorResponse) return errorResponse
+
     const { searchParams } = new URL(request.url)
     const customerId = searchParams.get("customerId") || ""
     const subscriptionId = searchParams.get("subscriptionId") || ""
+    const tenantCustomerId = typeof tenantRecord?.stripeCustomerId === "string" ? tenantRecord.stripeCustomerId : ""
 
-    if (!customerId) {
-        return NextResponse.json({})
+    if (!customerId || !tenantCustomerId || customerId !== tenantCustomerId) {
+        return withAuthCookies(NextResponse.json({ error: "forbidden" }, { status: 403 }), cookiesToSet)
     }
 
     let subscription = null
@@ -70,7 +75,7 @@ export async function GET(request: Request) {
     const price = subscription?.items?.data?.[0]?.price
     const currentPeriodEnd = subscription?.items?.data?.[0]?.current_period_end ?? null
 
-    return NextResponse.json({
+    return withAuthCookies(NextResponse.json({
         subscription: subscription
             ? {
                   subscription_id: subscription.id,
@@ -104,5 +109,5 @@ export async function GET(request: Request) {
               }
             : null,
         invoice_history: invoiceHistory,
-    })
+    }), cookiesToSet)
 }

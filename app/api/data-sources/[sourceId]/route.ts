@@ -1,6 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextResponse } from "next/server"
-import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
+import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import {
   getTenantsTableName,
   readTenantRecord,
@@ -11,11 +11,14 @@ import {
 } from "@/lib/data-sources"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { normalizeAdapterConfig } from "@/lib/data-source-adapters"
+import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { buildSourceDiagnostics } from "@/lib/data-source-diagnostics"
 import {
   deleteSourceFromDedicatedTable,
   readSourcesWithFallback,
   upsertSourceInDedicatedTable,
 } from "@/lib/data-sources-repo"
+import { normalizeProviderSetupConfig } from "@/lib/provider-source-config"
 
 type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
 
@@ -27,14 +30,10 @@ const withCookies = (response: NextResponse, cookiesToSet: CookieToSet[]) => {
 }
 
 const readContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, tokenCtx: null }
-  }
-  const tokenCtx = getTokenUserContext(idToken)
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { cookiesToSet, tokenCtx, errorResponse } = await getAuthenticatedApiContext()
   if (!tokenCtx) {
-    return { error: NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet, tokenCtx: null }
+    return { error: errorResponse, cookiesToSet, tokenCtx: null }
   }
   return { error: null, cookiesToSet, tokenCtx }
 }
@@ -51,6 +50,9 @@ const normalizeState = (value: unknown): DataSourceState => {
   return "not_connected"
 }
 
+const mergeConfiguredTables = (configured: string[], selected: string[]) =>
+  Array.from(new Set([...selected, ...configured.map((item) => item.trim()).filter(Boolean)]))
+
 export async function PATCH(request: Request, { params }: { params: Promise<{ sourceId: string }> }) {
   const ctx = await readContext()
   if (ctx.error || !ctx.tokenCtx) return withCookies(ctx.error!, ctx.cookiesToSet)
@@ -65,7 +67,15 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ so
   if (!sourceId) return withCookies(NextResponse.json({ error: "missing_source_id" }, { status: 400 }), ctx.cookiesToSet)
 
   const payload = (await request.json().catch(() => null)) as
-    | { selectedTables?: unknown; availableTables?: unknown; syncMode?: unknown; syncStartDate?: unknown; state?: unknown; adapter?: unknown }
+    | {
+        selectedTables?: unknown
+        availableTables?: unknown
+        syncMode?: unknown
+        syncStartDate?: unknown
+        state?: unknown
+        adapter?: unknown
+        sourceConfig?: unknown
+      }
     | null
 
   const ddb = new DynamoDBClient({ region })
@@ -83,11 +93,31 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ so
   if (!existing) return withCookies(NextResponse.json({ error: "not_found" }, { status: 404 }), ctx.cookiesToSet)
 
   const now = new Date().toISOString()
-  const selectedTables = Array.isArray(payload?.selectedTables)
-    ? payload?.selectedTables.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)
-    : existing.selectedTables
+  const sourceConfig = payload?.sourceConfig !== undefined
+    ? normalizeProviderSetupConfig(existing.provider, payload.sourceConfig)
+    : existing.sourceConfig
+  const availableTables = payload?.availableTables !== undefined
+    ? sanitizeAvailableObjects(existing.provider, payload.availableTables)
+    : existing.availableTables
+  const selectedTables = sanitizeSelectedObjects(
+    existing.provider,
+    mergeConfiguredTables(
+      [sourceConfig?.salesEntity || "", sourceConfig?.catalogEntity || "", sourceConfig?.inventoryEntity || ""],
+      Array.isArray(payload?.selectedTables)
+        ? payload.selectedTables.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)
+        : existing.selectedTables
+    )
+  )
 
   const state = payload?.state !== undefined ? normalizeState(payload.state) : existing.state
+  const diagnostics = buildSourceDiagnostics({
+    provider: existing.provider,
+    grantedScopes: existing.diagnostics?.grantedScopes || [],
+    reachableTables: existing.diagnostics?.reachableTables || availableTables,
+    availableTables,
+    selectedTables,
+    blockingIssues: existing.diagnostics?.blockingIssues || [],
+  })
   const next = {
     ...existing,
     selectedTables,
@@ -97,9 +127,9 @@ export async function PATCH(request: Request, { params }: { params: Promise<{ so
     accountName: state === "not_connected" ? "" : existing.accountName,
     accountId: state === "not_connected" ? undefined : existing.accountId,
     connectedAt: state === "not_connected" ? null : existing.connectedAt,
-    availableTables: Array.isArray(payload?.availableTables)
-      ? payload.availableTables.map((item) => (typeof item === "string" ? item.trim() : "")).filter(Boolean)
-      : existing.availableTables,
+    availableTables,
+    sourceConfig,
+    diagnostics,
     updatedAt: now,
   }
 

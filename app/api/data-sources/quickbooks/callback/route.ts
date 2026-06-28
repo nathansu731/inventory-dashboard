@@ -14,6 +14,8 @@ import { encryptSecret } from "@/lib/data-source-secrets"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
 import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { buildSourceDiagnostics } from "@/lib/data-source-diagnostics"
+import { defaultProviderSetupConfig } from "@/lib/provider-source-config"
 
 const QUICKBOOKS_STATE_COOKIE = "quickbooks_oauth_state"
 
@@ -140,6 +142,14 @@ export async function GET(request: NextRequest) {
     nextImportAt: existing?.nextImportAt || null,
     retryCount: existing?.retryCount || 0,
     lastError: existing?.lastError || null,
+    sourceConfig: existing?.sourceConfig || defaultProviderSetupConfig("quickbooks"),
+    diagnostics: buildSourceDiagnostics({
+      provider: "quickbooks",
+      grantedScopes: (process.env.QUICKBOOKS_SCOPES || "com.intuit.quickbooks.accounting").split(" ").map((item) => item.trim()).filter(Boolean),
+      availableTables: sanitizeAvailableObjects("quickbooks", statePayload.availableTables ?? existing?.availableTables),
+      selectedTables: sanitizeSelectedObjects("quickbooks", statePayload.selectedTables ?? existing?.selectedTables),
+      userMessage: `QuickBooks company ${realmId} connected. Validate sales entity choice and inventory availability before preview.`,
+    }),
     runs: existing?.runs || [],
     createdAt: existing?.createdAt || now,
     updatedAt: now,

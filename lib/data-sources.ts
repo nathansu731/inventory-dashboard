@@ -1,5 +1,6 @@
 import { DynamoDBClient, GetItemCommand, PutItemCommand } from "@aws-sdk/client-dynamodb"
 import { marshall, unmarshall } from "@aws-sdk/util-dynamodb"
+import { normalizeProviderSetupConfig, type ProviderSetupConfig } from "@/lib/provider-source-config"
 
 export type DataSourceProvider = "shopify" | "amazon" | "quickbooks" | "bigcommerce" | "other"
 export type DataSourceState = "not_connected" | "connected" | "error"
@@ -11,6 +12,32 @@ export type DataSourceRun = {
   message: string
   startedAt: string
   finishedAt: string
+}
+
+export type DataSourceImportArtifact = {
+  s3Bucket: string
+  s3Key: string
+  summaryKey?: string
+  rowCount: number
+  inventoryRowCount: number
+  extractedAt: string
+  sourceRunId: string
+  columnNames: string[]
+  dateStart?: string | null
+  dateEnd?: string | null
+  uniqueSkus?: number
+  uniqueSeries?: number
+}
+
+export type DataSourceDiagnostics = {
+  authStyle?: string
+  statusSummary?: string
+  userMessage?: string
+  grantedScopes?: string[]
+  reachableTables?: string[]
+  missingTables?: string[]
+  blockingIssues?: string[]
+  lastCheckedAt?: string | null
 }
 
 export type DataSourceAuditEvent = {
@@ -39,6 +66,9 @@ export type DataSourceRecord = {
   nextImportAt: string | null
   retryCount: number
   lastError: string | null
+  sourceConfig?: ProviderSetupConfig
+  diagnostics?: DataSourceDiagnostics
+  latestImport?: DataSourceImportArtifact
   runs: DataSourceRun[]
   createdAt: string
   updatedAt: string
@@ -77,6 +107,49 @@ const normalizeSyncMode = (value: unknown): SyncMode => {
 }
 
 const sanitizeText = (value: unknown) => (typeof value === "string" ? value.trim() : "")
+
+const sanitizeTextArray = (value: unknown) =>
+  Array.isArray(value) ? value.map((item) => sanitizeText(item)).filter(Boolean) : []
+
+const sanitizeDiagnostics = (provider: DataSourceProvider, value: unknown): DataSourceDiagnostics | undefined => {
+  const input = typeof value === "object" && value ? (value as Record<string, unknown>) : null
+  if (!input) return undefined
+  const diagnostics: DataSourceDiagnostics = {
+    authStyle: sanitizeText(input.authStyle) || undefined,
+    statusSummary: sanitizeText(input.statusSummary) || undefined,
+    userMessage: sanitizeText(input.userMessage) || undefined,
+    grantedScopes: sanitizeTextArray(input.grantedScopes),
+    reachableTables: sanitizeTextArray(input.reachableTables),
+    missingTables: sanitizeTextArray(input.missingTables),
+    blockingIssues: sanitizeTextArray(input.blockingIssues),
+    lastCheckedAt: sanitizeText(input.lastCheckedAt) || null,
+  }
+  return diagnostics
+}
+
+const sanitizeLatestImport = (value: unknown): DataSourceImportArtifact | undefined => {
+  const input = typeof value === "object" && value ? (value as Record<string, unknown>) : null
+  if (!input) return undefined
+  const s3Bucket = sanitizeText(input.s3Bucket)
+  const s3Key = sanitizeText(input.s3Key)
+  const extractedAt = sanitizeText(input.extractedAt)
+  const sourceRunId = sanitizeText(input.sourceRunId)
+  if (!s3Bucket || !s3Key || !extractedAt || !sourceRunId) return undefined
+  return {
+    s3Bucket,
+    s3Key,
+    summaryKey: sanitizeText(input.summaryKey) || undefined,
+    rowCount: Math.max(0, Number(input.rowCount ?? 0) || 0),
+    inventoryRowCount: Math.max(0, Number(input.inventoryRowCount ?? 0) || 0),
+    extractedAt,
+    sourceRunId,
+    columnNames: sanitizeTextArray(input.columnNames),
+    dateStart: sanitizeText(input.dateStart) || null,
+    dateEnd: sanitizeText(input.dateEnd) || null,
+    uniqueSkus: Math.max(0, Number(input.uniqueSkus ?? 0) || 0),
+    uniqueSeries: Math.max(0, Number(input.uniqueSeries ?? 0) || 0),
+  }
+}
 
 const sanitizeRuns = (value: unknown): DataSourceRun[] => {
   const input = Array.isArray(value) ? value : []
@@ -125,6 +198,9 @@ const normalizeSource = (id: string, value: unknown): DataSourceRecord | null =>
     nextImportAt: sanitizeText(input.nextImportAt) || null,
     retryCount: Math.max(0, Number(input.retryCount ?? 0) || 0),
     lastError: sanitizeText(input.lastError) || null,
+    sourceConfig: normalizeProviderSetupConfig(provider, input.sourceConfig),
+    diagnostics: sanitizeDiagnostics(provider, input.diagnostics),
+    latestImport: sanitizeLatestImport(input.latestImport),
     runs: sanitizeRuns(input.runs),
     createdAt: sanitizeText(input.createdAt) || now,
     updatedAt: sanitizeText(input.updatedAt) || now,

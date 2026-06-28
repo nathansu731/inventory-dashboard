@@ -1,230 +1,123 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Inventory Dashboard
 
-## Getting Started
+See [docs/vercel-env-checklist.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/vercel-env-checklist.md:1) for the Vercel environment checklist split by generated values, manual plain-text config, and secrets.
 
-First, run the development server:
+## Production config
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Backend-owned dashboard env should come from Terraform outputs, not hand-copying table names, bucket names, or the AppSync URL.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
-
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
-
-## How Redux Works Here
-
-This project uses Redux Toolkit with Next.js App Router, following modern best practices. 
-It is currently set up for client-side only, with support for SSR-ready architecture when needed later (e.g., with Apollo).
-
-## Libraries Used
-
-@reduxjs/toolkit – Standard for Redux development
-
-react-redux – Official React bindings for Redux
-
-next – App Router used (via /app directory)
-
-next-redux-wrapper – Installed but not used yet
-
-Note: next-redux-wrapper is installed but not currently used. It is typically used for SSR support, 
-which will be added later when Apollo Client or server data preloading is introduced.
-
-Folder Structure
-store/
-├── index.ts               # Redux store configuration
-├── root-reducer.ts        # Combines all slice reducers
-├── providers.tsx          # Redux Provider for App Router
-├── slices/
-│   └── ui-slice.ts        # Manages UI state (e.g. sidebar)
-└── utils/
-    └── hooks.ts           # Typed hooks for dispatch and selector
-
-## How It Works
-
-1. Store Setup
-
-The Redux store is configured in store/index.ts using configureStore().
-All slice reducers are combined in store/root-reducer.ts.
-
-2. Provider Setup
-
-A Providers component in store/providers.tsx wraps the app with <Provider>.
-This component is marked as a use client component.
-Providers is used in app/layout.tsx to inject Redux across the app.
-
-3. Typed Hooks
-
-useAppDispatch() and useAppSelector() are available via store/utils/hooks.ts.
-These provide fully typed access to Redux state and actions.
-
-4. Example Slice
-
-```tsx
-interface UIState {
-  sidebarOpen: boolean;
-}
-const initialState: UIState = {
-  sidebarOpen: false,
-};
-```
-
-5. Example Usage
-
-```tsx
-'use client';
-
-import { useAppDispatch, useAppSelector } from '@/store/utils/hooks';
-import { toggleSidebar } from '@/store/slices/ui-slice';
-
-export default function SidebarToggle() {
-  const dispatch = useAppDispatch();
-  const sidebarOpen = useAppSelector((state) => state.ui.sidebarOpen);
-
-  return (
-    <button onClick={() => dispatch(toggleSidebar())}>
-      {sidebarOpen ? 'Close Sidebar' : 'Open Sidebar'}
-    </button>
-  );
-}
-```
-
-## How Apollo Works Here
-
-This project uses Apollo Client v4 for GraphQL communication with a backend API. 
-It is fully integrated with Next.js App Router and supports usage in client components for querying and mutating data.
-
-## Libraries Used
-
-@apollo/client – Apollo Client core
-graphql – Required for parsing GraphQL syntax
-
-Folder Structure
-lib/
-├── apollo-client.ts        # Apollo Client instance
-├── apollo-provider.tsx     # ApolloProvider wrapper
-└── graphql/
-    └── queries/
-        └── example-query.ts  # Example GraphQL query
-
-## Query Example
-
-Path: lib/graphql/queries/example-query.ts
-
-```tsx
-import { gql } from '@apollo/client';
-
-export const GET_PRODUCTS = gql`
-  query GetProducts {
-    products {
-      id
-      name
-      price
-    }
-  }
-`;
-```
-
-## Example Component Using the Query
-
-```tsx
-'use client';
-import { useQuery } from '@apollo/client';
-import { GET_PRODUCTS } from '@/lib/graphql/queries/example-query';
-
-export default function ProductList() {
-    const { data, loading, error } = useQuery(GET_PRODUCTS);
-
-    if (loading) return <p>Loading...</p>;
-    if (error) return <p>Error: {error.message}</p>;
-
-    return (
-        <ul>
-            {data.products.map((product: any) => (
-                <li key={product.id}>
-                    {product.name} - ${product.price}
-                </li>
-            ))}
-        </ul>
-    );
-}
-```
-
-## Data Source Worker Configuration
-
-Set these environment variables for connector sync encryption and background worker execution:
+Generate the backend env file after `terraform apply`:
 
 ```bash
-# 32-byte key, base64 encoded
+node ../forecasting-core/ops/export-dashboard-env.js
+```
+
+This writes a workspace-specific generated file:
+
+- dev/default workspace -> `.env.develop.generated`
+- prod workspace -> `.env.production.generated`
+
+You can override the target explicitly:
+
+```bash
+node ../forecasting-core/ops/export-dashboard-env.js --env develop
+node ../forecasting-core/ops/export-dashboard-env.js --env production
+node ../forecasting-core/ops/export-dashboard-env.js --out .env.local
+```
+
+The generated file contains:
+
+- `AWS_REGION`
+- `COGNITO_REGION`
+- `COGNITO_USER_POOL_ID`
+- `APPSYNC_API_URL`
+- `NEXT_PUBLIC_GRAPHQL_ENDPOINT`
+- `S3_RAW_BUCKET`
+- `TENANTS_TABLE`
+- `ENTITLEMENTS_TABLE`
+- `NOTIFICATIONS_TABLE`
+- `DATA_SOURCES_TABLE`
+- `SAVED_REPORTS_TABLE`
+- `WORKER_CRON_TOKEN`
+
+You still need a separate non-generated env source for values Terraform in this repo does not own:
+
+- Cognito hosted UI and app client settings
+- Stripe secrets and price IDs
+- SES sender/forwarding addresses
+- Connector OAuth credentials
+- `DATA_SOURCE_ENCRYPTION_KEY` or `DATA_SOURCE_ENCRYPTION_KEY_JSON`
+
+Run the deploy validator before deploy:
+
+```bash
+npm run validate:deploy-config
+```
+
+Or validate the generated environments directly:
+
+```bash
+npm run validate:develop
+npm run validate:production
+npm run validate:all-envs
+```
+
+These commands load:
+
+- `validate:develop` -> `.env.develop.generated` and optional `.env.develop.local`
+- `validate:production` -> `.env.production.generated` and optional `.env.production.local`
+
+It checks dev/prod:
+
+- server/client GraphQL endpoint alignment
+- Cognito public/server config alignment
+- required backend, Stripe, SES, and worker env presence
+- connector env completeness
+- obvious dev/test placeholders in prod values
+
+## Dashboard smoke flow
+
+After deploy, validate the authenticated upload-to-results path end to end:
+
+```bash
+DASHBOARD_BASE_URL=https://<dashboard-domain> \
+DASHBOARD_COOKIE_HEADER='id_token=...; access_token=...; refresh_token=...' \
+npm run smoke:dashboard-flow
+```
+
+The smoke script performs:
+
+1. `POST /api/upload-url`
+2. signed S3 upload to the quarantine prefix
+3. `POST /api/forecast/start`
+4. run polling via `GET /api/list-forecast-runs`
+5. result checks via:
+   `GET /api/get-daily-forecasts`
+   `GET /api/get-report-summary`
+   `GET /api/get-replenishment-signals`
+
+## Connector and worker env
+
+Connector sync and the internal worker still require:
+
+```bash
 DATA_SOURCE_ENCRYPTION_KEY=...
-# Optional JSON payload alternative. Supports {"DATA_SOURCE_ENCRYPTION_KEY":"..."} or {"key":"..."}
-DATA_SOURCE_ENCRYPTION_KEY_JSON=...
-
-# Internal worker auth token (used by /api/internal/data-sources/* endpoints)
 WORKER_CRON_TOKEN=...
 
-# Shopify
 SHOPIFY_CLIENT_ID=...
 SHOPIFY_CLIENT_SECRET=...
-SHOPIFY_SCOPES=read_orders,read_products,read_inventory
 SHOPIFY_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/shopify/callback
 
-# QuickBooks
 QUICKBOOKS_CLIENT_ID=...
 QUICKBOOKS_CLIENT_SECRET=...
-QUICKBOOKS_SCOPES=com.intuit.quickbooks.accounting
 QUICKBOOKS_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/quickbooks/callback
 
-# BigCommerce
 BIGCOMMERCE_CLIENT_ID=...
 BIGCOMMERCE_CLIENT_SECRET=...
-BIGCOMMERCE_SCOPES=store_v2_orders store_v2_products store_v2_customers
 BIGCOMMERCE_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/bigcommerce/callback
 
-# Amazon SP-API OAuth
 AMAZON_SP_APPLICATION_ID=...
 AMAZON_LWA_CLIENT_ID=...
 AMAZON_LWA_CLIENT_SECRET=...
 AMAZON_REDIRECT_URI=https://<dashboard-domain>/api/data-sources/amazon/callback
-AMAZON_SELLER_CENTRAL_URL=https://sellercentral.amazon.com
-```
-
-Generate a secure token:
-
-```bash
-openssl rand -base64 48
-```
-
-Internal endpoints:
-
-- `POST /api/internal/data-sources/run-due`
-- `POST /api/internal/data-sources/backfill`
-
-Both require the header:
-
-```text
-x-worker-token: <WORKER_CRON_TOKEN>
 ```

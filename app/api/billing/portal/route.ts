@@ -1,12 +1,10 @@
 import { NextResponse } from "next/server"
 import { stripe } from "@/lib/stripe"
-import { getValidIdToken } from "@/lib/server-auth"
+import { getAuthenticatedApiContext } from "@/lib/server-auth"
 
 export async function POST(request: Request) {
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return NextResponse.json({ error: "unauthorized" }, { status: 401 })
-  }
+  const { idToken, cookiesToSet, errorResponse, tenantRecord } = await getAuthenticatedApiContext({ allowRestricted: true })
+  if (errorResponse || !idToken) return errorResponse!
 
   let body: { customerId?: string; returnUrl?: string } = {}
   try {
@@ -16,8 +14,16 @@ export async function POST(request: Request) {
   }
 
   const customerId = typeof body.customerId === "string" ? body.customerId : ""
+  const tenantCustomerId = typeof tenantRecord?.stripeCustomerId === "string" ? tenantRecord.stripeCustomerId : ""
   if (!customerId) {
     const response = NextResponse.json({ error: "missing_customer_id" }, { status: 400 })
+    for (const cookie of cookiesToSet) {
+      response.cookies.set(cookie.name, cookie.value, cookie.options)
+    }
+    return response
+  }
+  if (!tenantCustomerId || customerId !== tenantCustomerId) {
+    const response = NextResponse.json({ error: "forbidden" }, { status: 403 })
     for (const cookie of cookiesToSet) {
       response.cookies.set(cookie.name, cookie.value, cookie.options)
     }

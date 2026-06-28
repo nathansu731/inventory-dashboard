@@ -10,13 +10,15 @@ import { Badge } from "@/components/ui/badge"
 import React from "react"
 
 type ForecastChartRow = {
-    month: string
-    actual: number
+    period: string
     forecast: number
-    revenue: number
+    lower80: number
+    upper80: number
+    seriesCount: number
 }
 
 type SkuTableRow = {
+    seriesKey: string
     sku: string
     store: string
     abcClass: string
@@ -32,7 +34,7 @@ type DashboardChartAndTableProps = {
     setSearchTerm: React.Dispatch<React.SetStateAction<string>>,
     selectedCategory: string,
     setSelectedCategory: React.Dispatch<React.SetStateAction<string>>,
-    openSkuModal: (sku: string) => void,
+    openSkuModal: (seriesKey: string) => void,
     getRiskBadgeColor: (risk: string) => "destructive" | "default" | "secondary";
     chartData: ForecastChartRow[]
     tableData: SkuTableRow[]
@@ -58,7 +60,7 @@ export const DashboardChartAndTable = ({
                 <div className="flex items-center justify-between">
                     <div>
                         <CardTitle>Demand Forecast Overview</CardTitle>
-                        <p className="text-sm text-gray-600 mt-1">Actual demand vs forecast baseline</p>
+                        <p className="text-sm text-gray-600 mt-1">30-day aggregated forecast horizon with uncertainty bands</p>
                     </div>
                     <div className="flex items-center gap-2">
                         <Button
@@ -84,47 +86,52 @@ export const DashboardChartAndTable = ({
                 {viewMode === "chart" ? (
                     <ChartContainer
                         config={{
-                            actual: {
-                                label: "Actual",
-                                color: "#66B2FF",
-                            },
                             forecast: {
                                 label: "Forecast",
                                 color: "#339CFF",
                             },
-                            revenue: {
-                                label: "Revenue",
-                                color: "#0071CE",
+                            lower80: {
+                                label: "Lower 80%",
+                                color: "#93C5FD",
+                            },
+                            upper80: {
+                                label: "Upper 80%",
+                                color: "#1D4ED8",
+                            },
+                            seriesCount: {
+                                label: "Series Count",
+                                color: "#0F172A",
                             },
                         }}
                         className="h-[400px] w-full"
                     >
                         <LineChart data={chartData}>
                             <CartesianGrid strokeDasharray="3 3" />
-                            <XAxis dataKey="month" />
+                            <XAxis dataKey="period" />
                             <YAxis />
                             <ChartTooltip content={<ChartTooltipContent />} />
-                            <Line
-                                type="monotone"
-                                dataKey="actual"
-                                stroke="var(--color-actual)"
-                                strokeWidth={2}
-                                dot={{ fill: "var(--color-actual)" }}
-                            />
                             <Line
                                 type="monotone"
                                 dataKey="forecast"
                                 stroke="var(--color-forecast)"
                                 strokeWidth={2}
-                                strokeDasharray="5 5"
                                 dot={{ fill: "var(--color-forecast)" }}
                             />
                             <Line
                                 type="monotone"
-                                dataKey="revenue"
-                                stroke="var(--color-revenue)"
-                                strokeWidth={2}
-                                dot={{ fill: "var(--color-revenue)" }}
+                                dataKey="lower80"
+                                stroke="var(--color-lower80)"
+                                strokeWidth={1.5}
+                                strokeDasharray="4 4"
+                                dot={false}
+                            />
+                            <Line
+                                type="monotone"
+                                dataKey="upper80"
+                                stroke="var(--color-upper80)"
+                                strokeWidth={1.5}
+                                strokeDasharray="4 4"
+                                dot={false}
                             />
                         </LineChart>
                     </ChartContainer>
@@ -168,9 +175,9 @@ export const DashboardChartAndTable = ({
                             <TableBody>
                                 {tableData.map((item) => (
                                     <TableRow
-                                        key={item.sku}
+                                        key={item.seriesKey}
                                         className="cursor-pointer hover:bg-gray-50"
-                                        onClick={() => openSkuModal(item.sku)}
+                                        onClick={() => openSkuModal(item.seriesKey)}
                                     >
                                         <TableCell className="font-medium">{item.sku}</TableCell>
                                         <TableCell>{item.store}</TableCell>

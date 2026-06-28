@@ -5,6 +5,7 @@ import {Check, Eye, X} from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 
 type ForecastDataItem = {
+    seriesKey: string;
     id: string;
     store: string;
     description: string;
@@ -33,11 +34,12 @@ type ForecastingSummaryTableProps = {
     handleSelectAll: (checked: boolean) => void;
     handleSelectItem: (id: string, checked: boolean) => void;
     columnVisibility: ColumnVisibility;
+    onViewItem: (item: ForecastDataItem) => void;
 };
 
 // below component is original one, without lazy loading ----- /////
 
-export const ForecastingSummaryTable = ({forecastData, selectedItems, selectAll, handleSelectAll, handleSelectItem, columnVisibility}: ForecastingSummaryTableProps) => {
+export const ForecastingSummaryTable = ({forecastData, selectedItems, selectAll, handleSelectAll, handleSelectItem, columnVisibility, onViewItem}: ForecastingSummaryTableProps) => {
     return (
         <div className="rounded-md border">
             <Table>
@@ -61,19 +63,19 @@ export const ForecastingSummaryTable = ({forecastData, selectedItems, selectAll,
                 </TableHeader>
                 <TableBody>
                     {forecastData.map((item) => (
-                        <TableRow key={item.id}>
+                        <TableRow key={item.seriesKey}>
                             {columnVisibility.select && (
                                 <TableCell>
                                     <Checkbox
-                                        checked={selectedItems.includes(item.id)}
-                                        onCheckedChange={(checked) => handleSelectItem(item.id, checked as boolean)}
+                                        checked={selectedItems.includes(item.seriesKey)}
+                                        onCheckedChange={(checked) => handleSelectItem(item.seriesKey, checked as boolean)}
                                         aria-label={`Select ${item.id}`}
                                     />
                                 </TableCell>
                             )}
                             {columnVisibility.view && (
                                 <TableCell>
-                                    <Button variant="ghost" size="icon" className="h-8 w-8">
+                                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => onViewItem(item)}>
                                         <Eye className="h-4 w-4"/>
                                     </Button>
                                 </TableCell>

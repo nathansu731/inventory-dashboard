@@ -9,6 +9,8 @@ import {
     resolveAwsRegion,
     type TenantRecord,
 } from "@/lib/tenant-users";
+import { getServerCognitoConfig } from "@/lib/server-runtime-config";
+import { getSubscriptionAccessState } from "@/lib/subscription-state";
 
 export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
@@ -18,24 +20,25 @@ export async function GET(req: NextRequest) {
         return NextResponse.json({ error: "Missing code" }, { status: 400 });
     }
 
-    const clientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || "";
-    const redirectUri = process.env.NEXT_PUBLIC_COGNITO_REDIRECT_URI!;
-    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
-    const tokenEndpoint = domain.endsWith("/oauth2") ? `${domain}/token` : `${domain}/oauth2/token`;
+    let cognito;
+    try {
+        cognito = getServerCognitoConfig();
+    } catch {
+        return NextResponse.redirect(new URL("/login?error=missing_config", req.url));
+    }
 
     const body = new URLSearchParams({
         grant_type: "authorization_code",
-        client_id: clientId,
+        client_id: cognito.clientId,
         code,
-        redirect_uri: redirectUri,
+        redirect_uri: cognito.redirectUri,
     });
 
-    if (clientSecret) {
-        body.append("client_secret", clientSecret);
+    if (cognito.clientSecret) {
+        body.append("client_secret", cognito.clientSecret);
     }
 
-    const tokenRes = await fetch(tokenEndpoint, {
+    const tokenRes = await fetch(cognito.tokenEndpoint, {
         method: "POST",
         headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -76,7 +79,15 @@ export async function GET(req: NextRequest) {
             if (normalizedPlan === "launch" && !stripeSubId) {
                 if (!tenantRecord.trialStartedAt) tenantRecord.trialStartedAt = now;
                 if (!tenantRecord.trialEndsAt) tenantRecord.trialEndsAt = trialEndsAt;
-                if (!tenantRecord.status || tenantRecord.status === "onboarding") {
+                const accessState = getSubscriptionAccessState({
+                    plan: tenantRecord.plan,
+                    tenantStatus: tenantRecord.status,
+                    subscriptionStatus: "",
+                    trialEndsAt: tenantRecord.trialEndsAt,
+                });
+                if (accessState.isTrialExpired) {
+                    tenantRecord.status = "trial_expired";
+                } else if (!tenantRecord.status || tenantRecord.status === "onboarding") {
                     tenantRecord.status = "trialing";
                 }
             }

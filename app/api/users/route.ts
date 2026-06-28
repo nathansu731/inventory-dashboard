@@ -11,7 +11,6 @@ import {
   countActiveUsers,
   getTenantRecord,
   getTenantsTableName,
-  getTokenUserContext,
   normalizeTenantPlan,
   normalizeRole,
   normalizeUsersMap,
@@ -33,15 +32,10 @@ const withCookies = (response: NextResponse, cookiesToSet: CookieToSet[]) => {
 }
 
 const getContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, idToken: "" }
-  }
-
-  const tokenCtx = getTokenUserContext(idToken)
-  if (!tokenCtx) {
-    return { error: NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet, idToken: "" }
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { idToken, cookiesToSet, tokenCtx, errorResponse } = await getAuthenticatedApiContext()
+  if (!idToken || !tokenCtx) {
+    return { error: errorResponse, cookiesToSet, idToken: "" }
   }
 
   return { error: null, cookiesToSet, idToken, tokenCtx }
@@ -65,7 +59,7 @@ const randomTemporaryPassword = () => {
 
 export async function GET() {
   const ctx = await getContext()
-  if (ctx.error) return withCookies(ctx.error, ctx.cookiesToSet)
+  if (ctx.error || !ctx.tokenCtx) return withCookies(ctx.error!, ctx.cookiesToSet)
 
   const tableName = getTenantsTableName()
   const region = resolveAwsRegion()
@@ -81,19 +75,22 @@ export async function GET() {
 
   const users = normalizeUsersMap(tenantRecord.users)
   const now = new Date().toISOString()
-  if (!users[ctx.tokenCtx.sub] && ctx.tokenCtx.email) {
+  const existingCurrentUser = users[ctx.tokenCtx.sub]
+  if ((!existingCurrentUser && ctx.tokenCtx.email) || existingCurrentUser?.inviteState !== "accepted" || existingCurrentUser?.isActive === false || existingCurrentUser?.isDeleted) {
     users[ctx.tokenCtx.sub] = {
       userId: ctx.tokenCtx.sub,
-      email: ctx.tokenCtx.email,
-      firstName: ctx.tokenCtx.firstName,
-      lastName: ctx.tokenCtx.lastName,
-      role: "admin",
+      email: ctx.tokenCtx.email || existingCurrentUser?.email || "",
+      firstName: ctx.tokenCtx.firstName || existingCurrentUser?.firstName || "",
+      lastName: ctx.tokenCtx.lastName || existingCurrentUser?.lastName || "",
+      role: existingCurrentUser?.role || "admin",
       inviteState: "accepted",
       isActive: true,
       isDeleted: false,
-      createdAt: now,
+      createdAt: existingCurrentUser?.createdAt || now,
       updatedAt: now,
-      acceptedAt: now,
+      invitedBySub: existingCurrentUser?.invitedBySub,
+      invitedByEmail: existingCurrentUser?.invitedByEmail,
+      acceptedAt: existingCurrentUser?.acceptedAt || now,
     }
     tenantRecord.users = users
     tenantRecord.updatedAt = now
@@ -131,7 +128,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
   const ctx = await getContext()
-  if (ctx.error) return withCookies(ctx.error, ctx.cookiesToSet)
+  if (ctx.error || !ctx.tokenCtx) return withCookies(ctx.error!, ctx.cookiesToSet)
 
   const tableName = getTenantsTableName()
   const region = resolveAwsRegion()

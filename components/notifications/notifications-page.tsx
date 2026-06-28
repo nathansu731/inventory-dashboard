@@ -5,6 +5,7 @@ import {
     Bell,
     Briefcase,
     CreditCard,
+    DatabaseZap,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {NotificationsSort} from "@/components/notifications/notifications-sort";
@@ -12,6 +13,7 @@ import {NotificationsList} from "@/components/notifications/notifications-list";
 import {NotificationsDetails} from "@/components/notifications/notifications-details";
 import { Notification } from "./notifications-types"
 import { useProfile } from "@/hooks/use-profile"
+import { extractFailureReason, parseRunSummary } from "@/lib/run-status"
 
 type NotificationRecord = {
     notificationId: string
@@ -25,10 +27,37 @@ type NotificationRecord = {
         rows?: number
         dateStart?: string
         dateEnd?: string
+        sourceType?: string
+        provider?: string
+        sourceId?: string
+        syncMode?: string
+        selectedTables?: string[]
+        message?: string
+        runConfig?: Record<string, unknown>
+        validation?: Record<string, unknown>
     } | null
 }
 
 type SortOption = "newest" | "oldest" | "unread" | "priority"
+
+const formatLabel = (value: string) =>
+    value
+        .replace(/[_-]+/g, " ")
+        .replace(/\b\w/g, (char) => char.toUpperCase())
+
+const asString = (value: unknown): string | null => {
+    if (typeof value === "string") {
+        const trimmed = value.trim()
+        return trimmed || null
+    }
+    if (typeof value === "number" && Number.isFinite(value)) return String(value)
+    return null
+}
+
+const asNumber = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null)
+
+const formatMetric = (value: number | null, fractionDigits = 2) =>
+    value === null ? null : value.toLocaleString("en-US", { maximumFractionDigits: fractionDigits, minimumFractionDigits: fractionDigits })
 
 export const NotificationsPage = () => {
     const [notifications, setNotifications] = useState<Notification[]>([])
@@ -52,24 +81,94 @@ export const NotificationsPage = () => {
                         ? "in-progress"
                         : "pending"
 
-        let summary = run.summary || {}
-        if (typeof run.summary === "string") {
-            try {
-                summary = JSON.parse(run.summary)
-            } catch {
-                summary = {}
-            }
-        }
+        const summary = parseRunSummary(run.summary) || {}
+        const sourceType = asString(summary.sourceType)
+        const isConnectorNotification = sourceType === "connector"
+        const failureReason = extractFailureReason(run.summary)
+        const runConfig = (summary.runConfig && typeof summary.runConfig === "object" ? summary.runConfig : {}) as Record<string, unknown>
+        const validation = (summary.validation && typeof summary.validation === "object" ? summary.validation : {}) as Record<string, unknown>
+        const selectedModel = (validation.selectedModel && typeof validation.selectedModel === "object"
+            ? validation.selectedModel
+            : {}) as Record<string, unknown>
+        const selectedModelMetrics = (selectedModel.metrics && typeof selectedModel.metrics === "object"
+            ? selectedModel.metrics
+            : {}) as Record<string, unknown>
+        const executedModel = asString(runConfig.executedModel) || asString(selectedModel.model)
+        const executedMode = asString(runConfig.executedMode) || asString(selectedModel.mode)
+        const requestedTargetColumn = asString(runConfig.requestedTargetColumn)
+        const resolvedTargetColumn = asString(runConfig.resolvedTargetColumn)
+        const dateStart = asString(summary.dateStart)
+        const dateEnd = asString(summary.dateEnd)
+        const rows = typeof summary.rows === "number" ? summary.rows : null
+        const totalSeries = typeof summary.totalSeries === "number" ? summary.totalSeries : null
+        const totalSkus = typeof summary.totalSkus === "number" ? summary.totalSkus : null
+        const detectedFrequency = asString(runConfig.detectedFrequency) || asString(validation.frequency)
+        const smape = asNumber(selectedModelMetrics.smape)
+        const mae = asNumber(selectedModelMetrics.mae)
+        const rmse = asNumber(selectedModelMetrics.rmse)
         const summaryText =
             summary?.totalSkus && summary?.dateStart && summary?.dateEnd
                 ? `Processed ${summary.totalSkus} SKUs (${summary.dateStart} to ${summary.dateEnd}).`
                 : "Artifacts are being prepared."
 
+        if (isConnectorNotification) {
+            const provider = asString(summary.provider) || "connector"
+            const syncMode = asString(summary.syncMode)
+            const selectedTables = Array.isArray(summary.selectedTables)
+                ? summary.selectedTables.map((value) => asString(value)).filter((value): value is string => Boolean(value))
+                : []
+            const connectorMessage = asString(summary.message) || (jobStatus === "failed" ? "Connector sync failed." : "Connector sync completed.")
+            const connectorTitle =
+                jobStatus === "failed"
+                    ? `${formatLabel(provider)} Sync Failed`
+                    : jobStatus === "completed"
+                        ? `${formatLabel(provider)} Sync Completed`
+                        : `${formatLabel(provider)} Sync Update`
+
+            return {
+                id: run.notificationId || run.runId,
+                type: "connector",
+                title: connectorTitle,
+                message: connectorMessage,
+                timestamp: new Date(run.updatedAt || run.createdAt || Date.now()),
+                read: Boolean(run.read),
+                jobStatus,
+                priority: jobStatus === "failed" ? "high" : jobStatus === "in-progress" ? "medium" : "low",
+                details: connectorMessage,
+                detailItems: [
+                    { label: "Provider", value: formatLabel(provider) },
+                    ...(syncMode ? [{ label: "Sync Mode", value: formatLabel(syncMode) }] : []),
+                    ...(asString(summary.sourceId) ? [{ label: "Source ID", value: asString(summary.sourceId) || "" }] : []),
+                    ...(selectedTables.length > 0 ? [{ label: "Selected Tables", value: selectedTables.join(", ") }] : []),
+                    ...(selectedTables.length > 0 ? [{ label: "Table Count", value: String(selectedTables.length) }] : []),
+                ],
+                relatedUser: displayName,
+            }
+        }
+
+        const detailItems = [
+            { label: "Run ID", value: run.runId },
+            ...(executedModel ? [{ label: "Model", value: executedMode ? `${formatLabel(executedModel)} (${formatLabel(executedMode)})` : formatLabel(executedModel) }] : []),
+            ...(detectedFrequency ? [{ label: "Frequency", value: formatLabel(detectedFrequency) }] : []),
+            ...(resolvedTargetColumn || requestedTargetColumn
+                ? [{ label: "Forecast Column", value: resolvedTargetColumn && requestedTargetColumn && resolvedTargetColumn !== requestedTargetColumn
+                    ? `${resolvedTargetColumn} (requested ${requestedTargetColumn})`
+                    : (resolvedTargetColumn || requestedTargetColumn || "") }]
+                : []),
+            ...(dateStart && dateEnd ? [{ label: "Date Range", value: `${dateStart} to ${dateEnd}` }] : []),
+            ...(totalSkus !== null ? [{ label: "SKUs", value: String(totalSkus) }] : []),
+            ...(totalSeries !== null ? [{ label: "Series", value: String(totalSeries) }] : []),
+            ...(rows !== null ? [{ label: "Rows", value: rows.toLocaleString("en-US") }] : []),
+            ...(smape !== null ? [{ label: "Validation sMAPE", value: `${formatMetric(smape)}%` }] : []),
+            ...(mae !== null ? [{ label: "Validation MAE", value: formatMetric(mae) || "" }] : []),
+            ...(rmse !== null ? [{ label: "Validation RMSE", value: formatMetric(rmse) || "" }] : []),
+        ]
+
         const message =
             jobStatus === "completed"
                 ? `Forecast job completed for ${displayName}. ${summaryText}`
                 : jobStatus === "failed"
-                    ? `Forecast job failed for ${displayName}. Please retry.`
+                    ? `Forecast job failed for ${displayName}${failureReason ? `: ${failureReason}` : ". Please retry."}`
                     : jobStatus === "in-progress"
                         ? `Forecast job is running for ${displayName}.`
                         : `Forecast job queued for ${displayName}.`
@@ -79,13 +178,24 @@ export const NotificationsPage = () => {
         return {
             id: run.notificationId || run.runId,
             type: "job",
-            title: "Job Report Generation",
+            title:
+                jobStatus === "completed"
+                    ? "Forecast Run Completed"
+                    : jobStatus === "failed"
+                        ? "Forecast Run Failed"
+                        : jobStatus === "in-progress"
+                            ? "Forecast Run In Progress"
+                            : "Forecast Run Queued",
             message,
             timestamp,
             read: Boolean(run.read),
             jobStatus,
             priority: jobStatus === "failed" ? "high" : jobStatus === "in-progress" ? "medium" : "low",
-            details: `Run ID: ${run.runId}`,
+            details:
+                jobStatus === "completed"
+                    ? `${summaryText}${smape !== null ? ` Validation sMAPE: ${formatMetric(smape)}%.` : ""}`
+                    : `Run ID: ${run.runId}${failureReason ? `\nReason: ${failureReason}` : ""}`,
+            detailItems,
             relatedUser: displayName,
         }
     }, [])
@@ -180,8 +290,9 @@ export const NotificationsPage = () => {
     }
 
     const handleNotificationClick = (notification: Notification) => {
-        markAsRead(notification.id)
-        setSelectedNotification(notification)
+        const openedNotification = notification.read ? notification : { ...notification, read: true }
+        void markAsRead(notification.id)
+        setSelectedNotification(openedNotification)
     }
 
     const markAllRead = async () => {
@@ -192,6 +303,7 @@ export const NotificationsPage = () => {
             const res = await fetch("/api/notifications/mark-all-read", { method: "POST" })
             if (!res.ok) throw new Error(`request_failed_${res.status}`)
             setNotifications((prev) => prev.map((item) => ({ ...item, read: true })))
+            setSelectedNotification((prev) => (prev ? { ...prev, read: true } : prev))
         } catch {
             setError("Failed to mark all notifications as read.")
         } finally {
@@ -221,6 +333,8 @@ export const NotificationsPage = () => {
         switch (notification.type) {
             case "job":
                 return <Briefcase className="h-4 w-4" />
+            case "connector":
+                return <DatabaseZap className="h-4 w-4" />
             case "product":
             case "subscription":
                 return <CreditCard className="h-4 w-4" />
@@ -247,11 +361,11 @@ export const NotificationsPage = () => {
     const unreadCount = notifications.filter((n) => !n.read).length
     return (
         <div className="min-h-screen bg-background flex">
-            <div className={cn("flex-1 overflow-auto", selectedNotification && "mr-96")}>
+            <div className={cn("flex-1 overflow-auto", selectedNotification && "min-[1025px]:mr-96")}>
                 <div className="container max-w-[2000px] mx-auto p-5 min-w-0 space-y-5">
                     <div>
                         <h1 className="text-3xl font-bold text-foreground">Notifications</h1>
-                        <p className="text-muted-foreground mt-1">Track forecast jobs, billing updates, and product activity.</p>
+                        <p className="text-muted-foreground mt-1">Track forecast runs and connector sync updates.</p>
                         {unreadCount > 0 && <p className="text-sm text-muted-foreground mt-2">{unreadCount} unread</p>}
                     </div>
                     {error && (
@@ -285,7 +399,7 @@ export const NotificationsPage = () => {
                     )}
 
                     {hasMore && !loading && (
-                        <div className="text-center py-6">
+                        <div className="mb-4 text-center">
                             <button
                                 className="text-sm font-medium text-blue-700 hover:text-blue-900"
                                 onClick={loadMore}
@@ -306,7 +420,6 @@ export const NotificationsPage = () => {
                 getNotificationIcon={getNotificationIcon}
                 setSelectedNotification={setSelectedNotification}
                 getJobStatusColor={getJobStatusColor}
-                markAsRead={markAsRead}
             />
         </div>
     )

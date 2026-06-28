@@ -2,6 +2,7 @@ import type React from "react"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { TrendingDown, TrendingUp } from "lucide-react"
+import type { DashboardMetricInsight } from "@/components/dashboard/dashboard-metric-modal"
 
 type MetricTile = {
     title: string
@@ -9,22 +10,37 @@ type MetricTile = {
     change: string
     trend: "up" | "down"
     icon?: React.ComponentType<{ className?: string }>
+    insight?: DashboardMetricInsight
 }
 
 type DashboardMetricsTilesProps = {
     metrics: MetricTile[]
+    onMetricClick?: (metric: MetricTile) => void
 }
 
-export const DashboardMetricsTiles = ({ metrics }: DashboardMetricsTilesProps) => {
+export const DashboardMetricsTiles = ({ metrics, onMetricClick }: DashboardMetricsTilesProps) => {
     return (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
             {metrics.map((metric, index) => {
                 const hasMeaningfulValue = metric.value.trim() !== "" && metric.value.trim() !== "--"
                 const hasMeaningfulChange = metric.change.trim() !== ""
                 const showTrendRow = hasMeaningfulValue && hasMeaningfulChange
+                const clickable = Boolean(onMetricClick && metric.insight)
 
                 return (
-                    <Card key={index}>
+                    <Card
+                        key={index}
+                        className={clickable ? "cursor-pointer transition-colors hover:bg-muted/30" : undefined}
+                        onClick={clickable ? () => onMetricClick?.(metric) : undefined}
+                        role={clickable ? "button" : undefined}
+                        tabIndex={clickable ? 0 : undefined}
+                        onKeyDown={clickable ? (event) => {
+                            if (event.key === "Enter" || event.key === " ") {
+                                event.preventDefault()
+                                onMetricClick?.(metric)
+                            }
+                        } : undefined}
+                    >
                         <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                             <CardTitle className="text-sm font-medium text-gray-600">{metric.title}</CardTitle>
                             {metric.icon ? <metric.icon className="h-4 w-4 text-gray-400" /> : null}

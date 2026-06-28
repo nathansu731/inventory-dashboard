@@ -1,12 +1,11 @@
+import { getServerGraphqlEndpoint } from "@/lib/server-runtime-config";
+
 export const appsyncRequest = async (
   idToken: string,
   query: string,
   variables?: Record<string, unknown>
 ) => {
-  const apiUrl = process.env.APPSYNC_API_URL;
-  if (!apiUrl) {
-    throw new Error("Missing APPSYNC_API_URL");
-  }
+  const apiUrl = getServerGraphqlEndpoint();
 
   const response = await fetch(apiUrl, {
     method: "POST",

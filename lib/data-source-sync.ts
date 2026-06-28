@@ -7,6 +7,7 @@ import {
   type TenantRecord,
 } from "@/lib/data-sources"
 import { decryptSecret } from "@/lib/data-source-secrets"
+import { runProviderExtraction } from "@/lib/data-source-extraction"
 
 type SyncResult = {
   source: DataSourceRecord
@@ -19,6 +20,7 @@ type SyncResult = {
   }
   ok: boolean
   errorCode?: string
+  errorDetails?: Record<string, unknown>
 }
 
 const baseRun = () => {
@@ -35,18 +37,21 @@ const failResult = ({
   runBase,
   message,
   errorCode,
+  details,
   terminal = false,
 }: {
   source: DataSourceRecord
   runBase: { id: string; startedAt: string; finishedAt: string }
   message: string
   errorCode: string
+  details?: Record<string, unknown>
   terminal?: boolean
 }): SyncResult => {
   const run = { ...runBase, status: "error" as const, message }
   return {
     ok: false,
     errorCode,
+    errorDetails: details,
     run,
     source: {
       ...source,
@@ -323,7 +328,35 @@ export const runSourceSync = async (
     if (validation) return validation
   }
 
-  const successMessage = `Imported ${source.selectedTables.length} table(s).`
+  let latestImport = source.latestImport
+  let diagnostics = source.diagnostics
+  let successMessage = `Imported ${source.selectedTables.length} table(s).`
+  if (source.provider !== "other") {
+    try {
+      const extracted = await runProviderExtraction({
+        tenantId: tenantRecord.tenantId,
+        source,
+        sourceRunId: runBase.id,
+        secretEntry: secretEntryFor(tenantRecord, sourceId),
+        plan: tenantRecord.plan,
+      })
+      latestImport = extracted.artifact
+      diagnostics = extracted.diagnostics
+      successMessage = extracted.message
+    } catch (error) {
+      const extractionError = error as Error & { code?: string; details?: Record<string, unknown> }
+      const message = extractionError instanceof Error ? extractionError.message : "provider_extraction_failed"
+      return failResult({
+        source,
+        runBase,
+        message,
+        errorCode: extractionError.code || "provider_extraction_failed",
+        details: extractionError.details,
+        terminal: false,
+      })
+    }
+  }
+
   const run = { ...runBase, status: "success" as const, message: successMessage }
   return {
     ok: true,
@@ -335,6 +368,8 @@ export const runSourceSync = async (
       nextImportAt: computeNextImportAt(source.syncMode, run.finishedAt),
       retryCount: 0,
       lastError: null,
+      latestImport,
+      diagnostics,
       runs: [run, ...source.runs].slice(0, 20),
       updatedAt: run.finishedAt,
     },

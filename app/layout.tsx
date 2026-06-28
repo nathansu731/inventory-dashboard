@@ -4,6 +4,8 @@ import { Providers } from "@/store/providers";
 import { ApolloWrapper } from "@/lib/apollo-provider";
 import CognitoAuthProvider from "@/components/providers/cognito-auth-provider";
 import React from "react";
+import { ForecastCopilotProvider } from "@/components/copilot/forecast-copilot-provider";
+import { SubscriptionAccessGuard } from "@/components/subscription/subscription-access-guard";
 
 export const metadata: Metadata = {
   title: "ARK Dashboard",
@@ -17,7 +19,10 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
         <CognitoAuthProvider>
             <ApolloWrapper>
                 <Providers>
-                    {children}
+                    <ForecastCopilotProvider>
+                        <SubscriptionAccessGuard />
+                        {children}
+                    </ForecastCopilotProvider>
                 </Providers>
             </ApolloWrapper>
         </CognitoAuthProvider>

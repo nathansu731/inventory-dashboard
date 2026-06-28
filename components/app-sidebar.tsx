@@ -7,7 +7,7 @@ import {
   Command,
   GalleryVerticalEnd,
   TrendingUpDown,
-  LayoutDashboard, FileChartColumn, Warehouse, Grid2x2Plus,
+  LayoutDashboard, FileChartColumn, Warehouse, Grid2x2Plus, CreditCard,
 } from "lucide-react"
 
 import CustomKpiIcon from "@/components/custom-lucide-icons/kpi-icon";
@@ -22,6 +22,8 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useProfile } from "@/hooks/use-profile"
+import { getSubscriptionAccessState } from "@/lib/subscription-state"
 
 // This is sample data.
 const data = {
@@ -105,13 +107,31 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { profile } = useProfile()
+  const accessState = getSubscriptionAccessState({
+    plan: profile?.tenant_plan ?? profile?.["custom:plan"],
+    tenantStatus: profile?.effective_tenant_status ?? profile?.tenant_status,
+    subscriptionStatus: profile?.["custom:sub_status"],
+    trialEndsAt: profile?.trial_ends_at,
+  })
+  const navItems = accessState.accessRestricted
+    ? [
+        {
+          title: "Upgrade",
+          url: "/account-and-subscription",
+          icon: CreditCard,
+          isActive: true,
+        },
+      ]
+    : data.navMain
+
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
         <TeamSwitcher teams={data.teams} />
       </SidebarHeader>
       <SidebarContent>
-        <NavMain items={data.navMain} />
+        <NavMain items={navItems} />
       </SidebarContent>
       <SidebarFooter>
         <NavUser />

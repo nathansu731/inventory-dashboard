@@ -18,9 +18,16 @@ type SavedReportSnapshot = {
   runCount: number
   doneCount: number
   failedCount: number
+  scenarioCount?: number
   averageSmape: number | null
   averageAccuracy: number | null
   averageTotalSkus: number | null
+  totalSeries?: number
+  highErrorSeries?: number
+  assumptionsAffected?: number
+  assumptionDelta?: number
+  bestRunId?: string | null
+  worstRunId?: string | null
   periodStart: string | null
   periodEnd: string | null
   generatedAt: string
@@ -54,9 +61,16 @@ const sanitizeSnapshot = (input: unknown): SavedReportSnapshot | null => {
     runCount: toCount(obj.runCount),
     doneCount: toCount(obj.doneCount),
     failedCount: toCount(obj.failedCount),
+    scenarioCount: toCount(obj.scenarioCount),
     averageSmape: toNullableNumber(obj.averageSmape),
     averageAccuracy: toNullableNumber(obj.averageAccuracy),
     averageTotalSkus: toNullableNumber(obj.averageTotalSkus),
+    totalSeries: toCount(obj.totalSeries),
+    highErrorSeries: toCount(obj.highErrorSeries),
+    assumptionsAffected: toCount(obj.assumptionsAffected),
+    assumptionDelta: toNullableNumber(obj.assumptionDelta) ?? 0,
+    bestRunId: typeof obj.bestRunId === "string" ? obj.bestRunId : null,
+    worstRunId: typeof obj.worstRunId === "string" ? obj.worstRunId : null,
     periodStart: typeof obj.periodStart === "string" ? obj.periodStart : null,
     periodEnd: typeof obj.periodEnd === "string" ? obj.periodEnd : null,
     generatedAt: typeof obj.generatedAt === "string" ? obj.generatedAt : "",
@@ -71,12 +85,12 @@ const withCookies = (response: NextResponse, cookiesToSet: Array<{ name: string;
 }
 
 const getTenantContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
   const { getTenantIdFromToken } = await import("@/lib/auth")
 
-  const { idToken, cookiesToSet } = await getValidIdToken()
+  const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
   if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, tenantId: "" }
+    return { error: errorResponse, cookiesToSet, tenantId: "" }
   }
 
   const tenantId = getTenantIdFromToken(idToken)

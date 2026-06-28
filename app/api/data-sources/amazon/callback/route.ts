@@ -14,6 +14,8 @@ import { encryptSecret } from "@/lib/data-source-secrets"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
 import { sanitizeAvailableObjects, sanitizeSelectedObjects } from "@/lib/data-source-catalog"
+import { buildSourceDiagnostics } from "@/lib/data-source-diagnostics"
+import { defaultProviderSetupConfig } from "@/lib/provider-source-config"
 
 const AMAZON_STATE_COOKIE = "amazon_oauth_state"
 
@@ -137,6 +139,13 @@ export async function GET(request: NextRequest) {
     nextImportAt: existing?.nextImportAt || null,
     retryCount: existing?.retryCount || 0,
     lastError: existing?.lastError || null,
+    sourceConfig: existing?.sourceConfig || defaultProviderSetupConfig("amazon"),
+    diagnostics: buildSourceDiagnostics({
+      provider: "amazon",
+      availableTables: sanitizeAvailableObjects("amazon", statePayload.availableTables ?? existing?.availableTables),
+      selectedTables: sanitizeSelectedObjects("amazon", statePayload.selectedTables ?? existing?.selectedTables),
+      userMessage: `Amazon seller ${sellerId} connected. Marketplace and SP-API permissions will be validated during preview.`,
+    }),
     runs: existing?.runs || [],
     createdAt: existing?.createdAt || now,
     updatedAt: now,

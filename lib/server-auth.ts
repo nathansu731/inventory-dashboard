@@ -1,6 +1,18 @@
 import { cookies as nextCookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { getServerCognitoConfig } from "@/lib/server-runtime-config";
+import { getSubscriptionAccessState, type SubscriptionAccessState } from "@/lib/subscription-state";
+import {
+    getTenantRecord,
+    getTenantsTableName,
+    getTokenUserContext,
+    resolveAwsRegion,
+    type TenantRecord,
+    type TokenUserContext,
+} from "@/lib/tenant-users";
 
-type CookieToSet = {
+export type CookieToSet = {
     name: string;
     value: string;
     options: {
@@ -9,6 +21,16 @@ type CookieToSet = {
         path: string;
         maxAge?: number;
     };
+};
+
+type AuthenticatedApiContext = {
+    accessState: SubscriptionAccessState | null;
+    cookiesToSet: CookieToSet[];
+    errorCode: "missing_tenant" | "trial_expired" | "unauthorized" | null;
+    errorResponse: NextResponse | null;
+    idToken: string | null;
+    tenantRecord: TenantRecord | null;
+    tokenCtx: TokenUserContext | null;
 };
 
 const authCookieNames = ["access_token", "id_token", "refresh_token"] as const;
@@ -39,26 +61,19 @@ const isExpired = (token: string, skewSeconds = 30) => {
 };
 
 const refreshTokens = async (refreshToken: string) => {
-    const clientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
-    const clientSecret = process.env.COGNITO_CLIENT_SECRET || "";
-    const domain = process.env.NEXT_PUBLIC_COGNITO_DOMAIN || "";
-    const tokenEndpoint = domain.endsWith("/oauth2") ? `${domain}/token` : `${domain}/oauth2/token`;
-
-    if (!clientId || !tokenEndpoint) {
-        throw new Error("missing_cognito_config");
-    }
+    const cognito = getServerCognitoConfig();
 
     const body = new URLSearchParams({
         grant_type: "refresh_token",
-        client_id: clientId,
+        client_id: cognito.clientId,
         refresh_token: refreshToken,
     });
 
-    if (clientSecret) {
-        body.append("client_secret", clientSecret);
+    if (cognito.clientSecret) {
+        body.append("client_secret", cognito.clientSecret);
     }
 
-    const tokenRes = await fetch(tokenEndpoint, {
+    const tokenRes = await fetch(cognito.tokenEndpoint, {
         method: "POST",
         headers: {
             "Content-Type": "application/x-www-form-urlencoded",
@@ -130,4 +145,93 @@ export const getValidIdToken = async () => {
         }
         return { idToken: null, cookiesToSet: expiredCookies };
     }
+};
+
+export const withAuthCookies = <T extends NextResponse>(response: T, cookiesToSet: CookieToSet[]) => {
+    for (const cookie of cookiesToSet) {
+        response.cookies.set(cookie.name, cookie.value, cookie.options);
+    }
+    return response;
+};
+
+export const getAuthenticatedApiContext = async (
+    { allowRestricted = false }: { allowRestricted?: boolean } = {},
+): Promise<AuthenticatedApiContext> => {
+    const { idToken, cookiesToSet } = await getValidIdToken();
+    if (!idToken) {
+        return {
+            accessState: null,
+            cookiesToSet,
+            errorCode: "unauthorized",
+            errorResponse: withAuthCookies(NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet),
+            idToken: null,
+            tenantRecord: null,
+            tokenCtx: null,
+        };
+    }
+
+    const tokenCtx = getTokenUserContext(idToken);
+    if (!tokenCtx) {
+        return {
+            accessState: null,
+            cookiesToSet,
+            errorCode: "missing_tenant",
+            errorResponse: withAuthCookies(NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet),
+            idToken,
+            tenantRecord: null,
+            tokenCtx: null,
+        };
+    }
+
+    const tableName = getTenantsTableName();
+    const region = resolveAwsRegion();
+    let tenantRecord: TenantRecord | null = null;
+
+    if (tableName && region) {
+        try {
+            const ddb = new DynamoDBClient({ region });
+            tenantRecord = await getTenantRecord(ddb, tableName, tokenCtx.tenantId);
+        } catch {
+            tenantRecord = null;
+        }
+    }
+
+    const accessState = getSubscriptionAccessState({
+        plan: tenantRecord?.plan,
+        tenantStatus: tenantRecord?.status,
+        subscriptionStatus: "",
+        trialEndsAt: tenantRecord?.trialEndsAt,
+    });
+
+    if (tenantRecord && accessState.accessRestricted && !allowRestricted) {
+        return {
+            accessState,
+            cookiesToSet,
+            errorCode: "trial_expired",
+            errorResponse: withAuthCookies(
+                NextResponse.json(
+                    {
+                        error: "trial_expired",
+                        upgradeHref: accessState.upgradeHref,
+                        upgradeRequired: true,
+                    },
+                    { status: 402 },
+                ),
+                cookiesToSet,
+            ),
+            idToken,
+            tenantRecord,
+            tokenCtx,
+        };
+    }
+
+    return {
+        accessState,
+        cookiesToSet,
+        errorCode: null,
+        errorResponse: null,
+        idToken,
+        tenantRecord,
+        tokenCtx,
+    };
 };

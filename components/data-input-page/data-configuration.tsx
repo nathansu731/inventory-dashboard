@@ -8,6 +8,8 @@ import { ConnectorImportSetupSection } from "@/components/data-input-page/connec
 import { DataConfigurationActions } from "@/components/data-input-page/data-configuration-actions"
 import { AdapterTemplateKitSection } from "@/components/data-input-page/adapter-template-kit-section"
 import { ForecastingOptionsSection } from "@/components/data-input-page/forecasting-options-section"
+import type { DataSourceDiagnostics } from "@/lib/data-sources"
+import type { ProviderBlueprint, ProviderSetupConfig } from "@/lib/provider-source-config"
 
 type DataConfigurationProps = {
   plan: string
@@ -20,18 +22,19 @@ type DataConfigurationProps = {
   availableModels: string[]
   allowGlobal: boolean
   provider: ConnectorProvider
+  blueprint: ProviderBlueprint | null
+  diagnostics: DataSourceDiagnostics | null
   connectionState: ConnectorState
   availableTables: string[]
   selectedTables: string[]
   setSelectedTables: React.Dispatch<React.SetStateAction<string[]>>
+  effectiveSelectedTables: string[]
   syncMode: string
   setSyncMode: React.Dispatch<React.SetStateAction<string>>
-  dateFormat: string
-  setDateFormat: React.Dispatch<React.SetStateAction<string>>
-  targetVariable: string
-  setTargetVariable: React.Dispatch<React.SetStateAction<string>>
-  priceColumnName: string
-  setPriceColumnName: React.Dispatch<React.SetStateAction<string>>
+  sourceConfig: ProviderSetupConfig
+  setSourceConfig: React.Dispatch<React.SetStateAction<ProviderSetupConfig>>
+  forecastHorizon: string
+  setForecastHorizon: React.Dispatch<React.SetStateAction<string>>
   lastImportAt: string | null
   nextImportAt: string | null
   retryCount: number
@@ -61,18 +64,19 @@ export const DataConfiguration = ({
   availableModels,
   allowGlobal,
   provider,
+  blueprint,
+  diagnostics,
   connectionState,
   availableTables,
   selectedTables,
   setSelectedTables,
+  effectiveSelectedTables,
   syncMode,
   setSyncMode,
-  dateFormat,
-  setDateFormat,
-  targetVariable,
-  setTargetVariable,
-  priceColumnName,
-  setPriceColumnName,
+  sourceConfig,
+  setSourceConfig,
+  forecastHorizon,
+  setForecastHorizon,
   lastImportAt,
   nextImportAt,
   retryCount,
@@ -102,11 +106,16 @@ export const DataConfiguration = ({
       <CardContent className="space-y-4">
         <ConnectorImportSetupSection
           provider={provider}
+          blueprint={blueprint}
+          diagnostics={diagnostics}
           connectionState={connectionState}
           canManageSources={canManageSources}
           availableTables={availableTables}
           selectedTables={selectedTables}
           setSelectedTables={setSelectedTables}
+          effectiveSelectedTables={effectiveSelectedTables}
+          sourceConfig={sourceConfig}
+          setSourceConfig={setSourceConfig}
           syncMode={syncMode}
           setSyncMode={setSyncMode}
           lastImportAt={lastImportAt}
@@ -127,12 +136,8 @@ export const DataConfiguration = ({
         <Separator />
 
         <ForecastingOptionsSection
-          dateFormat={dateFormat}
-          setDateFormat={setDateFormat}
-          targetVariable={targetVariable}
-          setTargetVariable={setTargetVariable}
-          priceColumnName={priceColumnName}
-          setPriceColumnName={setPriceColumnName}
+          forecastHorizon={forecastHorizon}
+          setForecastHorizon={setForecastHorizon}
           plan={plan}
           mode={mode}
           setMode={setMode}

@@ -1,12 +1,18 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextResponse } from "next/server"
-import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
+import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion, writeTenantRecord } from "@/lib/data-sources"
 import { runSourceSync } from "@/lib/data-source-sync"
 import { emitConnectorNotification } from "@/lib/connector-notifications"
 import { acquireSourceSyncLock, makeWorkerOwnerId, releaseSourceSyncLock } from "@/lib/data-source-worker"
 import { appendDataSourceAudit } from "@/lib/data-source-audit"
 import { readSourcesWithFallback, upsertSourceInDedicatedTable } from "@/lib/data-sources-repo"
+import { consumeTenantRateLimit } from "@/lib/tenant-rate-limit"
+import {
+  buildRestrictionErrorPayload,
+  normalizeTenantPlan,
+  statusForRestrictionCode,
+} from "@/lib/upload-guardrails"
 
 type CookieToSet = { name: string; value: string; options: Record<string, unknown> }
 
@@ -18,14 +24,10 @@ const withCookies = (response: NextResponse, cookiesToSet: CookieToSet[]) => {
 }
 
 const readContext = async () => {
-  const { getValidIdToken } = await import("@/lib/server-auth")
-  const { idToken, cookiesToSet } = await getValidIdToken()
-  if (!idToken) {
-    return { error: NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet, tokenCtx: null }
-  }
-  const tokenCtx = getTokenUserContext(idToken)
+  const { getAuthenticatedApiContext } = await import("@/lib/server-auth")
+  const { cookiesToSet, tokenCtx, errorResponse } = await getAuthenticatedApiContext()
   if (!tokenCtx) {
-    return { error: NextResponse.json({ error: "missing_tenant" }, { status: 403 }), cookiesToSet, tokenCtx: null }
+    return { error: errorResponse, cookiesToSet, tokenCtx: null }
   }
   return { error: null, cookiesToSet, tokenCtx }
 }
@@ -52,6 +54,40 @@ export async function POST(_request: Request, { params }: { params: Promise<{ so
   if (currentRole !== "admin") {
     return withCookies(NextResponse.json({ error: "forbidden" }, { status: 403 }), ctx.cookiesToSet)
   }
+
+  const plan = normalizeTenantPlan(tenantRecord.plan)
+  const syncRateLimit = consumeTenantRateLimit({
+    tenantRecord,
+    action: "source_sync",
+    plan,
+  })
+  if (!syncRateLimit.allowed) {
+    appendDataSourceAudit({
+      tenantRecord,
+      type: "source_sync_rate_limited",
+      actor: ctx.tokenCtx.email || ctx.tokenCtx.sub,
+      actorType: "user",
+      message: `Too many connector sync attempts were made recently. Retry in ${syncRateLimit.retryAfterSeconds} seconds.`,
+    })
+    tenantRecord.updatedAt = new Date().toISOString()
+    await writeTenantRecord(ddb, tableName, tenantRecord)
+    return withCookies(
+      NextResponse.json(
+        buildRestrictionErrorPayload({
+          code: "SOURCE_SYNC_RATE_LIMITED",
+          error: `Too many connector sync attempts were made recently. Please wait ${syncRateLimit.retryAfterSeconds} seconds before syncing again.`,
+          details: {
+            limit: syncRateLimit.limit,
+            windowSeconds: syncRateLimit.windowSeconds,
+          },
+          retryAfterSeconds: syncRateLimit.retryAfterSeconds,
+        }),
+        { status: 429 }
+      ),
+      ctx.cookiesToSet
+    )
+  }
+  await writeTenantRecord(ddb, tableName, tenantRecord)
 
   const sources = await readSourcesWithFallback(ddb, ctx.tokenCtx.tenantId, tenantRecord.dataSources)
   const existing = sources[sourceId]
@@ -104,7 +140,14 @@ export async function POST(_request: Request, { params }: { params: Promise<{ so
 
     if (!result.ok) {
       return withCookies(
-        NextResponse.json({ error: result.errorCode || "sync_failed", source: result.source, run: result.run }, { status: 409 }),
+        NextResponse.json(
+          buildRestrictionErrorPayload({
+            code: result.errorCode || "sync_failed",
+            error: result.run.message || "Connector sync failed.",
+            details: result.errorDetails,
+          }),
+          { status: statusForRestrictionCode(result.errorCode || "sync_failed") === 400 ? 409 : statusForRestrictionCode(result.errorCode || "sync_failed") }
+        ),
         ctx.cookiesToSet
       )
     }
