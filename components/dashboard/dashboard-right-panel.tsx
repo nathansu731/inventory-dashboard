@@ -38,6 +38,8 @@ export const DashboardRightPanel = ({
     riskLevelFilter,
     setRiskLevelFilter,
 }: DashboardRightPanelProps) => {
+    void alerts
+
     return (
         <div className="w-full lg:w-80 bg-white min-[1300px]:border-l min-[1300px]:border-gray-200 p-6">
             <Tabs defaultValue="filters" className="w-full">

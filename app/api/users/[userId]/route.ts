@@ -9,7 +9,6 @@ import {
   countActiveAdmins,
   getTenantRecord,
   getTenantsTableName,
-  getTokenUserContext,
   normalizeRole,
   normalizeUsersMap,
   putTenantRecord,

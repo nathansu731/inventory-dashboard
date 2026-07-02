@@ -177,20 +177,6 @@ const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
     const store = item.store || "Unknown"
     const seriesKey = buildForecastSeriesKey(item.sku, store)
 
-    const latestDemandPeriod =
-      [...periods].reverse().find((period) => toFiniteNumber(demandMap[period]) !== null) ??
-      Object.keys(demandMap)
-        .sort()
-        .reverse()
-        .find((period) => toFiniteNumber(demandMap[period]) !== null) ??
-      null
-
-    const demandPeriodIndex = latestDemandPeriod ? periods.indexOf(latestDemandPeriod) : -1
-    const nextForecastPeriod =
-      demandPeriodIndex >= 0 && demandPeriodIndex < periods.length - 1
-        ? periods[demandPeriodIndex + 1]
-        : periods[0] ?? latestDemandPeriod ?? null
-
     const actualPeriods = periods
       .filter((period) => toFiniteNumber(demandMap[period]) !== null)
       .slice(-30)

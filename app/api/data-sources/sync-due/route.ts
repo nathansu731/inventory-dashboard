@@ -1,6 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextResponse } from "next/server"
-import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
+import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion, writeTenantRecord } from "@/lib/data-sources"
 import { runSourceSync } from "@/lib/data-source-sync"
 import { emitConnectorNotification } from "@/lib/connector-notifications"

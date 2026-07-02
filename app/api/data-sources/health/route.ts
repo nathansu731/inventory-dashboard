@@ -1,6 +1,6 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb"
 import { NextResponse } from "next/server"
-import { getTokenUserContext, normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
+import { normalizeUsersMap, roleForUser } from "@/lib/tenant-users"
 import { getTenantsTableName, readTenantRecord, resolveAwsRegion } from "@/lib/data-sources"
 import { readSourcesWithFallback } from "@/lib/data-sources-repo"
 

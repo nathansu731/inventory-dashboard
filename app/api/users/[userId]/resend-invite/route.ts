@@ -4,7 +4,6 @@ import { NextResponse } from "next/server"
 import {
   getTenantRecord,
   getTenantsTableName,
-  getTokenUserContext,
   normalizeUsersMap,
   putTenantRecord,
   resolveAwsRegion,
