@@ -1,6 +1,7 @@
 # Inventory Dashboard
 
 See [docs/vercel-env-checklist.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/vercel-env-checklist.md:1) for the Vercel environment checklist split by generated values, manual plain-text config, and secrets.
+See [docs/stripe-billing-setup.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/stripe-billing-setup.md:1) for the Stripe billing setup used by this dashboard.
 
 ## Production config
 
