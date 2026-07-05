@@ -3,61 +3,207 @@
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0%" stop-color="#0E1A2A"/>
       <stop offset="55%" stop-color="#1B2F4A"/>
-      <stop offset="100%" stop-color="#233B57"/>
+      <stop offset="100%" stop-color="#243A57"/>
     </linearGradient>
-    <linearGradient id="trend" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="#F6E05E"/>
-      <stop offset="100%" stop-color="#63B3ED"/>
-    </linearGradient>
-    <pattern id="grid" width="60" height="60" patternUnits="userSpaceOnUse">
-      <path d="M60 0H0V60" fill="none" stroke="#2D4662" stroke-width="1"/>
+    <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
+      <path d="M56 0H0V56" fill="none" stroke="#2E4764" stroke-width="1"/>
     </pattern>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#63B3ED" stop-opacity="0.22"/>
+      <stop offset="100%" stop-color="#63B3ED" stop-opacity="0"/>
+    </radialGradient>
   </defs>
+
   <rect width="900" height="1200" fill="url(#bg)"/>
-  <rect width="900" height="1200" fill="url(#grid)" opacity="0.3"/>
+  <rect width="900" height="1200" fill="url(#grid)" opacity="0.35"/>
+  <circle cx="450" cy="520" r="380" fill="url(#glow)"/>
 
-  <g opacity="0.9">
-    <rect x="70" y="90" width="760" height="240" rx="26" fill="#12263E" stroke="#2D4A6A"/>
-    <rect x="110" y="130" width="260" height="160" rx="18" fill="#17314D"/>
-    <rect x="400" y="140" width="380" height="32" rx="16" fill="#1C3652"/>
-    <rect x="400" y="190" width="320" height="24" rx="12" fill="#223F5E"/>
-    <rect x="400" y="230" width="260" height="24" rx="12" fill="#223F5E"/>
+  <!-- ARK logo + wordmark -->
+  <g stroke="#FFFFFF" stroke-width="10" fill="none">
+    <path d="M403 158 L450 60 L497 158"/>
+    <path d="M423 158 L457 86 L491 158 M434 133 L479 133"/>
+  </g>
+  <text x="450" y="196" text-anchor="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="25" font-weight="bold" letter-spacing="8">ARK FORECASTING</text>
+  <text x="450" y="226" text-anchor="middle" fill="#8FB0D6" font-family="Arial, Helvetica, sans-serif" font-size="15" letter-spacing="3">PLAN TOGETHER. STOCK SMARTER.</text>
+
+  <!-- Replenishment plan board -->
+  <g>
+    <rect x="70" y="300" width="350" height="310" rx="18" fill="#12253B" stroke="#2D4A6A" stroke-width="2"/>
+    <text x="95" y="340" fill="#8FB0D6" font-family="Arial, Helvetica, sans-serif" font-size="15" letter-spacing="2">REPLENISHMENT PLAN</text>
+    <g>
+      <!-- calendar cells 6x4 -->
+      <g fill="#1C3652">
+        <rect x="95" y="360" width="44" height="44" rx="8"/><rect x="149" y="360" width="44" height="44" rx="8"/><rect x="203" y="360" width="44" height="44" rx="8"/><rect x="257" y="360" width="44" height="44" rx="8"/><rect x="311" y="360" width="44" height="44" rx="8"/><rect x="365" y="360" width="30" height="44" rx="8"/>
+        <rect x="95" y="414" width="44" height="44" rx="8"/><rect x="149" y="414" width="44" height="44" rx="8"/><rect x="257" y="414" width="44" height="44" rx="8"/><rect x="311" y="414" width="44" height="44" rx="8"/><rect x="365" y="414" width="30" height="44" rx="8"/>
+        <rect x="95" y="468" width="44" height="44" rx="8"/><rect x="149" y="468" width="44" height="44" rx="8"/><rect x="203" y="468" width="44" height="44" rx="8"/><rect x="311" y="468" width="44" height="44" rx="8"/><rect x="365" y="468" width="30" height="44" rx="8"/>
+        <rect x="95" y="522" width="44" height="44" rx="8"/><rect x="149" y="522" width="44" height="44" rx="8"/><rect x="203" y="522" width="44" height="44" rx="8"/><rect x="257" y="522" width="44" height="44" rx="8"/><rect x="311" y="522" width="44" height="44" rx="8"/><rect x="365" y="522" width="30" height="44" rx="8"/>
+      </g>
+      <!-- highlighted reorder days -->
+      <rect x="203" y="414" width="44" height="44" rx="8" fill="#1E4A3C" stroke="#7ED9A0" stroke-width="2"/>
+      <path d="M216 436 L223 443 L235 428" stroke="#7ED9A0" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+      <rect x="257" y="468" width="44" height="44" rx="8" fill="#4A3A1E" stroke="#E7C86A" stroke-width="2"/>
+      <text x="279" y="498" text-anchor="middle" fill="#E7C86A" font-family="Arial, Helvetica, sans-serif" font-size="24" font-weight="bold">!</text>
+    </g>
   </g>
 
-  <g opacity="0.9">
-    <rect x="70" y="370" width="520" height="480" rx="26" fill="#132840" stroke="#2D4A6A"/>
-    <rect x="110" y="410" width="440" height="40" rx="12" fill="#1B3553"/>
-    <path d="M140 720 L220 660 L300 690 L380 620 L470 660" stroke="url(#trend)" stroke-width="6" fill="none"/>
-    <circle cx="140" cy="720" r="7" fill="#F6E05E"/>
-    <circle cx="220" cy="660" r="7" fill="#F6E05E"/>
-    <circle cx="300" cy="690" r="7" fill="#9AE6B4"/>
-    <circle cx="380" cy="620" r="7" fill="#63B3ED"/>
-    <circle cx="470" cy="660" r="7" fill="#63B3ED"/>
-    <rect x="110" y="760" width="160" height="28" rx="14" fill="#1C3652"/>
-    <rect x="290" y="760" width="220" height="28" rx="14" fill="#223F5E"/>
+  <!-- Warehouse shelf -->
+  <g>
+    <rect x="500" y="300" width="16" height="470" rx="6" fill="#2A4467"/>
+    <rect x="814" y="300" width="16" height="470" rx="6" fill="#2A4467"/>
+    <!-- top shelf -->
+    <rect x="500" y="416" width="330" height="14" rx="6" fill="#2E4C72"/>
+    <g>
+      <rect x="530" y="346" width="80" height="70" rx="6" fill="#C79A66"/>
+      <rect x="530" y="346" width="80" height="18" rx="6" fill="#B0854F"/>
+      <path d="M570 346 V416" stroke="#A87E4F" stroke-width="4"/>
+      <rect x="640" y="356" width="70" height="60" rx="6" fill="#B98F5C"/>
+      <path d="M675 356 V416" stroke="#A87E4F" stroke-width="4"/>
+      <circle cx="710" cy="360" r="15" fill="#1E4A3C" stroke="#7ED9A0" stroke-width="2"/>
+      <path d="M703 360 L708 365 L718 353" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <!-- middle shelf -->
+    <rect x="500" y="576" width="330" height="14" rx="6" fill="#2E4C72"/>
+    <g>
+      <rect x="540" y="500" width="90" height="76" rx="6" fill="#C79A66"/>
+      <path d="M585 500 V576" stroke="#A87E4F" stroke-width="4"/>
+      <rect x="650" y="512" width="64" height="64" rx="6" fill="#B98F5C"/>
+      <rect x="726" y="524" width="52" height="52" rx="6" fill="#C79A66"/>
+      <circle cx="778" cy="520" r="15" fill="#4A3A1E" stroke="#E7C86A" stroke-width="2"/>
+      <text x="778" y="527" text-anchor="middle" fill="#E7C86A" font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold">!</text>
+    </g>
+    <!-- bottom shelf -->
+    <rect x="500" y="736" width="330" height="14" rx="6" fill="#2E4C72"/>
+    <g>
+      <rect x="536" y="664" width="76" height="72" rx="6" fill="#B98F5C"/>
+      <rect x="630" y="676" width="88" height="60" rx="6" fill="#C79A66"/>
+      <path d="M674 676 V736" stroke="#A87E4F" stroke-width="4"/>
+      <circle cx="718" cy="672" r="15" fill="#1E4A3C" stroke="#7ED9A0" stroke-width="2"/>
+      <path d="M711 672 L716 677 L726 665" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
   </g>
 
-  <g opacity="0.9">
-    <rect x="620" y="370" width="210" height="480" rx="26" fill="#132840" stroke="#2D4A6A"/>
-    <rect x="650" y="410" width="150" height="32" rx="12" fill="#1B3553"/>
-    <rect x="650" y="460" width="150" height="24" rx="10" fill="#223F5E"/>
-    <rect x="650" y="500" width="150" height="24" rx="10" fill="#223F5E"/>
-    <rect x="650" y="540" width="150" height="24" rx="10" fill="#223F5E"/>
-    <rect x="650" y="580" width="150" height="24" rx="10" fill="#223F5E"/>
-    <rect x="650" y="620" width="150" height="24" rx="10" fill="#223F5E"/>
+  <!-- ground shadows -->
+  <ellipse cx="300" cy="1092" rx="120" ry="15" fill="#0A1524" opacity="0.6"/>
+  <ellipse cx="620" cy="1092" rx="120" ry="15" fill="#0A1524" opacity="0.6"/>
+
+  <!-- Male character with tablet -->
+  <g>
+    <!-- hair back -->
+    <path d="M300 622 C 260 624 246 658 250 692 C 252 702 256 708 262 712 L 268 690 L 332 690 L 338 712 C 344 708 348 702 350 692 C 354 658 340 624 300 622 Z" fill="#274E56"/>
+    <!-- neck -->
+    <path d="M292 716 H308 V740 H292 Z" fill="#E0A97E"/>
+    <!-- face -->
+    <path d="M266 682 C 266 650 280 637 300 636 C 320 637 334 650 334 682 C 334 703 320 717 310 722 C 304 726 296 726 290 722 C 280 717 266 703 266 682 Z" fill="#EBBC93"/>
+    <!-- spiky bangs -->
+    <path d="M262 686 C 258 646 274 628 300 626 C 326 628 342 646 338 686 L 330 664 L 322 686 L 312 662 L 301 684 L 291 662 L 281 686 L 271 664 Z" fill="#2F5D66"/>
+    <!-- eyes -->
+    <ellipse cx="286" cy="690" rx="7" ry="9" fill="#FFFFFF"/>
+    <ellipse cx="314" cy="690" rx="7" ry="9" fill="#FFFFFF"/>
+    <circle cx="287" cy="691" r="4.5" fill="#63B3ED"/>
+    <circle cx="315" cy="691" r="4.5" fill="#63B3ED"/>
+    <circle cx="287" cy="691" r="2.2" fill="#122036"/>
+    <circle cx="315" cy="691" r="2.2" fill="#122036"/>
+    <circle cx="289" cy="688" r="1.4" fill="#FFFFFF"/>
+    <circle cx="317" cy="688" r="1.4" fill="#FFFFFF"/>
+    <path d="M278 683 C 282 678 291 678 295 682" stroke="#1D3A40" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M305 682 C 309 678 318 678 322 683" stroke="#1D3A40" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M279 672 C 283 669 291 669 294 671" stroke="#274E56" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M306 671 C 309 669 317 669 321 672" stroke="#274E56" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M300 697 L 302 701" stroke="#C68F63" stroke-width="2" stroke-linecap="round"/>
+    <path d="M293 708 Q 300 714 307 708" stroke="#9C5B40" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+    <!-- torso sweater -->
+    <path d="M300 736 L 258 750 C 242 758 236 782 234 818 L 240 930 L 360 930 L 366 818 C 364 782 358 758 342 750 Z" fill="#2F5D8A"/>
+    <path d="M286 744 L 300 736 L 314 744 L 300 768 Z" fill="#24466B"/>
+
+    <!-- arms holding tablet -->
+    <path d="M256 762 C 244 786 240 812 244 838 L 282 850 L 288 828 L 262 816 C 262 796 266 780 272 768 Z" fill="#26507A"/>
+    <path d="M344 762 C 356 786 360 812 356 838 L 318 850 L 312 828 L 338 816 C 338 796 334 780 328 768 Z" fill="#26507A"/>
+    <!-- tablet -->
+    <g transform="translate(262 826)">
+      <rect width="76" height="54" rx="7" fill="#12253B" stroke="#3E5F84" stroke-width="2.5"/>
+      <path d="M12 38 L26 24 L38 30 L62 12" stroke="#9AE6B4" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle cx="266" cy="852" r="8" fill="#EBBC93"/>
+    <circle cx="334" cy="852" r="8" fill="#EBBC93"/>
+
+    <!-- legs -->
+    <path d="M252 930 L 246 1076 L 276 1076 L 288 940 Z" fill="#1A2A45"/>
+    <path d="M312 940 L 324 1076 L 354 1076 L 348 930 Z" fill="#1A2A45"/>
+    <path d="M242 1076 L 278 1076 L 280 1090 L 238 1090 C 236 1084 238 1078 242 1076 Z" fill="#101E33"/>
+    <path d="M322 1076 L 358 1076 C 362 1078 364 1084 362 1090 L 320 1090 Z" fill="#101E33"/>
   </g>
 
-  <g opacity="0.85">
-    <rect x="90" y="900" width="720" height="220" rx="26" fill="#162C46"/>
-    <rect x="130" y="940" width="220" height="140" rx="18" fill="#1B3553"/>
-    <circle cx="180" cy="980" r="26" fill="#2F6CA8"/>
-    <rect x="160" y="1012" width="40" height="52" rx="18" fill="#2F6CA8"/>
-    <circle cx="260" cy="980" r="26" fill="#9AE6B4"/>
-    <rect x="240" y="1012" width="40" height="52" rx="18" fill="#9AE6B4"/>
-    <circle cx="340" cy="980" r="26" fill="#F6E05E"/>
-    <rect x="320" y="1012" width="40" height="52" rx="18" fill="#F6E05E"/>
-    <rect x="380" y="960" width="380" height="22" rx="11" fill="#1C3652"/>
-    <rect x="380" y="994" width="320" height="18" rx="9" fill="#223F5E"/>
-    <rect x="380" y="1020" width="290" height="18" rx="9" fill="#223F5E"/>
+  <!-- Female character holding a box -->
+  <g>
+    <!-- hair back (bob) -->
+    <path d="M620 606 C 574 608 558 646 562 686 C 564 714 574 734 570 752 C 586 748 596 738 600 726 L 640 726 C 644 738 654 748 670 752 C 666 734 676 714 678 686 C 682 646 666 608 620 606 Z" fill="#54427E"/>
+    <!-- neck -->
+    <path d="M612 700 H628 V724 H612 Z" fill="#E9B98F"/>
+    <!-- face -->
+    <path d="M586 666 C 586 634 600 621 620 620 C 640 621 654 634 654 666 C 654 687 640 701 630 706 C 624 710 616 710 610 706 C 600 701 586 687 586 666 Z" fill="#F2C9A8"/>
+    <!-- bangs -->
+    <path d="M582 670 C 578 630 594 612 620 610 C 646 612 662 630 658 670 L 650 650 L 642 672 L 632 648 L 621 670 L 611 648 L 601 672 L 591 650 Z" fill="#655094"/>
+    <!-- eyes -->
+    <ellipse cx="606" cy="674" rx="7" ry="9" fill="#FFFFFF"/>
+    <ellipse cx="634" cy="674" rx="7" ry="9" fill="#FFFFFF"/>
+    <circle cx="607" cy="675" r="4.5" fill="#9AE6B4"/>
+    <circle cx="635" cy="675" r="4.5" fill="#9AE6B4"/>
+    <circle cx="607" cy="675" r="2.2" fill="#122036"/>
+    <circle cx="635" cy="675" r="2.2" fill="#122036"/>
+    <circle cx="609" cy="672" r="1.4" fill="#FFFFFF"/>
+    <circle cx="637" cy="672" r="1.4" fill="#FFFFFF"/>
+    <path d="M598 667 C 602 662 611 662 615 666" stroke="#3A2F5C" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M625 666 C 629 662 638 662 642 667" stroke="#3A2F5C" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M599 656 C 603 653 611 653 614 655" stroke="#54427E" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <path d="M626 655 C 629 653 637 653 641 656" stroke="#54427E" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <ellipse cx="598" cy="688" rx="5" ry="3" fill="#F19CB0" opacity="0.4"/>
+    <ellipse cx="642" cy="688" rx="5" ry="3" fill="#F19CB0" opacity="0.4"/>
+    <path d="M620 681 L 622 685" stroke="#D9A583" stroke-width="2" stroke-linecap="round"/>
+    <path d="M613 693 Q 620 699 627 693" stroke="#B0684F" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+    <!-- torso vest -->
+    <path d="M620 720 L 580 734 C 564 742 558 766 556 802 L 562 918 L 678 918 L 684 802 C 682 766 676 742 660 734 Z" fill="#245B4E"/>
+    <path d="M606 728 L 620 720 L 634 728 L 620 752 Z" fill="#E8EEF7"/>
+
+    <!-- carton box held in front -->
+    <g>
+      <rect x="572" y="796" width="96" height="78" rx="6" fill="#C79A66"/>
+      <rect x="572" y="796" width="96" height="20" rx="6" fill="#B0854F"/>
+      <path d="M620 796 V874" stroke="#A87E4F" stroke-width="4"/>
+      <circle cx="668" cy="796" r="14" fill="#1E4A3C" stroke="#7ED9A0" stroke-width="2"/>
+      <path d="M661 796 L666 801 L676 789" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <!-- arms wrapping box -->
+    <path d="M578 740 C 562 762 556 786 558 812 L 584 838 L 596 822 L 576 802 C 578 782 582 764 590 748 Z" fill="#1D4A3F"/>
+    <path d="M662 740 C 678 762 684 786 682 812 L 656 838 L 644 822 L 664 802 C 662 782 658 764 650 748 Z" fill="#1D4A3F"/>
+    <circle cx="588" cy="836" r="8" fill="#F2C9A8"/>
+    <circle cx="652" cy="836" r="8" fill="#F2C9A8"/>
+
+    <!-- skirt + legs -->
+    <path d="M562 918 L 554 966 L 686 966 L 678 918 Z" fill="#1B4437"/>
+    <path d="M580 966 L 574 1076 L 602 1076 L 610 966 Z" fill="#E9B98F"/>
+    <path d="M630 966 L 638 1076 L 666 1076 L 660 966 Z" fill="#E9B98F"/>
+    <path d="M570 1076 L 606 1076 L 608 1090 L 566 1090 C 564 1084 566 1078 570 1076 Z" fill="#1A2A45"/>
+    <path d="M634 1076 L 670 1076 C 674 1078 676 1084 674 1090 L 632 1090 Z" fill="#1A2A45"/>
+  </g>
+
+  <!-- benefit chips -->
+  <g font-family="Arial, Helvetica, sans-serif" font-size="19" font-weight="bold">
+    <rect x="150" y="1120" width="340" height="52" rx="26" fill="#13314A" stroke="#2D5A50" stroke-width="2"/>
+    <circle cx="182" cy="1146" r="12" fill="#1E4A3C"/>
+    <path d="M176 1146 L181 1151 L189 1140" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="204" y="1153" fill="#9AE6B4">Know what to reorder</text>
+
+    <rect x="510" y="1120" width="290" height="52" rx="26" fill="#13314A" stroke="#2D4A6A" stroke-width="2"/>
+    <path d="M532 1152 L544 1138 L554 1146 L568 1130" stroke="#63B3ED" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="582" y="1153" fill="#8EC7F2">Plan weeks ahead</text>
+  </g>
+
+  <!-- sparkles -->
+  <g fill="#63B3ED" opacity="0.8">
+    <path d="M110 780 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 Z"/>
+    <path d="M840 240 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z"/>
+    <path d="M460 560 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#9AE6B4"/>
   </g>
 </svg>
