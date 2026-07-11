@@ -25,21 +25,20 @@ import {
 import { useProfile } from "@/hooks/use-profile"
 import { getSubscriptionAccessState } from "@/lib/subscription-state"
 
-// This is sample data.
 const data = {
   teams: [
     {
-      name: "ARK Inc",
+      name: "ARK Dashboard",
       logo: GalleryVerticalEnd,
       plan: "Enterprise",
     },
     {
-      name: "Acme Corp.",
+      name: "Professional Workspace",
       logo: AudioWaveform,
       plan: "Professional",
     },
     {
-      name: "Evil Corp.",
+      name: "Launch Workspace",
       logo: Command,
       plan: "Launch",
     },

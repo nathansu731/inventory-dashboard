@@ -2,7 +2,7 @@ import { NextResponse } from "next/server"
 import { SESClient, SendRawEmailCommand } from "@aws-sdk/client-ses"
 import { z } from "zod"
 import { getAuthenticatedApiContext } from "@/lib/server-auth"
-import { getServerAwsRegion } from "@/lib/server-runtime-config"
+import { getTransactionalEmailConfig, escapeHtml } from "@/lib/transactional-email"
 
 export const runtime = "nodejs"
 
@@ -17,28 +17,14 @@ const helpCenterSchema = z.object({
   message: z.string().trim().min(1).max(5000),
 })
 
-const escapeHtml = (value: string) =>
-  value
-    .replaceAll("&", "&amp;")
-    .replaceAll("<", "&lt;")
-    .replaceAll(">", "&gt;")
-    .replaceAll('"', "&quot;")
-    .replaceAll("'", "&#39;")
-
 const wrapBase64 = (value: string) => value.replace(/(.{76})/g, "$1\r\n")
 
 export async function POST(request: Request) {
   const { idToken, cookiesToSet, errorResponse } = await getAuthenticatedApiContext()
   if (errorResponse || !idToken) return errorResponse!
 
-  let region = ""
-  try {
-    region = getServerAwsRegion()
-  } catch {
-    region = ""
-  }
-  const fromEmail = process.env.AWS_SES_FROM_EMAIL || ""
-  const toEmail = process.env.HELP_CENTER_FORWARD_TO_EMAIL || "info@arkforecasting.com.au"
+  const { region, fromEmail } = getTransactionalEmailConfig()
+  const toEmail = (process.env.HELP_CENTER_FORWARD_TO_EMAIL || "info@arkforecasting.com.au").trim()
 
   if (!region || !fromEmail) {
     return NextResponse.json(

@@ -39,7 +39,7 @@ export const SignupFormFields = () => {
                 <div className="flex flex-col items-center text-center">
                     <h1 className="text-2xl font-bold">Create your account</h1>
                     <p className="text-balance text-muted-foreground">
-                        Sign up to access the inventory dashboard
+                        Sign up to access ARK Forecasting
                     </p>
                 </div>
 

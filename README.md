@@ -1,7 +1,16 @@
 # Inventory Dashboard
 
+## Node Version
+
+This app targets Node 24.
+
+If you use `nvm`:
+
+`nvm use`
+
 See [docs/vercel-env-checklist.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/vercel-env-checklist.md:1) for the Vercel environment checklist split by generated values, manual plain-text config, and secrets.
 See [docs/stripe-billing-setup.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/stripe-billing-setup.md:1) for the Stripe billing setup used by this dashboard.
+See [docs/cognito-ses-email-setup.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/cognito-ses-email-setup.md:1) for Cognito/SES email deliverability setup and signup admin notifications.
 
 ## Production config
 
@@ -46,6 +55,7 @@ You still need a separate non-generated env source for values Terraform in this 
 - Cognito hosted UI and app client settings
 - Stripe secrets and price IDs
 - SES sender/forwarding addresses
+- signup admin notification address
 - Connector OAuth credentials
 - `DATA_SOURCE_ENCRYPTION_KEY` or `DATA_SOURCE_ENCRYPTION_KEY_JSON`
 
