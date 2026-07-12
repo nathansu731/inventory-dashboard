@@ -1,55 +1,162 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="1000" height="1000" viewBox="0 0 1000 1000" fill="none">
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#0E1929"/>
-      <stop offset="55%" stop-color="#1A2E49"/>
+      <stop offset="0%" stop-color="#0F1B2D"/>
+      <stop offset="55%" stop-color="#1B2F4A"/>
       <stop offset="100%" stop-color="#243A57"/>
     </linearGradient>
-    <linearGradient id="check" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#9AE6B4"/>
-      <stop offset="100%" stop-color="#48BB78"/>
-    </linearGradient>
     <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
-      <path d="M56 0H0V56" fill="none" stroke="#2D4662" stroke-width="1"/>
+      <path d="M56 0H0V56" fill="none" stroke="#2E4764" stroke-width="1"/>
     </pattern>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#63B3ED" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#63B3ED" stop-opacity="0"/>
+    </radialGradient>
   </defs>
+
   <rect width="1000" height="1000" fill="url(#bg)"/>
-  <rect width="1000" height="1000" fill="url(#grid)" opacity="0.3"/>
+  <rect width="1000" height="1000" fill="url(#grid)" opacity="0.35"/>
+  <circle cx="620" cy="420" r="340" fill="url(#glow)"/>
 
-  <g opacity="0.9">
-    <rect x="90" y="100" width="820" height="260" rx="24" fill="#12263E" stroke="#2D4A6A"/>
-    <rect x="130" y="140" width="260" height="180" rx="18" fill="#17314D"/>
-    <rect x="420" y="150" width="420" height="36" rx="18" fill="#1C3652"/>
-    <rect x="420" y="200" width="300" height="24" rx="12" fill="#223F5E"/>
-    <rect x="420" y="240" width="360" height="24" rx="12" fill="#223F5E"/>
+  <!-- ARK logo + wordmark -->
+  <g stroke="#FFFFFF" stroke-width="11" fill="none">
+    <path d="M448 168 L500 60 L552 168"/>
+    <path d="M470 168 L508 88 L546 168 M482 140 L532 140"/>
+  </g>
+  <text x="500" y="205" text-anchor="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" letter-spacing="8">ARK FORECASTING</text>
+  <text x="500" y="236" text-anchor="middle" fill="#8FB0D6" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing="3">ONE STEP AWAY FROM SMARTER STOCK</text>
+
+  <!-- Confirmation card -->
+  <g>
+    <rect x="360" y="290" width="520" height="380" rx="22" fill="#12253B" stroke="#2D4A6A" stroke-width="2"/>
+    <rect x="360" y="290" width="520" height="46" rx="22" fill="#162C46"/>
+    <circle cx="392" cy="313" r="7" fill="#E76A6A"/>
+    <circle cx="416" cy="313" r="7" fill="#E7C86A"/>
+    <circle cx="440" cy="313" r="7" fill="#7ED9A0"/>
+    <text x="850" y="320" text-anchor="end" fill="#8FB0D6" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing="2">CONFIRM YOUR EMAIL</text>
+
+    <!-- envelope -->
+    <g>
+      <rect x="530" y="376" width="180" height="124" rx="14" fill="#1C3652" stroke="#63B3ED" stroke-width="3"/>
+      <path d="M534 384 L620 448 L706 384" stroke="#63B3ED" stroke-width="3" fill="none" stroke-linejoin="round"/>
+      <circle cx="700" cy="386" r="26" fill="#1E4A3C" stroke="#7ED9A0" stroke-width="3"/>
+      <path d="M688 386 L697 395 L713 375" stroke="#7ED9A0" stroke-width="4.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+
+    <!-- paper plane + trail -->
+    <path d="M420 470 C 448 440 480 416 512 402" stroke="#63B3ED" stroke-width="3" stroke-dasharray="4 10" fill="none" stroke-linecap="round"/>
+    <g transform="translate(398 480) rotate(-18)">
+      <path d="M0 0 L52 -14 L20 18 Z" fill="#8EC7F2"/>
+      <path d="M20 18 L24 4 L52 -14 Z" fill="#63B3ED"/>
+    </g>
+
+    <!-- verification code boxes -->
+    <g font-family="Arial, Helvetica, sans-serif" font-size="30" font-weight="bold">
+      <rect x="420" y="540" width="56" height="64" rx="12" fill="#1C3652" stroke="#2D4A6A" stroke-width="2"/>
+      <rect x="488" y="540" width="56" height="64" rx="12" fill="#1C3652" stroke="#2D4A6A" stroke-width="2"/>
+      <rect x="556" y="540" width="56" height="64" rx="12" fill="#1C3652" stroke="#2D4A6A" stroke-width="2"/>
+      <rect x="624" y="540" width="56" height="64" rx="12" fill="#1C3652" stroke="#2D4A6A" stroke-width="2"/>
+      <rect x="692" y="540" width="56" height="64" rx="12" fill="#1C3652" stroke="#2D4A6A" stroke-width="2"/>
+      <rect x="760" y="540" width="56" height="64" rx="12" fill="#1E4A3C" stroke="#7ED9A0" stroke-width="2"/>
+      <text x="448" y="583" text-anchor="middle" fill="#8EC7F2">7</text>
+      <text x="516" y="583" text-anchor="middle" fill="#8EC7F2">3</text>
+      <text x="584" y="583" text-anchor="middle" fill="#8EC7F2">0</text>
+      <text x="652" y="583" text-anchor="middle" fill="#8EC7F2">9</text>
+      <text x="720" y="583" text-anchor="middle" fill="#8EC7F2">4</text>
+      <text x="788" y="583" text-anchor="middle" fill="#9AE6B4">1</text>
+    </g>
   </g>
 
-  <g opacity="0.9">
-    <rect x="90" y="400" width="500" height="360" rx="22" fill="#132840" stroke="#2D4A6A"/>
-    <rect x="130" y="440" width="420" height="36" rx="12" fill="#1B3553"/>
-    <rect x="130" y="500" width="120" height="200" rx="12" fill="#264866"/>
-    <rect x="270" y="540" width="120" height="160" rx="12" fill="#2B5273"/>
-    <rect x="410" y="580" width="120" height="120" rx="12" fill="#31608A"/>
+  <!-- stat chips -->
+  <g font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold">
+    <rect x="590" y="720" width="290" height="52" rx="26" fill="#13314A" stroke="#2D5A50" stroke-width="2"/>
+    <circle cx="622" cy="746" r="12" fill="#1E4A3C"/>
+    <path d="M616 746 L621 751 L629 740" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="644" y="753" fill="#9AE6B4">Almost there!</text>
+
+    <rect x="590" y="790" width="290" height="52" rx="26" fill="#13314A" stroke="#2D4A6A" stroke-width="2"/>
+    <path d="M612 822 L624 808 L634 816 L648 800" stroke="#63B3ED" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M648 800 L648 809 M648 800 L639 800" stroke="#63B3ED" stroke-width="3" stroke-linecap="round"/>
+    <text x="664" y="823" fill="#8EC7F2">Forecasts await you</text>
   </g>
 
-  <g opacity="0.95">
-    <rect x="620" y="400" width="290" height="360" rx="22" fill="#132840" stroke="#2D4A6A"/>
-    <rect x="660" y="440" width="210" height="34" rx="12" fill="#1B3553"/>
-    <circle cx="765" cy="570" r="74" fill="url(#check)"/>
-    <path d="M735 570 L755 592 L795 548" stroke="#0B1B2A" stroke-width="10" stroke-linecap="round" stroke-linejoin="round"/>
-    <rect x="660" y="680" width="210" height="24" rx="12" fill="#223F5E"/>
-    <rect x="660" y="714" width="180" height="24" rx="12" fill="#223F5E"/>
+  <!-- ground shadow -->
+  <ellipse cx="205" cy="932" rx="130" ry="16" fill="#0A1524" opacity="0.6"/>
+
+  <!-- Anime character waving with phone -->
+  <g>
+    <!-- hair back (short) -->
+    <path d="M200 440 C 160 442 146 476 150 510 C 152 520 156 526 162 530 L 168 508 L 232 508 L 238 530 C 244 526 248 520 250 510 C 254 476 240 442 200 440 Z" fill="#5C4A32"/>
+    <!-- neck -->
+    <path d="M192 536 H210 V560 H192 Z" fill="#E0A97E"/>
+    <!-- face -->
+    <path d="M163 496 C 163 460 178 446 201 445 C 224 446 239 460 239 496 C 239 520 224 536 212 542 C 205 546 197 546 190 542 C 178 536 163 520 163 496 Z" fill="#EBBC93"/>
+    <!-- spiky bangs -->
+    <path d="M158 500 C 154 456 172 436 201 434 C 230 436 248 456 244 500 L 236 478 L 228 500 L 218 476 L 207 498 L 197 476 L 187 500 L 177 478 L 168 500 Z" fill="#6B573B"/>
+    <!-- eyes -->
+    <g>
+      <ellipse cx="185" cy="505" rx="8" ry="10" fill="#FFFFFF"/>
+      <ellipse cx="217" cy="505" rx="8" ry="10" fill="#FFFFFF"/>
+      <circle cx="186" cy="506" r="5" fill="#63B3ED"/>
+      <circle cx="218" cy="506" r="5" fill="#63B3ED"/>
+      <circle cx="186" cy="506" r="2.4" fill="#122036"/>
+      <circle cx="218" cy="506" r="2.4" fill="#122036"/>
+      <circle cx="188" cy="503" r="1.6" fill="#FFFFFF"/>
+      <circle cx="220" cy="503" r="1.6" fill="#FFFFFF"/>
+      <path d="M176 497 C 180 492 190 492 194 496" stroke="#3D3122" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M208 496 C 212 492 222 492 226 497" stroke="#3D3122" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M177 486 C 181 483 189 483 193 485" stroke="#5C4A32" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M209 485 C 213 483 221 483 225 486" stroke="#5C4A32" stroke-width="3" stroke-linecap="round" fill="none"/>
+    </g>
+    <!-- mouth + nose (big open smile) -->
+    <path d="M201 512 L 203 516" stroke="#C68F63" stroke-width="2" stroke-linecap="round"/>
+    <path d="M192 523 Q 201 534 210 523 Z" fill="#9C5B40"/>
+
+    <!-- torso hoodie -->
+    <path d="M201 556 L 156 572 C 138 580 132 606 130 646 L 136 756 L 266 756 L 272 646 C 270 606 264 580 246 572 Z" fill="#2C6156"/>
+    <path d="M186 564 L 201 556 L 216 564 L 201 596 Z" fill="#1F4A41"/>
+    <path d="M164 640 H238 M164 660 H238" stroke="#255449" stroke-width="4" opacity="0" />
+    <!-- hoodie strings -->
+    <path d="M192 570 C 190 590 190 606 192 618 M210 570 C 212 590 212 606 210 618" stroke="#E8EEF7" stroke-width="3" stroke-linecap="round" fill="none"/>
+    <!-- pocket -->
+    <path d="M168 700 L 178 748 L 224 748 L 234 700 Z" fill="#255449"/>
+
+    <!-- right arm waving up -->
+    <path d="M240 580 C 268 560 288 528 300 494 L 306 470 L 322 476 L 316 500 C 302 540 280 578 254 600 Z" fill="#2C6156"/>
+    <!-- waving hand -->
+    <g fill="#EBBC93">
+      <circle cx="316" cy="470" r="12"/>
+      <path d="M308 462 L 304 444 L 312 442 L 317 460 Z"/>
+      <path d="M316 460 L 316 440 L 324 440 L 324 460 Z"/>
+      <path d="M323 462 L 330 445 L 337 449 L 329 466 Z"/>
+    </g>
+
+    <!-- left arm holding phone -->
+    <path d="M160 584 C 148 612 144 648 148 682 L 170 680 C 167 648 170 616 178 592 Z" fill="#2C6156"/>
+    <g transform="translate(136 674) rotate(-8)">
+      <rect width="44" height="72" rx="8" fill="#12253B" stroke="#3E5F84" stroke-width="2.5"/>
+      <circle cx="22" cy="30" r="12" fill="#1E4A3C"/>
+      <path d="M16 30 L21 35 L29 24" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <circle cx="162" cy="684" r="9" fill="#EBBC93"/>
+
+    <!-- jeans -->
+    <path d="M136 756 L 132 812 L 270 812 L 266 756 Z" fill="#22375C"/>
+    <path d="M148 812 L 142 916 L 174 916 L 186 814 Z" fill="#22375C"/>
+    <path d="M216 814 L 228 916 L 260 916 L 254 812 Z" fill="#22375C"/>
+    <!-- sneakers -->
+    <path d="M138 916 L 174 916 L 176 930 L 134 930 C 132 924 134 918 138 916 Z" fill="#E8EEF7"/>
+    <path d="M228 916 L 264 916 C 268 918 270 924 268 930 L 226 930 Z" fill="#E8EEF7"/>
   </g>
 
-  <g opacity="0.85">
-    <rect x="130" y="800" width="740" height="90" rx="20" fill="#162C46"/>
-    <circle cx="220" cy="845" r="24" fill="#2F6CA8"/>
-    <rect x="202" y="874" width="36" height="40" rx="14" fill="#2F6CA8"/>
-    <circle cx="320" cy="845" r="24" fill="#9AE6B4"/>
-    <rect x="302" y="874" width="36" height="40" rx="14" fill="#9AE6B4"/>
-    <circle cx="420" cy="845" r="24" fill="#F6E05E"/>
-    <rect x="402" y="874" width="36" height="40" rx="14" fill="#F6E05E"/>
-    <rect x="500" y="836" width="180" height="16" rx="8" fill="#1C3652"/>
-    <rect x="500" y="862" width="220" height="16" rx="8" fill="#223F5E"/>
+  <!-- confetti -->
+  <g>
+    <rect x="300" y="380" width="10" height="10" rx="2" fill="#7ED9A0" transform="rotate(20 305 385)"/>
+    <rect x="350" y="330" width="10" height="10" rx="2" fill="#E7C86A" transform="rotate(-15 355 335)"/>
+    <rect x="270" y="440" width="9" height="9" rx="2" fill="#63B3ED" transform="rotate(35 274 444)"/>
+    <rect x="900" y="300" width="10" height="10" rx="2" fill="#E7C86A" transform="rotate(25 905 305)"/>
+    <rect x="920" y="620" width="9" height="9" rx="2" fill="#7ED9A0" transform="rotate(-20 924 624)"/>
+    <path d="M110 380 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#63B3ED" opacity="0.8"/>
+    <path d="M330 300 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#9AE6B4" opacity="0.8"/>
   </g>
 </svg>

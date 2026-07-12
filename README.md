@@ -11,6 +11,7 @@ If you use `nvm`:
 See [docs/vercel-env-checklist.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/vercel-env-checklist.md:1) for the Vercel environment checklist split by generated values, manual plain-text config, and secrets.
 See [docs/stripe-billing-setup.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/stripe-billing-setup.md:1) for the Stripe billing setup used by this dashboard.
 See [docs/cognito-ses-email-setup.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/cognito-ses-email-setup.md:1) for Cognito/SES email deliverability setup and signup admin notifications.
+See [docs/prod-test-account-checklist.md](/Users/aroshasumanaweera/Projects/ARKForecasting/inventory-dashboard/docs/prod-test-account-checklist.md:1) for the production test-account validation checklist across app flow and AWS resources.
 
 ## Production config
 

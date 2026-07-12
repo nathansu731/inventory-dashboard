@@ -5,54 +5,143 @@
       <stop offset="55%" stop-color="#1B2F4A"/>
       <stop offset="100%" stop-color="#243A57"/>
     </linearGradient>
-    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0%" stop-color="#F6E05E"/>
-      <stop offset="100%" stop-color="#63B3ED"/>
-    </linearGradient>
     <pattern id="grid" width="56" height="56" patternUnits="userSpaceOnUse">
-      <path d="M56 0H0V56" fill="none" stroke="#2D4662" stroke-width="1"/>
+      <path d="M56 0H0V56" fill="none" stroke="#2E4764" stroke-width="1"/>
     </pattern>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0%" stop-color="#63B3ED" stop-opacity="0.25"/>
+      <stop offset="100%" stop-color="#63B3ED" stop-opacity="0"/>
+    </radialGradient>
   </defs>
+
   <rect width="1000" height="1000" fill="url(#bg)"/>
-  <rect width="1000" height="1000" fill="url(#grid)" opacity="0.32"/>
+  <rect width="1000" height="1000" fill="url(#grid)" opacity="0.35"/>
+  <circle cx="620" cy="420" r="340" fill="url(#glow)"/>
 
-  <g opacity="0.9">
-    <rect x="90" y="100" width="820" height="260" rx="24" fill="#12263E" stroke="#2D4A6A"/>
-    <rect x="130" y="140" width="260" height="180" rx="18" fill="#17314D"/>
-    <rect x="420" y="150" width="420" height="36" rx="18" fill="#1C3652"/>
-    <rect x="420" y="200" width="320" height="24" rx="12" fill="#223F5E"/>
-    <rect x="420" y="240" width="360" height="24" rx="12" fill="#223F5E"/>
+  <!-- ARK logo + wordmark -->
+  <g stroke="#FFFFFF" stroke-width="11" fill="none">
+    <path d="M448 168 L500 60 L552 168"/>
+    <path d="M470 168 L508 88 L546 168 M482 140 L532 140"/>
+  </g>
+  <text x="500" y="205" text-anchor="middle" fill="#FFFFFF" font-family="Arial, Helvetica, sans-serif" font-size="26" font-weight="bold" letter-spacing="8">ARK FORECASTING</text>
+  <text x="500" y="236" text-anchor="middle" fill="#8FB0D6" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing="3">LET'S GET YOU BACK IN</text>
+
+  <!-- Password reset card -->
+  <g>
+    <rect x="360" y="290" width="520" height="380" rx="22" fill="#12253B" stroke="#2D4A6A" stroke-width="2"/>
+    <rect x="360" y="290" width="520" height="46" rx="22" fill="#162C46"/>
+    <circle cx="392" cy="313" r="7" fill="#E76A6A"/>
+    <circle cx="416" cy="313" r="7" fill="#E7C86A"/>
+    <circle cx="440" cy="313" r="7" fill="#7ED9A0"/>
+    <text x="850" y="320" text-anchor="end" fill="#8FB0D6" font-family="Arial, Helvetica, sans-serif" font-size="16" letter-spacing="2">RESET PASSWORD</text>
+
+    <!-- shield with lock -->
+    <g>
+      <path d="M620 360 L700 388 L700 458 C 700 512 668 548 620 566 C 572 548 540 512 540 458 L 540 388 Z" fill="#1C3652" stroke="#63B3ED" stroke-width="3"/>
+      <rect x="592" y="446" width="56" height="46" rx="10" fill="#12253B" stroke="#9AE6B4" stroke-width="3"/>
+      <path d="M602 446 V430 C 602 416 610 408 620 408 C 630 408 638 416 638 430 V446" stroke="#9AE6B4" stroke-width="3" fill="none"/>
+      <circle cx="620" cy="465" r="6" fill="#9AE6B4"/>
+      <path d="M620 469 V479" stroke="#9AE6B4" stroke-width="4" stroke-linecap="round"/>
+    </g>
+
+    <!-- new password field -->
+    <rect x="420" y="596" width="400" height="44" rx="22" fill="#1C3652" stroke="#2D4A6A" stroke-width="2"/>
+    <g fill="#8FB0D6">
+      <circle cx="452" cy="618" r="6"/><circle cx="478" cy="618" r="6"/><circle cx="504" cy="618" r="6"/><circle cx="530" cy="618" r="6"/><circle cx="556" cy="618" r="6"/><circle cx="582" cy="618" r="6"/>
+    </g>
+    <circle cx="786" cy="618" r="15" fill="#1E4A3C"/>
+    <path d="M778 618 L784 624 L795 611" stroke="#7ED9A0" stroke-width="3.5" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+
+    <!-- refresh arrows around shield -->
+    <path d="M508 430 C 500 396 516 362 548 346" stroke="#63B3ED" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M548 346 L534 344 M548 346 L544 359" stroke="#63B3ED" stroke-width="4" stroke-linecap="round"/>
+    <path d="M732 490 C 740 524 724 558 692 574" stroke="#63B3ED" stroke-width="4" fill="none" stroke-linecap="round"/>
+    <path d="M692 574 L706 576 M692 574 L696 561" stroke="#63B3ED" stroke-width="4" stroke-linecap="round"/>
   </g>
 
-  <g opacity="0.9">
-    <rect x="90" y="400" width="560" height="360" rx="22" fill="#132840" stroke="#2D4A6A"/>
-    <rect x="130" y="440" width="480" height="36" rx="12" fill="#1B3553"/>
-    <path d="M150 660 L230 610 L310 650 L390 590 L470 630" stroke="url(#accent)" stroke-width="6" fill="none"/>
-    <circle cx="150" cy="660" r="7" fill="#F6E05E"/>
-    <circle cx="230" cy="610" r="7" fill="#F6E05E"/>
-    <circle cx="310" cy="650" r="7" fill="#9AE6B4"/>
-    <circle cx="390" cy="590" r="7" fill="#63B3ED"/>
-    <circle cx="470" cy="630" r="7" fill="#63B3ED"/>
-    <rect x="130" y="700" width="180" height="24" rx="12" fill="#1C3652"/>
-    <rect x="330" y="700" width="220" height="24" rx="12" fill="#223F5E"/>
+  <!-- stat chips -->
+  <g font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="bold">
+    <rect x="600" y="720" width="280" height="52" rx="26" fill="#13314A" stroke="#2D5A50" stroke-width="2"/>
+    <circle cx="632" cy="746" r="12" fill="#1E4A3C"/>
+    <path d="M626 746 L631 751 L639 740" stroke="#7ED9A0" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <text x="654" y="753" fill="#9AE6B4">Your data stays safe</text>
+
+    <rect x="570" y="790" width="310" height="52" rx="26" fill="#13314A" stroke="#2D4A6A" stroke-width="2"/>
+    <path d="M592 822 L604 808 L614 816 L628 800" stroke="#63B3ED" stroke-width="3" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M628 800 L628 809 M628 800 L619 800" stroke="#63B3ED" stroke-width="3" stroke-linecap="round"/>
+    <text x="644" y="823" fill="#8EC7F2">Forecasts keep running</text>
   </g>
 
-  <g opacity="0.95">
-    <rect x="680" y="400" width="230" height="360" rx="22" fill="#132840" stroke="#2D4A6A"/>
-    <rect x="720" y="440" width="150" height="32" rx="12" fill="#1B3553"/>
-    <rect x="720" y="520" width="150" height="170" rx="16" fill="#17314D"/>
-    <rect x="750" y="520" width="90" height="58" rx="14" fill="#1F3A58"/>
-    <rect x="740" y="578" width="110" height="96" rx="12" fill="#1C3652"/>
-    <rect x="768" y="572" width="64" height="16" rx="8" fill="url(#accent)"/>
+  <!-- ground shadow -->
+  <ellipse cx="205" cy="932" rx="130" ry="16" fill="#0A1524" opacity="0.6"/>
+
+  <!-- Anime character holding key -->
+  <g>
+    <!-- ponytail + hair back -->
+    <path d="M238 470 C 268 470 286 494 282 530 C 279 560 264 584 244 600 C 254 570 256 540 248 512 Z" fill="#2E5F6E"/>
+    <path d="M200 438 C 148 440 134 486 138 528 C 141 566 150 596 140 630 C 156 622 166 612 172 598 L 232 598 C 240 614 250 624 264 630 C 254 594 260 562 262 526 C 266 484 252 440 200 438 Z" fill="#35707F"/>
+    <!-- neck -->
+    <path d="M192 536 H210 V560 H192 Z" fill="#E9B98F"/>
+    <!-- face -->
+    <path d="M163 496 C 163 460 178 446 201 445 C 224 446 239 460 239 496 C 239 520 224 536 212 542 C 205 546 197 546 190 542 C 178 536 163 520 163 496 Z" fill="#F2C9A8"/>
+    <!-- bangs -->
+    <path d="M158 500 C 154 456 172 436 201 434 C 230 436 248 456 244 500 L 236 480 L 228 502 L 218 478 L 207 500 L 197 478 L 187 500 L 177 480 L 168 502 Z" fill="#3E7C8C"/>
+    <!-- eyes -->
+    <g>
+      <ellipse cx="185" cy="505" rx="8" ry="10" fill="#FFFFFF"/>
+      <ellipse cx="217" cy="505" rx="8" ry="10" fill="#FFFFFF"/>
+      <circle cx="186" cy="506" r="5" fill="#9AE6B4"/>
+      <circle cx="218" cy="506" r="5" fill="#9AE6B4"/>
+      <circle cx="186" cy="506" r="2.4" fill="#122036"/>
+      <circle cx="218" cy="506" r="2.4" fill="#122036"/>
+      <circle cx="188" cy="503" r="1.6" fill="#FFFFFF"/>
+      <circle cx="220" cy="503" r="1.6" fill="#FFFFFF"/>
+      <path d="M176 497 C 180 492 190 492 194 496" stroke="#1F4550" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M208 496 C 212 492 222 492 226 497" stroke="#1F4550" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M177 486 C 181 483 189 483 193 485" stroke="#2E5F6E" stroke-width="3" stroke-linecap="round" fill="none"/>
+      <path d="M209 485 C 213 483 221 483 225 486" stroke="#2E5F6E" stroke-width="3" stroke-linecap="round" fill="none"/>
+    </g>
+    <!-- blush + mouth + nose -->
+    <ellipse cx="176" cy="519" rx="6" ry="3" fill="#F19CB0" opacity="0.4"/>
+    <ellipse cx="226" cy="519" rx="6" ry="3" fill="#F19CB0" opacity="0.4"/>
+    <path d="M201 512 L 203 516" stroke="#D9A583" stroke-width="2" stroke-linecap="round"/>
+    <path d="M194 525 Q 201 531 208 525" stroke="#B0684F" stroke-width="3" stroke-linecap="round" fill="none"/>
+
+    <!-- torso jacket -->
+    <path d="M201 556 L 156 572 C 138 580 132 606 130 646 L 136 756 L 266 756 L 272 646 C 270 606 264 580 246 572 Z" fill="#31518A"/>
+    <!-- shirt -->
+    <path d="M186 564 L 201 556 L 216 564 L 201 604 Z" fill="#E8EEF7"/>
+    <path d="M186 564 L 201 604 L 178 596 Z" fill="#25406E"/>
+    <path d="M216 564 L 201 604 L 224 596 Z" fill="#25406E"/>
+
+    <!-- right arm raised holding key -->
+    <path d="M238 584 C 266 566 292 530 314 498 L 330 478 L 344 490 L 328 510 C 306 542 278 582 254 602 Z" fill="#31518A"/>
+    <!-- hand -->
+    <circle cx="338" cy="482" r="11" fill="#F2C9A8"/>
+    <!-- big key -->
+    <g transform="translate(338 482) rotate(-40)">
+      <circle cx="0" cy="-58" r="24" fill="none" stroke="#E7C86A" stroke-width="9"/>
+      <path d="M0 -34 V64" stroke="#E7C86A" stroke-width="10" stroke-linecap="round"/>
+      <path d="M0 40 H22 M0 60 H16" stroke="#E7C86A" stroke-width="9" stroke-linecap="round"/>
+    </g>
+
+    <!-- left arm on hip -->
+    <path d="M160 584 C 144 606 136 638 138 670 L 154 686 L 168 672 L 156 648 C 158 626 164 604 172 592 Z" fill="#31518A"/>
+    <circle cx="152" cy="682" r="9" fill="#F2C9A8"/>
+
+    <!-- trousers -->
+    <path d="M136 756 L 130 812 L 272 812 L 266 756 Z" fill="#22375C"/>
+    <path d="M150 812 L 144 916 L 176 916 L 186 814 Z" fill="#22375C"/>
+    <path d="M216 814 L 226 916 L 258 916 L 252 812 Z" fill="#22375C"/>
+    <!-- shoes -->
+    <path d="M140 916 L 176 916 L 178 930 L 136 930 C 134 924 136 918 140 916 Z" fill="#1A2A45"/>
+    <path d="M226 916 L 262 916 C 266 918 268 924 266 930 L 224 930 Z" fill="#1A2A45"/>
   </g>
 
-  <g opacity="0.85">
-    <rect x="130" y="800" width="740" height="90" rx="20" fill="#162C46"/>
-    <circle cx="220" cy="845" r="24" fill="#2F6CA8"/>
-    <rect x="202" y="874" width="36" height="40" rx="14" fill="#2F6CA8"/>
-    <circle cx="320" cy="845" r="24" fill="#9AE6B4"/>
-    <rect x="302" y="874" width="36" height="40" rx="14" fill="#9AE6B4"/>
-    <rect x="380" y="836" width="200" height="16" rx="8" fill="#1C3652"/>
-    <rect x="380" y="862" width="240" height="16" rx="8" fill="#223F5E"/>
+  <!-- sparkles -->
+  <g fill="#9AE6B4" opacity="0.8">
+    <path d="M320 390 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4 Z"/>
+    <path d="M900 310 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#63B3ED"/>
+    <path d="M110 380 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3 Z" fill="#63B3ED"/>
   </g>
 </svg>
