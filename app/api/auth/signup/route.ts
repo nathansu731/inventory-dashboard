@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { CognitoIdentityProviderClient, SignUpCommand } from "@aws-sdk/client-cognito-identity-provider";
 import { DynamoDBClient, PutItemCommand } from "@aws-sdk/client-dynamodb";
 import { marshall } from "@aws-sdk/util-dynamodb";
@@ -9,6 +9,7 @@ import {
     getTransactionalEmailConfig,
     sendTransactionalEmail,
 } from "@/lib/transactional-email";
+import { redirectAfterPost } from "@/lib/post-redirect";
 
 const resolveRegion = (domain: string) => {
     try {
@@ -29,11 +30,11 @@ export async function POST(req: NextRequest) {
     const confirmPassword = formData.get("confirm_password");
 
     if (!firstName || !lastName || !email || !password || !confirmPassword) {
-        return NextResponse.redirect(new URL("/signup?error=missing_fields", req.url));
+        return redirectAfterPost(new URL("/signup?error=missing_fields", req.url));
     }
 
     if (password !== confirmPassword) {
-        return NextResponse.redirect(new URL("/signup?error=password_mismatch", req.url));
+        return redirectAfterPost(new URL("/signup?error=password_mismatch", req.url));
     }
 
     const clientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest) {
     const region = process.env.COGNITO_REGION || resolveRegion(domain);
 
     if (!clientId || !region) {
-        return NextResponse.redirect(new URL("/signup?error=missing_config", req.url));
+        return redirectAfterPost(new URL("/signup?error=missing_config", req.url));
     }
 
     const secretHash = clientSecret
@@ -161,9 +162,9 @@ export async function POST(req: NextRequest) {
         const target = result.UserConfirmed
             ? "/login?signup=success"
             : `/confirm?email=${encodeURIComponent(String(email))}&sent=1`;
-        return NextResponse.redirect(new URL(target, req.url));
+        return redirectAfterPost(new URL(target, req.url));
     } catch (err) {
         const errorName = err instanceof Error ? err.name : "signup_failed";
-        return NextResponse.redirect(new URL(`/signup?error=${encodeURIComponent(errorName)}`, req.url));
+        return redirectAfterPost(new URL(`/signup?error=${encodeURIComponent(errorName)}`, req.url));
     }
 }

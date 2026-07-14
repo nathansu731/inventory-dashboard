@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { CognitoIdentityProviderClient, ConfirmForgotPasswordCommand } from "@aws-sdk/client-cognito-identity-provider";
 import crypto from "crypto";
+import { redirectAfterPost } from "@/lib/post-redirect";
 
 const resolveRegion = (domain: string) => {
     try {
@@ -24,13 +25,13 @@ export async function POST(req: NextRequest) {
         if (email) {
             url.searchParams.set("email", String(email));
         }
-        return NextResponse.redirect(url);
+        return redirectAfterPost(url);
     }
 
     if (password !== confirmPassword) {
         const url = new URL("/reset-password?error=password_mismatch", req.url);
         url.searchParams.set("email", String(email));
-        return NextResponse.redirect(url);
+        return redirectAfterPost(url);
     }
 
     const clientId = process.env.COGNITO_CLIENT_ID || process.env.NEXT_PUBLIC_COGNITO_CLIENT_ID || "";
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (!clientId || !region) {
         const url = new URL("/reset-password?error=missing_config", req.url);
         url.searchParams.set("email", String(email));
-        return NextResponse.redirect(url);
+        return redirectAfterPost(url);
     }
 
     const secretHash = clientSecret
@@ -62,12 +63,12 @@ export async function POST(req: NextRequest) {
 
     try {
         await client.send(command);
-        return NextResponse.redirect(new URL("/login?reset=success", req.url));
+        return redirectAfterPost(new URL("/login?reset=success", req.url));
     } catch (err) {
         const errorName = err instanceof Error ? err.name : "reset_failed";
         const url = new URL("/reset-password", req.url);
         url.searchParams.set("error", errorName);
         url.searchParams.set("email", String(email));
-        return NextResponse.redirect(url);
+        return redirectAfterPost(url);
     }
 }

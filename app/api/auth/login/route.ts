@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextRequest } from "next/server";
 import { CognitoIdentityProviderClient, InitiateAuthCommand } from "@aws-sdk/client-cognito-identity-provider";
 import crypto from "crypto";
 import { getServerCognitoConfig } from "@/lib/server-runtime-config";
+import { redirectAfterPost } from "@/lib/post-redirect";
 
 export async function POST(req: NextRequest) {
     const formData = await req.formData();
@@ -9,14 +10,14 @@ export async function POST(req: NextRequest) {
     const password = formData.get("password");
 
     if (!username || !password) {
-        return NextResponse.redirect(new URL("/login?error=missing_credentials", req.url));
+        return redirectAfterPost(new URL("/login?error=missing_credentials", req.url));
     }
 
     let cognito;
     try {
         cognito = getServerCognitoConfig();
     } catch {
-        return NextResponse.redirect(new URL("/login?error=missing_config", req.url));
+        return redirectAfterPost(new URL("/login?error=missing_config", req.url));
     }
 
     const authParams: Record<string, string> = {
@@ -45,15 +46,15 @@ export async function POST(req: NextRequest) {
     } catch (err) {
         const errorName = err instanceof Error ? err.name : "unknown";
         const errorParam = encodeURIComponent(errorName);
-        return NextResponse.redirect(new URL(`/login?error=${errorParam}`, req.url));
+        return redirectAfterPost(new URL(`/login?error=${errorParam}`, req.url));
     }
 
     const tokens = result.AuthenticationResult;
     if (!tokens?.AccessToken || !tokens?.IdToken) {
-        return NextResponse.redirect(new URL("/login?error=auth_challenge", req.url));
+        return redirectAfterPost(new URL("/login?error=auth_challenge", req.url));
     }
 
-    const response = NextResponse.redirect(new URL("/overview", req.url));
+    const response = redirectAfterPost(new URL("/overview", req.url));
     response.cookies.set("access_token", tokens.AccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
