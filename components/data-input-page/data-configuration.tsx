@@ -94,6 +94,8 @@ export const DataConfiguration = ({
   adapterConfig,
   setAdapterConfig,
 }: DataConfigurationProps) => {
+  const hasConnectedProvider = provider !== "csv" && connectionState === "connected"
+
   return (
     <Card className="border-0 shadow-none">
       <CardHeader>
@@ -101,39 +103,41 @@ export const DataConfiguration = ({
           <Calendar className="h-5 w-5" />
           Data Configuration
         </CardTitle>
-        <CardDescription>Set connector import options and forecasting parameters</CardDescription>
+        <CardDescription>Set forecasting parameters and, when available, connector import options</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <ConnectorImportSetupSection
-          provider={provider}
-          blueprint={blueprint}
-          diagnostics={diagnostics}
-          connectionState={connectionState}
-          canManageSources={canManageSources}
-          availableTables={availableTables}
-          selectedTables={selectedTables}
-          setSelectedTables={setSelectedTables}
-          effectiveSelectedTables={effectiveSelectedTables}
-          sourceConfig={sourceConfig}
-          setSourceConfig={setSourceConfig}
-          syncMode={syncMode}
-          setSyncMode={setSyncMode}
-          lastImportAt={lastImportAt}
-          nextImportAt={nextImportAt}
-          retryCount={retryCount}
-          lastError={lastError}
-        />
+        {hasConnectedProvider ? (
+          <ConnectorImportSetupSection
+            provider={provider}
+            blueprint={blueprint}
+            diagnostics={diagnostics}
+            connectionState={connectionState}
+            canManageSources={canManageSources}
+            availableTables={availableTables}
+            selectedTables={selectedTables}
+            setSelectedTables={setSelectedTables}
+            effectiveSelectedTables={effectiveSelectedTables}
+            sourceConfig={sourceConfig}
+            setSourceConfig={setSourceConfig}
+            syncMode={syncMode}
+            setSyncMode={setSyncMode}
+            lastImportAt={lastImportAt}
+            nextImportAt={nextImportAt}
+            retryCount={retryCount}
+            lastError={lastError}
+          />
+        ) : null}
 
-        {provider === "other" && (
+        {hasConnectedProvider && provider === "other" ? (
           <AdapterTemplateKitSection
             canManageSources={canManageSources}
             adapterTemplates={adapterTemplates}
             adapterConfig={adapterConfig}
             setAdapterConfig={setAdapterConfig}
           />
-        )}
+        ) : null}
 
-        <Separator />
+        {hasConnectedProvider ? <Separator /> : null}
 
         <ForecastingOptionsSection
           forecastHorizon={forecastHorizon}
@@ -156,6 +160,7 @@ export const DataConfiguration = ({
           canSaveSourceConfiguration={canSaveSourceConfiguration}
           isSavingSourceConfiguration={isSavingSourceConfiguration}
           onSaveSourceConfiguration={onSaveSourceConfiguration}
+          showSourceConfigurationAction={hasConnectedProvider}
           forecastDefaultsMessage={forecastDefaultsMessage}
           forecastDefaultsIsError={forecastDefaultsIsError}
         />

@@ -7,6 +7,7 @@ type DataConfigurationActionsProps = {
   canSaveSourceConfiguration: boolean
   isSavingSourceConfiguration: boolean
   onSaveSourceConfiguration: () => void
+  showSourceConfigurationAction: boolean
   forecastDefaultsMessage?: string | null
   forecastDefaultsIsError?: boolean
 }
@@ -18,6 +19,7 @@ export const DataConfigurationActions = ({
   canSaveSourceConfiguration,
   isSavingSourceConfiguration,
   onSaveSourceConfiguration,
+  showSourceConfigurationAction,
   forecastDefaultsMessage,
   forecastDefaultsIsError = false,
 }: DataConfigurationActionsProps) => {
@@ -27,9 +29,11 @@ export const DataConfigurationActions = ({
         <Button variant="outline" onClick={onSaveForecastDefaults} disabled={!canSaveForecastDefaults || isSavingForecastDefaults}>
           {isSavingForecastDefaults ? "Saving..." : "Save Forecast Defaults"}
         </Button>
-        <Button variant="outline" onClick={onSaveSourceConfiguration} disabled={!canSaveSourceConfiguration || isSavingSourceConfiguration}>
-          {isSavingSourceConfiguration ? "Saving..." : "Save Source Configuration"}
-        </Button>
+        {showSourceConfigurationAction ? (
+          <Button variant="outline" onClick={onSaveSourceConfiguration} disabled={!canSaveSourceConfiguration || isSavingSourceConfiguration}>
+            {isSavingSourceConfiguration ? "Saving..." : "Save Source Configuration"}
+          </Button>
+        ) : null}
       </div>
       {forecastDefaultsMessage && (
         <p className={`text-sm ${forecastDefaultsIsError ? "text-destructive" : "text-muted-foreground"}`}>{forecastDefaultsMessage}</p>

@@ -34,6 +34,10 @@ This folder contains product and architecture documentation for the current ARK 
   - end-to-end lifecycle from intake to artifacts and page consumption
   - scenario and replenishment flow
   - reporting and Copilot dependencies
+- `forecast-execution-and-queueing.md`
+  - plain-language CSV-to-forecast execution flow
+  - local versus global model execution
+  - SQS polling, batch worker, aggregation, and failure queue behavior
 
 ### Guardrails
 

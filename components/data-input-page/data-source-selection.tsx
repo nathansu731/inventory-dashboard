@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { Input } from "@/components/ui/input"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import React from "react"
 import type { DataSourceDiagnostics } from "@/lib/data-sources"
 import type { ProviderBlueprint } from "@/lib/provider-source-config"
@@ -37,13 +38,13 @@ const providerLabel = (provider: ConnectorProvider) => {
   return "Other"
 }
 
-const providerOptions: Array<{ value: ConnectorProvider; label: string }> = [
-  { value: "csv", label: "CSV" },
-  { value: "shopify", label: "Shopify" },
-  { value: "amazon", label: "Amazon" },
-  { value: "quickbooks", label: "QuickBooks" },
-  { value: "bigcommerce", label: "BigCommerce" },
-  { value: "other", label: "Other" },
+const providerOptions: Array<{ value: ConnectorProvider; label: string; available: boolean }> = [
+  { value: "csv", label: "CSV", available: true },
+  { value: "shopify", label: "Shopify", available: false },
+  { value: "amazon", label: "Amazon", available: false },
+  { value: "quickbooks", label: "QuickBooks", available: false },
+  { value: "bigcommerce", label: "BigCommerce", available: false },
+  { value: "other", label: "Other", available: false },
 ]
 
 const providerActionLabel = (provider: ConnectorProvider) => {
@@ -120,17 +121,47 @@ export const DataSourceSelection = ({
           <div className="space-y-2">
             <Label htmlFor="provider">Provider</Label>
             <div className="flex flex-wrap gap-2">
-              {providerOptions.map((option) => (
-                <Button
-                  key={option.value}
-                  type="button"
-                  variant={provider === option.value ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => setProvider(option.value)}
-                >
-                  {option.label}
-                </Button>
-              ))}
+              {providerOptions.map((option) => {
+                if (option.available) {
+                  return (
+                    <Button
+                      key={option.value}
+                      type="button"
+                      variant={provider === option.value ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setProvider(option.value)}
+                    >
+                      {option.label}
+                    </Button>
+                  )
+                }
+
+                return (
+                  <Popover key={option.value}>
+                    <PopoverTrigger asChild>
+                      <span
+                        className="inline-flex"
+                        role="button"
+                        tabIndex={0}
+                        aria-label={`${option.label} provider is coming soon`}
+                        onKeyDown={(event) => {
+                          if (event.key === "Enter" || event.key === " ") {
+                            event.preventDefault()
+                            event.currentTarget.click()
+                          }
+                        }}
+                      >
+                        <Button type="button" variant="outline" size="sm" disabled tabIndex={-1}>
+                          {option.label}
+                        </Button>
+                      </span>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-64 text-sm" side="top">
+                      {option.label} integration is coming soon in a future release.
+                    </PopoverContent>
+                  </Popover>
+                )
+              })}
             </div>
           </div>
 
