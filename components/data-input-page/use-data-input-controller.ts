@@ -734,6 +734,26 @@ export const useDataInputController = () => {
   }, [allowGlobal, availableModels, model, mode])
 
   useEffect(() => {
+    if (!uploadedFileText) return
+    const { headers, records } = parseCsvRecords(uploadedFileText)
+    const dateHeader = resolvePreferredHeader(headers, "", ["date", "day", "transaction_date"])
+    const sampleDate = dateHeader ? String(records.find((record) => record[dateHeader])?.[dateHeader] || "") : ""
+    if (/^\d{4}-\d{1,2}-\d{1,2}/.test(sampleDate)) setDateFormat("yyyy-mm-dd")
+    else if (/^\d{1,2}\/\d{1,2}\/\d{4}/.test(sampleDate)) setDateFormat("dd/mm/yyyy")
+
+    const skuHeader = resolvePreferredHeader(headers, skuColumnName, ["sku", "sku_id", "item", "product"])
+    const storeHeader = resolvePreferredHeader(headers, storeColumnName, ["store", "location", "warehouse"])
+    const series = new Set(records.map((record) => `${record[skuHeader] || ""}::${storeHeader ? record[storeHeader] || "Unknown" : "Unknown"}`).filter((key) => !key.startsWith("::")))
+    if (series.size >= 3 && allowGlobal) {
+      setMode("global")
+      setModel("xgboost")
+    } else {
+      setMode("local")
+      setModel("arima")
+    }
+  }, [allowGlobal, skuColumnName, storeColumnName, uploadedFileText])
+
+  useEffect(() => {
     const loadDefaults = async () => {
       try {
         const [settingsRes] = await Promise.all([

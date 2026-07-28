@@ -30,7 +30,7 @@ export const DashboardMetricsTiles = ({ metrics, onMetricClick }: DashboardMetri
                 return (
                     <Card
                         key={index}
-                        className={clickable ? "cursor-pointer transition-colors hover:bg-muted/30" : undefined}
+                        className={clickable ? "gap-2 py-2 cursor-pointer transition-colors hover:bg-muted/30" : "gap-2 py-2"}
                         onClick={clickable ? () => onMetricClick?.(metric) : undefined}
                         role={clickable ? "button" : undefined}
                         tabIndex={clickable ? 0 : undefined}
@@ -41,7 +41,7 @@ export const DashboardMetricsTiles = ({ metrics, onMetricClick }: DashboardMetri
                             }
                         } : undefined}
                     >
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardHeader className="flex flex-row items-center justify-between space-y-0">
                             <CardTitle className="text-sm font-medium text-gray-600">{metric.title}</CardTitle>
                             {metric.icon ? <metric.icon className="h-4 w-4 text-gray-400" /> : null}
                         </CardHeader>

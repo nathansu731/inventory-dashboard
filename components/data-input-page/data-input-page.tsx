@@ -225,11 +225,6 @@ export const DataInputPage = () => {
               canSaveSourceConfiguration={Boolean(vm.activeSource?.id) && vm.canManageSources}
               isSavingSourceConfiguration={vm.importSummary.status === "running"}
               onSaveSourceConfiguration={vm.saveSourceConfiguration}
-              canSaveForecastDefaults={vm.canManageSources}
-              isSavingForecastDefaults={vm.isSavingForecastDefaults}
-              onSaveForecastDefaults={vm.saveForecastDefaults}
-              forecastDefaultsMessage={vm.forecastDefaultsMessage}
-              forecastDefaultsIsError={vm.forecastDefaultsIsError}
               adapterTemplates={vm.adapterTemplates}
               adapterConfig={vm.activeAdapter}
               setAdapterConfig={vm.setActiveAdapter}

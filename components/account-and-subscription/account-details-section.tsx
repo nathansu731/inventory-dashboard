@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { useProfile } from "@/hooks/use-profile";
 import type { AssistantUsagePayload } from "@/lib/forecast-assistant";
 import { getSubscriptionAccessState } from "@/lib/subscription-state";
+import type { ScenarioRunUsage } from "@/lib/scenario-run-usage";
 
 const formatDate = (unixSeconds: number | undefined) => {
     if (!unixSeconds) return "--"
@@ -22,6 +23,7 @@ const formatDate = (unixSeconds: number | undefined) => {
 export const AccountDetailsSection = () => {
     const { profile } = useProfile()
     const [usage, setUsage] = useState<AssistantUsagePayload | null>(null)
+    const [scenarioUsage, setScenarioUsage] = useState<ScenarioRunUsage | null>(null)
     const [nextBillingDate, setNextBillingDate] = useState<string>("--")
     const [billingStatus, setBillingStatus] = useState<string>("--")
     const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
@@ -63,12 +65,15 @@ export const AccountDetailsSection = () => {
     useEffect(() => {
         const loadUsage = async () => {
             try {
-                const res = await fetch("/api/assistant/usage", { cache: "no-store" })
-                if (!res.ok) return
-                const json = (await res.json()) as AssistantUsagePayload
-                setUsage(json)
+                const [assistantResponse, scenarioResponse] = await Promise.all([
+                    fetch("/api/assistant/usage", { cache: "no-store" }),
+                    fetch("/api/forecast/scenario-usage", { cache: "no-store" }),
+                ])
+                if (assistantResponse.ok) setUsage((await assistantResponse.json()) as AssistantUsagePayload)
+                if (scenarioResponse.ok) setScenarioUsage((await scenarioResponse.json()) as ScenarioRunUsage)
             } catch {
                 setUsage(null)
+                setScenarioUsage(null)
             }
         }
         void loadUsage()
@@ -187,6 +192,14 @@ export const AccountDetailsSection = () => {
                                     <span className="font-medium text-card-foreground">{usage.tokensUsed}/{usage.tokensLimit}</span>
                                 </p>
                             </div>
+                        )}
+                        {scenarioUsage && (
+                            <p className="text-sm text-muted-foreground">
+                                Scenario runs ({scenarioUsage.monthKey}):{" "}
+                                <span className="font-medium text-card-foreground">
+                                    {scenarioUsage.limit === null ? `${scenarioUsage.used}/Unlimited` : `${scenarioUsage.used}/${scenarioUsage.limit}`}
+                                </span>
+                            </p>
                         )}
                     </div>
                 </div>

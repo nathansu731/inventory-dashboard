@@ -24,9 +24,13 @@ export function middleware(req: NextRequest) {
 
     const accessToken = req.cookies.get("access_token")?.value;
     const idToken = req.cookies.get("id_token")?.value;
+    const refreshToken = req.cookies.get("refresh_token")?.value;
 
-    if (!accessToken && !idToken) {
+    // API routes refresh expired ID tokens from this cookie. Allow the request
+    // through so the authenticated API layer can renew the session.
+    if (!accessToken && !idToken && !refreshToken) {
         const loginUrl = new URL("/login", req.url);
+        loginUrl.searchParams.set("next", `${pathname}${req.nextUrl.search}`);
         return NextResponse.redirect(loginUrl);
     }
 

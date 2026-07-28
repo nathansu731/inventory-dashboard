@@ -338,8 +338,8 @@ export const ForecastNavigator = () => {
           ) : null}
         </div>
 
-        <Card>
-          <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+        <Card className="gap-2 py-0">
+          <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4">
             <div className="flex flex-wrap items-center gap-2">
               <ForecastRunSelector runs={runs} value={selectedRunId} onValueChange={setSelectedRunId} />
               <ForecastRunSelector runs={runs.filter((run) => run.runId !== selectedRunId)} value={compareRunId} onValueChange={setCompareRunId} placeholder="Compare run" />
@@ -392,22 +392,6 @@ export const ForecastNavigator = () => {
           </CardContent>
         </Card>
 
-        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card><CardHeader className="pb-2"><CardDescription>Primary Run</CardDescription><CardTitle className="text-lg">{selectedRun?.runId ?? "--"}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{formatRunTimestamp(selectedRun?.createdAt)}</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Baseline Horizon</CardDescription><CardTitle>{Math.round(baselineTotal).toLocaleString()}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Current run baseline total in visible buckets</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Adjusted Horizon</CardDescription><CardTitle>{Math.round(adjustedTotal).toLocaleString()}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Baseline plus forecast adjustments</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Compare Run Delta</CardDescription><CardTitle>{compareRun ? `${Math.round(adjustedTotal - compareAdjustedTotal).toLocaleString()}` : "--"}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{compareRun ? `${compareRun.runId} selected for overlay` : "Add a compare run to benchmark scenarios"}</CardContent></Card>
-        </div>
-        {selectedRun?.isScenario ? (
-          <Card className="border-blue-200 bg-blue-50/70">
-            <CardContent className="flex flex-wrap gap-4 p-4 text-sm text-blue-900">
-              <div><span className="text-blue-700">Scenario:</span> {selectedRun.scenarioLabel || "Manual override scenario"}</div>
-              <div><span className="text-blue-700">Parent run:</span> {selectedRun.parentRunId || "--"}</div>
-              <div><span className="text-blue-700">Edited cells:</span> {selectedRun.editedCellCount ?? 0}</div>
-            </CardContent>
-          </Card>
-        ) : null}
-
         {error ? (
           <div className="rounded-md border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
             Failed to load forecast navigator. {error}
@@ -419,9 +403,25 @@ export const ForecastNavigator = () => {
           </div>
         ) : (
           <>
-            <div className="grid gap-4 xl:grid-cols-[2fr_1fr]">
-              <ForecastTable months={periods.map((period) => formatPeriodByFrequency(period, targetFrequency))} rowData={rowData} />
-              <Card>
+            <ForecastTable months={periods.map((period) => formatPeriodByFrequency(period, targetFrequency))} rowData={rowData} />
+            <ForecastChart data={chartData} />
+        <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Primary Run</CardDescription><CardTitle className="text-lg">{selectedRun?.runId ?? "--"}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{formatRunTimestamp(selectedRun?.createdAt)}</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Baseline Horizon</CardDescription><CardTitle>{Math.round(baselineTotal).toLocaleString()}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Current run baseline total in visible buckets</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Adjusted Horizon</CardDescription><CardTitle>{Math.round(adjustedTotal).toLocaleString()}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Baseline plus forecast adjustments</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Compare Run Delta</CardDescription><CardTitle>{compareRun ? `${Math.round(adjustedTotal - compareAdjustedTotal).toLocaleString()}` : "--"}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{compareRun ? `${compareRun.runId} selected for overlay` : "Add a compare run to benchmark scenarios"}</CardContent></Card>
+        </div>
+        {selectedRun?.isScenario ? (
+          <Card className="border-blue-200 bg-blue-50/70">
+            <CardContent className="flex flex-wrap gap-4 p-4 text-sm text-blue-900">
+              <div><span className="text-blue-700">Scenario:</span> {selectedRun.scenarioLabel || "Manual override scenario"}</div>
+              <div><span className="text-blue-700">Parent run:</span> {selectedRun.parentRunId || "--"}</div>
+              <div><span className="text-blue-700">Edited cells:</span> {selectedRun.editedCellCount ?? 0}</div>
+            </CardContent>
+          </Card>
+        ) : null}
+
+            <Card>
                 <CardHeader>
                   <CardTitle className="flex items-center gap-2 text-lg">
                     <GitCompare className="h-4 w-4" />
@@ -437,9 +437,7 @@ export const ForecastNavigator = () => {
                   <div><span className="text-muted-foreground">Approval:</span> {isApproved ? "Approved" : "Pending"}</div>
                   <div><span className="text-muted-foreground">Visible periods:</span> {periods.length}</div>
                 </CardContent>
-              </Card>
-            </div>
-            <ForecastChart data={chartData} />
+            </Card>
           </>
         )}
       </div>

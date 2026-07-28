@@ -8,16 +8,23 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const username = formData.get("username");
     const password = formData.get("password");
+    const requestedPath = String(formData.get("next") || "");
+    const nextPath = requestedPath.startsWith("/") && !requestedPath.startsWith("//") ? requestedPath : "/overview";
+    const loginError = (error: string) => {
+        const url = new URL(`/login?error=${encodeURIComponent(error)}`, req.url);
+        url.searchParams.set("next", nextPath);
+        return redirectAfterPost(url);
+    };
 
     if (!username || !password) {
-        return redirectAfterPost(new URL("/login?error=missing_credentials", req.url));
+        return loginError("missing_credentials");
     }
 
     let cognito;
     try {
         cognito = getServerCognitoConfig();
     } catch {
-        return redirectAfterPost(new URL("/login?error=missing_config", req.url));
+        return loginError("missing_config");
     }
 
     const authParams: Record<string, string> = {
@@ -45,31 +52,36 @@ export async function POST(req: NextRequest) {
         result = await client.send(command);
     } catch (err) {
         const errorName = err instanceof Error ? err.name : "unknown";
-        const errorParam = encodeURIComponent(errorName);
-        return redirectAfterPost(new URL(`/login?error=${errorParam}`, req.url));
+        return loginError(errorName);
     }
 
     const tokens = result.AuthenticationResult;
     if (!tokens?.AccessToken || !tokens?.IdToken) {
-        return redirectAfterPost(new URL("/login?error=auth_challenge", req.url));
+        return loginError("auth_challenge");
     }
 
-    const response = redirectAfterPost(new URL("/overview", req.url));
+    const response = redirectAfterPost(new URL(nextPath, req.url));
     response.cookies.set("access_token", tokens.AccessToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         path: "/",
+        sameSite: "lax",
+        maxAge: tokens.ExpiresIn,
     });
     response.cookies.set("id_token", tokens.IdToken, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         path: "/",
+        sameSite: "lax",
+        maxAge: tokens.ExpiresIn,
     });
     if (tokens.RefreshToken) {
         response.cookies.set("refresh_token", tokens.RefreshToken, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             path: "/",
+            sameSite: "lax",
+            maxAge: 30 * 24 * 60 * 60,
         });
     }
 

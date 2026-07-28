@@ -87,7 +87,7 @@ type StockRiskRow = {
 type ForecastAccuracyRow = {
   seriesKey: string
   label: string
-  mape: string
+  error: string
   bias: string
   confidence: string
   lastUpdated: string
@@ -109,8 +109,12 @@ type SkuMetric = {
   latestDemand: number
   nextForecast: number
   deltaPctRaw: number
-  avgError: number
-  avgBias: number
+  avgError: number | null
+  avgBias: number | null
+}
+
+type ReportSummary = {
+  validation?: { selectedModel?: { metrics?: { smape?: number } } }
 }
 
 const toDisplayDate = (value: string | null | undefined) => {
@@ -134,7 +138,8 @@ const trendFromDelta = (deltaPct: number) => {
   return "Stable"
 }
 
-const confidenceFromError = (avgError: number) => {
+const confidenceFromError = (avgError: number | null) => {
+  if (avgError === null) return "Unavailable"
   if (avgError <= 10) return "High"
   if (avgError <= 20) return "Medium"
   return "Low"
@@ -208,8 +213,8 @@ const computeSkuMetrics = (items: ForecastItem[]): SkuMetric[] => {
       latestDemand,
       nextForecast,
       deltaPctRaw,
-      avgError: points > 0 ? totalError / points : 0,
-      avgBias: points > 0 ? totalBias / points : 0,
+      avgError: points > 0 ? totalError / points : null,
+      avgBias: points > 0 ? totalBias / points : null,
     }
   })
 }
@@ -242,6 +247,7 @@ export function OverviewInsights() {
   const [forecastItems, setForecastItems] = useState<ForecastItem[]>([])
   const [replenishmentRows, setReplenishmentRows] = useState<ReplenishmentRow[]>([])
   const [generatedAt, setGeneratedAt] = useState<string | null>(null)
+  const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null)
 
   useEffect(() => {
     const load = async () => {
@@ -249,15 +255,17 @@ export function OverviewInsights() {
       setError(null)
 
       try {
-        const [forecastPayload, signals, metadata, dailyForecasts] = await Promise.all([
+        const [forecastPayload, signals, metadata, dailyForecasts, summary] = await Promise.all([
           fetchResult<ForecastValuesPayload>("/api/get-merged-sku-forecast-values"),
           fetchResult<ReplenishmentSignalResult>("/api/get-replenishment-signals"),
           fetchResult<Record<string, SkuMetadata>>("/api/get-skus-metadata"),
           fetchResult<DailyForecast[]>("/api/get-daily-forecasts"),
+          fetchResult<ReportSummary>("/api/get-report-summary"),
         ])
 
         setForecastItems(Array.isArray(forecastPayload?.items) ? forecastPayload.items : [])
         setGeneratedAt(signals?.generatedAt ?? null)
+        setReportSummary(summary)
 
         const signalItems = Array.isArray(signals?.items) ? signals.items : []
         if (signalItems.length > 0) {
@@ -308,17 +316,19 @@ export function OverviewInsights() {
   const forecastAccuracyData = useMemo<ForecastAccuracyRow[]>(() => {
     const lastUpdated = generatedAt ? toDisplayDate(generatedAt) : toDisplayDate(new Date().toISOString())
     return [...skuMetrics]
-      .sort((a, b) => b.avgError - a.avgError)
+      .sort((a, b) => (b.avgError ?? -1) - (a.avgError ?? -1))
       .slice(0, 10)
       .map((row) => ({
         seriesKey: row.seriesKey,
         label: row.label,
-        mape: `${row.avgError.toFixed(1)}%`,
-        bias: `${row.avgBias >= 0 ? "+" : ""}${row.avgBias.toFixed(1)}%`,
+        error: row.avgError === null
+          ? `sMAPE ${reportSummary?.validation?.selectedModel?.metrics?.smape?.toFixed(1) ?? "--"}%`
+          : `${row.avgError.toFixed(1)}%`,
+        bias: row.avgBias === null ? "--" : `${row.avgBias >= 0 ? "+" : ""}${row.avgBias.toFixed(1)}%`,
         confidence: confidenceFromError(row.avgError),
         lastUpdated,
       }))
-  }, [skuMetrics, generatedAt])
+  }, [skuMetrics, generatedAt, reportSummary])
 
   const priorityActionData = useMemo<PriorityActionRow[]>(() => {
     const metricsBySeriesKey = new Map<string, SkuMetric>(skuMetrics.map((m) => [m.seriesKey, m]))
@@ -346,8 +356,8 @@ export function OverviewInsights() {
       })
 
     const fromAccuracy = [...skuMetrics]
-      .filter((m) => m.avgError > 20 && !fromRisk.some((r) => r.seriesKey === m.seriesKey))
-      .sort((a, b) => b.avgError - a.avgError)
+      .filter((m) => (m.avgError ?? 0) > 20 && !fromRisk.some((r) => r.seriesKey === m.seriesKey))
+      .sort((a, b) => (b.avgError ?? -1) - (a.avgError ?? -1))
       .slice(0, 4)
       .map((m) => ({
         seriesKey: m.seriesKey,
@@ -480,7 +490,7 @@ export function OverviewInsights() {
               <TableHeader className="bg-muted">
                 <TableRow>
                   <TableHead>SKU / Location</TableHead>
-                  <TableHead className="text-right">MAPE</TableHead>
+                  <TableHead className="text-right">MAPE / sMAPE</TableHead>
                   <TableHead className="text-right">Bias</TableHead>
                   <TableHead>Confidence</TableHead>
                   <TableHead>Last Updated</TableHead>
@@ -490,7 +500,7 @@ export function OverviewInsights() {
                 {forecastAccuracyData.map((row) => (
                   <TableRow key={row.seriesKey}>
                     <TableCell className="font-medium">{row.label}</TableCell>
-                    <TableCell className="text-right">{row.mape}</TableCell>
+                    <TableCell className="text-right">{row.error}</TableCell>
                     <TableCell className="text-right">{row.bias}</TableCell>
                     <TableCell>{row.confidence}</TableCell>
                     <TableCell>{row.lastUpdated}</TableCell>

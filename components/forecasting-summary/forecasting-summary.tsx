@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react"
 import Link from "next/link"
 import { usePathname, useRouter, useSearchParams } from "next/navigation"
-import { AlertTriangle, Pencil, RefreshCw, TableProperties, TrendingUp } from "lucide-react"
+import { Pencil, TableProperties, TrendingUp } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -17,6 +17,7 @@ import { buildRunScopedUrl } from "@/lib/forecast-runs"
 import { getForecastApproval, listForecastApprovals, subscribeForecastApprovalChanges, type ApprovalMap } from "@/lib/forecast-approvals"
 import { getForecastMetadataDisplaySku, getForecastMetadataDisplayStore } from "@/lib/forecast-metadata"
 import { useForecastCopilot } from "@/components/copilot/forecast-copilot-provider"
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
 
 type ForecastMetadata = {
   sku?: string
@@ -237,22 +238,14 @@ export const ForecastingSummary = () => {
         <div className="flex flex-col gap-3 xl:flex-row xl:items-end xl:justify-between">
           <div>
             <h1 className="text-3xl font-bold text-foreground">Forecasting Summary</h1>
-            <p className="text-muted-foreground mt-1">Run-aware forecast review by SKU-location with direct drill-in to navigator and editor.</p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
             <ForecastRunSelector runs={runs} value={selectedRunId} onValueChange={setSelectedRunId} />
-            <Button variant="outline" size="icon" onClick={() => router.refresh()} aria-label="Refresh summary">
-              <RefreshCw className="h-4 w-4" />
-            </Button>
           </div>
         </div>
 
-        <Card className="border-slate-200 bg-slate-50/70">
-          <CardContent className="grid gap-3 p-4 md:grid-cols-2 xl:grid-cols-6">
-            <div>
-              <div className="text-xs text-muted-foreground">Run</div>
-              <div className="font-medium">{selectedRun?.runId ?? "--"}{selectedRun?.isScenario ? " · Scenario" : ""}</div>
-            </div>
+        <Card className="gap-2 border-slate-200 bg-slate-50/70 py-0">
+          <CardContent className="grid gap-3 px-4 md:grid-cols-2 xl:grid-cols-5">
             <div>
               <div className="text-xs text-muted-foreground">Created</div>
               <div className="font-medium">{formatRunTimestamp(selectedRun?.createdAt)}</div>
@@ -287,11 +280,11 @@ export const ForecastingSummary = () => {
         ) : null}
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-          <Card><CardHeader className="pb-2"><CardDescription>Total Series</CardDescription><CardTitle>{stats.totalSeries}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{stats.stores} stores covered</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Approved Series</CardDescription><CardTitle>{stats.approved}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Current approval state across SKU-location rows</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>30-Day Forecast</CardDescription><CardTitle>{stats.totalForecast.toLocaleString()}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Summed from daily forecast output</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>Replenishment Exceptions</CardDescription><CardTitle>{stats.risky}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">High, medium, or critical stock risk</CardContent></Card>
-          <Card><CardHeader className="pb-2"><CardDescription>A-Class Series</CardDescription><CardTitle>{stats.aClass}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">High-value items for planner focus</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Total Series</CardDescription><CardTitle>{stats.totalSeries}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{stats.stores} stores covered</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Approved Series</CardDescription><CardTitle>{stats.approved}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Current approval state across SKU-location rows</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>30-Day Forecast</CardDescription><CardTitle>{stats.totalForecast.toLocaleString()}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Summed from daily forecast output</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>Replenishment Exceptions</CardDescription><CardTitle>{stats.risky}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">High, medium, or critical stock risk</CardContent></Card>
+          <Card className="gap-2 py-2"><CardHeader><CardDescription>A-Class Series</CardDescription><CardTitle>{stats.aClass}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">High-value items for planner focus</CardContent></Card>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -370,7 +363,12 @@ export const ForecastingSummary = () => {
                         <TableCell>
                           <Badge variant={row.risk === "Healthy" ? "outline" : "destructive"}>{row.risk}</Badge>
                         </TableCell>
-                        <TableCell className="max-w-[280px] text-xs text-muted-foreground">{row.riskReason}</TableCell>
+                        <TableCell className="max-w-[280px] text-xs text-muted-foreground">
+                          <Tooltip>
+                            <TooltipTrigger asChild><span className="block truncate">{row.riskReason}</span></TooltipTrigger>
+                            <TooltipContent className="max-w-sm">{row.riskReason}</TooltipContent>
+                          </Tooltip>
+                        </TableCell>
                         <TableCell className="text-right">
                           <div className="flex justify-end gap-2">
                             <Button variant="ghost" size="sm" asChild>
@@ -396,14 +394,6 @@ export const ForecastingSummary = () => {
           </CardContent>
         </Card>
 
-        <Card className="border-amber-200 bg-amber-50/70">
-          <CardContent className="flex gap-3 p-4 text-sm text-amber-900">
-            <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>
-              Forecast review is now run-aware. Use the run selector before comparing values or editing a SKU-location so you stay aligned to the correct scenario lineage.
-            </p>
-          </CardContent>
-        </Card>
       </div>
     </div>
   )

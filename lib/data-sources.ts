@@ -79,6 +79,7 @@ export type TenantRecord = Record<string, unknown> & {
   dataSources?: Record<string, unknown>
   dataSourceAdapters?: Record<string, unknown>
   dataSourceAudit?: unknown[]
+  scenarioRunUsage?: Record<string, { count?: unknown }>
 }
 
 export const resolveAwsRegion = () =>

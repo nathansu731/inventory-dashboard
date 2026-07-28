@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
     getTenantRecord,
@@ -10,6 +10,7 @@ import {
     roleForUser,
 } from "@/lib/tenant-users";
 import { getSubscriptionAccessState } from "@/lib/subscription-state";
+import { getValidIdToken, withAuthCookies } from "@/lib/server-auth";
 
 const decodeJwtPayload = (token: string) => {
     const parts = token.split(".");
@@ -25,10 +26,10 @@ const decodeJwtPayload = (token: string) => {
     return JSON.parse(json) as Record<string, unknown>;
 };
 
-export async function GET(req: NextRequest) {
-    const idToken = req.cookies.get("id_token")?.value;
+export async function GET() {
+    const { idToken, cookiesToSet } = await getValidIdToken();
     if (!idToken) {
-        return NextResponse.json({ error: "unauthorized" }, { status: 401 });
+        return withAuthCookies(NextResponse.json({ error: "unauthorized" }, { status: 401 }), cookiesToSet);
     }
 
     try {
@@ -60,7 +61,7 @@ export async function GET(req: NextRequest) {
             trialEndsAt,
         });
 
-        return NextResponse.json(
+        return withAuthCookies(NextResponse.json(
             {
                 profile: {
                     ...profile,
@@ -78,8 +79,8 @@ export async function GET(req: NextRequest) {
                     "Cache-Control": "no-store",
                 },
             },
-        );
+        ), cookiesToSet);
     } catch {
-        return NextResponse.json({ error: "invalid_token" }, { status: 401 });
+        return withAuthCookies(NextResponse.json({ error: "invalid_token" }, { status: 401 }), cookiesToSet);
     }
 }

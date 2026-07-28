@@ -43,11 +43,6 @@ type DataConfigurationProps = {
   canSaveSourceConfiguration: boolean
   isSavingSourceConfiguration: boolean
   onSaveSourceConfiguration: () => void
-  canSaveForecastDefaults: boolean
-  isSavingForecastDefaults: boolean
-  onSaveForecastDefaults: () => void
-  forecastDefaultsMessage?: string | null
-  forecastDefaultsIsError?: boolean
   adapterTemplates: AdapterTemplate[]
   adapterConfig: DataSourceAdapterConfig | null
   setAdapterConfig: React.Dispatch<React.SetStateAction<DataSourceAdapterConfig | null>>
@@ -85,11 +80,6 @@ export const DataConfiguration = ({
   canSaveSourceConfiguration,
   isSavingSourceConfiguration,
   onSaveSourceConfiguration,
-  canSaveForecastDefaults,
-  isSavingForecastDefaults,
-  onSaveForecastDefaults,
-  forecastDefaultsMessage,
-  forecastDefaultsIsError = false,
   adapterTemplates,
   adapterConfig,
   setAdapterConfig,
@@ -154,15 +144,10 @@ export const DataConfiguration = ({
         />
 
         <DataConfigurationActions
-          canSaveForecastDefaults={canSaveForecastDefaults}
-          isSavingForecastDefaults={isSavingForecastDefaults}
-          onSaveForecastDefaults={onSaveForecastDefaults}
           canSaveSourceConfiguration={canSaveSourceConfiguration}
           isSavingSourceConfiguration={isSavingSourceConfiguration}
           onSaveSourceConfiguration={onSaveSourceConfiguration}
           showSourceConfigurationAction={hasConnectedProvider}
-          forecastDefaultsMessage={forecastDefaultsMessage}
-          forecastDefaultsIsError={forecastDefaultsIsError}
         />
       </CardContent>
     </Card>

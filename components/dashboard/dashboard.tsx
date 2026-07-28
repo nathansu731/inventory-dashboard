@@ -630,8 +630,8 @@ export const DashboardBody = () => {
           <div className="flex-1 p-6">
             <div className="grid grid-cols-1 gap-4 md:grid-cols-3 mb-8">
               {dashboardInsights.map((insight) => (
-                <Card key={insight.title}>
-                  <CardHeader className="pb-2">
+                <Card key={insight.title} className="gap-2 py-2">
+                  <CardHeader>
                     <CardTitle className="text-sm font-medium text-gray-600">{insight.title}</CardTitle>
                   </CardHeader>
                   <CardContent>

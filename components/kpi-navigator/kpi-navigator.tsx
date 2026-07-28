@@ -47,6 +47,15 @@ type ForecastValuesPayload = {
     items?: ForecastItem[]
 }
 
+const normalizeForecastItem = (item: ForecastItem): ForecastItem => {
+    const mappedPeriods = [
+        ...Object.keys(item.demand ?? {}),
+        ...Object.keys(item.forecastBaseline ?? {}),
+    ]
+    const periods = Array.from(new Set([...(item.periods ?? []), ...mappedPeriods])).sort()
+    return { ...item, periods }
+}
+
 type ValidationMetrics = {
     mae?: number
     rmse?: number
@@ -269,7 +278,7 @@ export const KpiNavigator = () => {
             const parsedValues = parseResult<ForecastValuesPayload>(valuesJson) ?? { items: [] }
             const parsedReport = parseResult<ReportSummaryPayload>(reportJson)
             const parsedReplenishment = parseResult<{ items?: ReplenishmentSignalItem[] }>(replenishmentJson)
-            const items = parsedValues.items ?? []
+            const items = (parsedValues.items ?? []).map(normalizeForecastItem)
 
             setMetadata(parsedMeta)
             setPayload({ ...parsedValues, items })

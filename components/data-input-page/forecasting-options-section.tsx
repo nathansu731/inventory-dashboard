@@ -40,7 +40,7 @@ export const ForecastingOptionsSection = ({
           </div>
           <div className="space-y-2">
             <Label>Mode</Label>
-            <Select value={mode} onValueChange={setMode} disabled={!allowGlobal}>
+            <Select value={mode} onValueChange={setMode} disabled>
               <SelectTrigger>
                 <SelectValue placeholder="Select mode" />
               </SelectTrigger>
@@ -54,7 +54,7 @@ export const ForecastingOptionsSection = ({
           </div>
           <div className="space-y-2">
             <Label>Model</Label>
-            <Select value={model} onValueChange={setModel}>
+            <Select value={model} onValueChange={setModel} disabled>
               <SelectTrigger>
                 <SelectValue placeholder="Select model" />
               </SelectTrigger>
@@ -69,7 +69,7 @@ export const ForecastingOptionsSection = ({
           </div>
           <div className="space-y-2">
             <Label>Forecast Horizon</Label>
-            <Select value={forecastHorizon} onValueChange={setForecastHorizon}>
+            <Select value={forecastHorizon} onValueChange={setForecastHorizon} disabled>
               <SelectTrigger>
                 <SelectValue placeholder="Select horizon" />
               </SelectTrigger>
@@ -83,7 +83,7 @@ export const ForecastingOptionsSection = ({
           </div>
           <div className="space-y-2">
             <Label>Seasonality</Label>
-            <Select value={seasonality} onValueChange={setSeasonality}>
+            <Select value={seasonality} onValueChange={setSeasonality} disabled>
               <SelectTrigger>
                 <SelectValue placeholder="Auto" />
               </SelectTrigger>

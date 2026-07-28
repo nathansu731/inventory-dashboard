@@ -24,14 +24,14 @@ type SummaryRow = {
 
 const buildSummaryRows = (data: MonthlyTotalsResult | null): SummaryRow[] => {
     if (!data) return []
-    const formatValue = (value?: number) => (value !== undefined ? value.toLocaleString() : "--")
+    const formatValue = (value?: number) => (typeof value === "number" && Number.isFinite(value) ? value.toLocaleString() : "--")
     const formatVariance = (variance?: number) =>
         variance !== undefined ? `${variance >= 0 ? "+" : ""}${(variance * 100).toFixed(1)}%` : "--"
 
     return [
         {
             metric: "Total Revenue",
-            value: `$${formatValue(data.totalRevenue?.value)}`,
+        value: `$${formatValue(data.totalRevenue?.value)}`,
             variance: formatVariance(data.totalRevenue?.variance),
             status: data.totalRevenue?.status ?? "stable",
         },
@@ -64,7 +64,7 @@ type ForecastEditorMainContentLeftProps = {
 export const ForecastEditorMainContentLeft = ({ summaryData, isLoading }: ForecastEditorMainContentLeftProps) => {
     const rows = buildSummaryRows(summaryData)
     return (
-        <div className="w-1/3 border-r bg-background">
+        <div className="sticky left-0 z-10 w-1/3 shrink-0 border-r bg-background">
             <div className="border-b bg-muted/50 px-4 py-3">
                 <h2 className="font-medium text-foreground">Forecast Summary</h2>
             </div>

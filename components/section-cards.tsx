@@ -33,19 +33,31 @@ type MonthlyTotalsResult = {
   growthRate?: MonthlyMetric
 }
 
+type ReportSummary = {
+  validation?: {
+    selectedModel?: {
+      metrics?: { mae?: number }
+    }
+  }
+}
+
 const EMPTY_STATE_MODAL_KEY = "overview_empty_state_modal_seen"
 
 export function SectionCards() {
   const router = useRouter()
   const { profile, isLoading: isProfileLoading } = useProfile()
   const [data, setData] = useState<MonthlyTotalsResult | null>(null)
+  const [reportSummary, setReportSummary] = useState<ReportSummary | null>(null)
   const [showEmptyDataModal, setShowEmptyDataModal] = useState(false)
 
   useEffect(() => {
     if (isProfileLoading) return
 
     const loadMonthlyTotals = async () => {
-      const res = await fetch("/api/get-monthly-totals")
+      const [res, summaryRes] = await Promise.all([
+        fetch("/api/get-monthly-totals"),
+        fetch("/api/get-report-summary"),
+      ])
       if (!res.ok) return
 
       const json = await res.json()
@@ -56,6 +68,11 @@ export function SectionCards() {
               : json.result
 
       setData(result)
+      if (summaryRes.ok) {
+        const summaryJson = await summaryRes.json()
+        const summary = typeof summaryJson?.result === "string" ? JSON.parse(summaryJson.result) : summaryJson?.result
+        setReportSummary(summary as ReportSummary)
+      }
 
       const isResultEmptyObject =
         Boolean(result) && typeof result === "object" && !Array.isArray(result) && Object.keys(result).length === 0
@@ -86,6 +103,9 @@ export function SectionCards() {
 
   const formatPercentValue = (value?: number) =>
       typeof value === "number" && Number.isFinite(value) ? `${value.toFixed(1)}%` : "--"
+
+  const mae = reportSummary?.validation?.selectedModel?.metrics?.mae
+  const forecastAccuracy = typeof mae === "number" && Number.isFinite(mae) ? Math.max(0, 100 - mae) : null
 
   const TrendIcon = ({ status }: { status?: string }) =>
       status === "negative" ? <IconTrendingDown /> : <IconTrendingUp />
@@ -146,11 +166,7 @@ export function SectionCards() {
           <CardHeader>
             <CardDescription>Forecast Accuracy</CardDescription>
             <CardTitle className="text-2xl font-semibold tabular-nums @[250px]/card:text-3xl">
-              {data?.forecastAccuracy?.value !== undefined
-                ? `${data.forecastAccuracy.value.toFixed(1)}%`
-                : data?.activeAccounts?.value !== undefined
-                  ? `${data.activeAccounts.value.toFixed(1)}%`
-                  : "--"}
+              {forecastAccuracy === null ? "--" : `${forecastAccuracy.toFixed(1)}%`}
             </CardTitle>
             <CardAction>
               <Badge variant="outline">
@@ -164,7 +180,7 @@ export function SectionCards() {
               Model performance vs baseline <TrendIcon status={data?.forecastAccuracy?.status ?? data?.activeAccounts?.status} />
             </div>
             <div className="text-muted-foreground">
-              Higher is better (100% - SMAPE)
+              Higher is better (100% - MAE)
             </div>
           </CardFooter>
         </Card>

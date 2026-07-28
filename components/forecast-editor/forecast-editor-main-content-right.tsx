@@ -12,7 +12,7 @@ type ForecastEditorMainContentRightProps = {
     forecastValues: ForecastRow[]
     monthColumns: string[]
     formattedColumns: string[]
-    editableMetrics: string[]
+    editableCellKeys: Set<string>
     editingCell: string | null
     editedCells: Set<string>
     handleCellClick: (rowIndex: number, month: string) => void
@@ -35,7 +35,7 @@ export const ForecastEditorMainContentRight = ({
     handleCellBlur,
     handleKeyPress,
     isLoading,
-    editableMetrics,
+    editableCellKeys,
 }: ForecastEditorMainContentRightProps) => {
     return (
         <div className="flex-1 bg-background">
@@ -75,7 +75,7 @@ export const ForecastEditorMainContentRight = ({
                                         const rawValue = row[month];
                                         const isMissing = rawValue === null || rawValue === undefined || rawValue === "";
                                         const cellValue = isMissing ? null : Number(rawValue);
-                                        const isEditable = month !== "average" && editableMetrics.includes(row.metricKey);
+                                        const isEditable = editableCellKeys.has(cellKey);
 
                                         return (
                                             <TableCell

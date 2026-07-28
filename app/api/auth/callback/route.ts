@@ -123,17 +123,20 @@ export async function GET(req: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         path: "/",
+        sameSite: "lax",
     });
     response.cookies.set("id_token", tokens.id_token, {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         path: "/",
+        sameSite: "lax",
     });
     if (tokens.refresh_token) {
         response.cookies.set("refresh_token", tokens.refresh_token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
             path: "/",
+            sameSite: "lax",
         });
     }
 

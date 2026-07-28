@@ -331,43 +331,43 @@ export const ReplenishmentsPage = () => {
         </Card>
 
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="gap-2 py-2">
+            <CardHeader>
               <CardDescription>At-Risk SKUs</CardDescription>
               <CardTitle className="text-2xl">{summary.atRisk}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">Critical + High + Medium risk rows</CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="gap-2 py-2">
+            <CardHeader>
               <CardDescription>Critical Risk</CardDescription>
               <CardTitle className="text-2xl text-red-700">{summary.critical}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">Immediate replenishment attention</CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="gap-2 py-2">
+            <CardHeader>
               <CardDescription>Stockouts in 7 Days</CardDescription>
               <CardTitle className="text-2xl">{summary.stockoutIn7Days}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">Based on projected days of cover</CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="gap-2 py-2">
+            <CardHeader>
               <CardDescription>Demand Exposure At Risk</CardDescription>
               <CardTitle className="text-2xl">{formatNumber(demandAtRisk)}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">Forecast units tied to non-healthy rows</CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="gap-2 py-2">
+            <CardHeader>
               <CardDescription>A-Class At Risk</CardDescription>
               <CardTitle className="text-2xl">{aClassAtRisk}</CardTitle>
             </CardHeader>
             <CardContent className="text-xs text-muted-foreground">High-value items requiring attention</CardContent>
           </Card>
-          <Card>
-            <CardHeader className="pb-2">
+          <Card className="gap-2 py-2">
+            <CardHeader>
               <CardDescription>Average Days Of Cover</CardDescription>
               <CardTitle className="text-2xl">{avgDaysCover.toFixed(1)}</CardTitle>
             </CardHeader>

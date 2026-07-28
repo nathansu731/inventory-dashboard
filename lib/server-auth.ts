@@ -20,6 +20,7 @@ export type CookieToSet = {
         secure: boolean;
         path: string;
         maxAge?: number;
+        sameSite?: "lax";
     };
 };
 
@@ -103,7 +104,7 @@ export const getValidIdToken = async () => {
         authCookieNames.map((name) => ({
             name,
             value: "",
-            options: { httpOnly: true, secure, path: "/", maxAge: 0 },
+            options: { httpOnly: true, secure, path: "/", sameSite: "lax", maxAge: 0 },
         }));
 
     if (idToken && !isExpired(idToken)) {
@@ -120,12 +121,12 @@ export const getValidIdToken = async () => {
             {
                 name: "access_token",
                 value: tokens.access_token,
-                options: { httpOnly: true, secure, path: "/" },
+                options: { httpOnly: true, secure, path: "/", sameSite: "lax" },
             },
             {
                 name: "id_token",
                 value: tokens.id_token,
-                options: { httpOnly: true, secure, path: "/" },
+                options: { httpOnly: true, secure, path: "/", sameSite: "lax" },
             },
         ];
 
@@ -133,7 +134,7 @@ export const getValidIdToken = async () => {
             cookiesToSet.push({
                 name: "refresh_token",
                 value: tokens.refresh_token,
-                options: { httpOnly: true, secure, path: "/" },
+                options: { httpOnly: true, secure, path: "/", sameSite: "lax" },
             });
         }
 

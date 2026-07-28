@@ -36,9 +36,14 @@ const getLoginErrorMessage = (error: string | null) => {
 export const Form = () => {
     const searchParams = useSearchParams();
     const errorMessage = useMemo(() => getLoginErrorMessage(searchParams.get("error")), [searchParams]);
+    const next = useMemo(() => {
+        const value = searchParams.get("next") || "";
+        return value.startsWith("/") && !value.startsWith("//") ? value : "/overview";
+    }, [searchParams]);
 
     return (
         <form className="p-6 md:p-8" action="/api/auth/login" method="post" noValidate>
+            <input type="hidden" name="next" value={next} />
             <div className="flex flex-col gap-6">
                 <WelcomeMessage/>
                 <EmailSection/>

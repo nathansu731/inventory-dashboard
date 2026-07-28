@@ -600,9 +600,9 @@ export const Kpis = () => {
                     </div>
                 ) : (
                     <>
-                        <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 xl:grid-cols-7">
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2">
+                        <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-7">
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader>
                                     <CardTitle className="text-sm">
                                         <MetricTooltip label="Forecast Accuracy Index" formula="Accuracy index = 100 - sMAPE" />
                                     </CardTitle>
@@ -611,8 +611,8 @@ export const Kpis = () => {
                                     <p className="text-2xl font-bold">{formatPercent(stats.accuracyIndex)}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2">
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader>
                                     <CardTitle className="text-sm">
                                         <MetricTooltip label="Forecast Error (sMAPE)" formula="sMAPE = mean(2 * |Forecast - Demand| / (|Forecast| + |Demand|)) * 100" />
                                     </CardTitle>
@@ -621,36 +621,36 @@ export const Kpis = () => {
                                     <p className="text-2xl font-bold">{formatPercent(stats.smape)}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2"><CardTitle className="text-sm">Revenue Outlook</CardTitle></CardHeader>
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader><CardTitle className="text-sm">Revenue Outlook</CardTitle></CardHeader>
                                 <CardContent className="mt-auto">
                                     <p className="text-2xl font-bold">{compactNumber(stats.revenueOutlook)}</p>
                                     <p className="text-xs text-muted-foreground">Growth {formatPercent(stats.growthRate)}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2"><CardTitle className="text-sm">Demand At Risk</CardTitle></CardHeader>
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader><CardTitle className="text-sm">Demand At Risk</CardTitle></CardHeader>
                                 <CardContent className="mt-auto">
                                     <p className="text-2xl font-bold">{compactNumber(stats.demandAtRisk)}</p>
                                     <p className="text-xs text-muted-foreground">30-day demand on exposed series</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2"><CardTitle className="text-sm">A-Class At Risk</CardTitle></CardHeader>
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader><CardTitle className="text-sm">A-Class At Risk</CardTitle></CardHeader>
                                 <CardContent className="mt-auto"><p className="text-2xl font-bold">{stats.aClassAtRisk}</p></CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2"><CardTitle className="text-sm">Stockout In 7 Days</CardTitle></CardHeader>
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader><CardTitle className="text-sm">Stockout In 7 Days</CardTitle></CardHeader>
                                 <CardContent className="mt-auto"><p className="text-2xl font-bold">{stats.stockoutIn7Days}</p></CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col">
-                                <CardHeader className="pb-2"><CardTitle className="text-sm">Override Candidates</CardTitle></CardHeader>
+                            <Card className="flex h-full flex-col gap-2 py-2">
+                                <CardHeader><CardTitle className="text-sm">Override Candidates</CardTitle></CardHeader>
                                 <CardContent className="mt-auto"><p className="text-2xl font-bold">{stats.overrideCandidates}</p></CardContent>
                             </Card>
                         </div>
 
-                        <Card>
-                            <CardContent className="flex flex-wrap items-center gap-2 p-3 text-xs text-muted-foreground">
+                        <Card className="gap-2 py-0">
+                            <CardContent className="flex flex-wrap items-center gap-2 px-3 text-xs text-muted-foreground">
                                 <Badge variant="outline">Model: {(reportSummary?.runConfig?.executedModel || latestAndPrev.latestModel || "-").toUpperCase()}</Badge>
                                 <Badge variant="outline">Mode: {(reportSummary?.runConfig?.executedMode || reportSummary?.validation?.selectedModel?.mode || "-").toUpperCase()}</Badge>
                                 <Badge variant="outline">Frequency: {(reportSummary?.runConfig?.detectedFrequency || "-").toUpperCase()}</Badge>

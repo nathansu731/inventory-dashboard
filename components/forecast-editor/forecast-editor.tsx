@@ -24,6 +24,7 @@ import {
 } from "@/lib/forecast-approvals"
 import { useRunStatusStream, type StreamRunSummary } from "@/components/data-input-page/use-run-status-stream"
 import { useForecastCopilot } from "@/components/copilot/forecast-copilot-provider"
+import type { ScenarioRunUsage } from "@/lib/scenario-run-usage"
 
 type MonthlyMetric = {
     value: number
@@ -66,7 +67,6 @@ type ForecastRow = {
     [key: string]: number | string | null
 }
 
-const EDITABLE_METRICS = ["demandAdjustment", "forecastAdjustment"]
 const AGGREGATION_LEVELS = ["Daily", "Weekly", "Monthly", "Quarterly", "Yearly"] as const
 type Frequency = "daily" | "weekly" | "monthly" | "quarterly" | "yearly"
 
@@ -259,6 +259,7 @@ export const ForecastEditor = () => {
     const [columnVisibility, setColumnVisibility] = useState<Record<string, boolean>>({})
     const [isApproved, setIsApproved] = useState(false)
     const [approvalMap, setApprovalMap] = useState<ApprovalMap>({})
+    const [scenarioUsage, setScenarioUsage] = useState<ScenarioRunUsage | null>(null)
     useRunStatusStream(scenarioRunStatus?.runId, setScenarioRunStatus)
 
     const storeGroups = useMemo(() => {
@@ -293,6 +294,18 @@ export const ForecastEditor = () => {
         }
         void loadRuns()
     }, [selectedRunId])
+
+    useEffect(() => {
+        const loadScenarioUsage = async () => {
+            try {
+                const response = await fetch("/api/forecast/scenario-usage", { cache: "no-store" })
+                if (response.ok) setScenarioUsage((await response.json()) as ScenarioRunUsage)
+            } catch {
+                setScenarioUsage(null)
+            }
+        }
+        void loadScenarioUsage()
+    }, [])
 
     useEffect(() => {
         const params = new URLSearchParams(searchParams.toString())
@@ -506,6 +519,22 @@ export const ForecastEditor = () => {
     }, [displayMonthColumns, displayFormattedColumns, columnVisibility])
 
     const dirtyCount = editedCells.size
+    const scenarioLimitReached = scenarioUsage?.remaining === 0
+    const editableCellKeys = useMemo(() => {
+        if (!currentItem || labelToFrequency(aggregationType) !== baseFrequency) return new Set<string>()
+        const editable = new Set<string>()
+        for (const period of monthColumns) {
+            const demand = currentItem.demand?.[period]
+            const forecast = currentItem.forecastBaseline?.[period]
+            if (demand !== null && demand !== undefined && Number.isFinite(Number(demand))) {
+                editable.add(`demandAdjustment:${period}`)
+            }
+            if (forecast !== null && forecast !== undefined && Number.isFinite(Number(forecast))) {
+                editable.add(`forecastAdjustment:${period}`)
+            }
+        }
+        return editable
+    }, [aggregationType, baseFrequency, currentItem, monthColumns])
     const baselineHorizonTotal = useMemo(() => {
         if (!currentItem) return 0
         return monthColumns.reduce((sum, period) => sum + Number(currentItem.forecastBaseline?.[period] ?? 0), 0)
@@ -655,9 +684,17 @@ export const ForecastEditor = () => {
 
             const runJson = await runRes.json()
             if (!runRes.ok || runJson?.status === "error") {
-                setRunMessage("Failed to start adjustment run")
+                setRunMessage(runJson?.error || runJson?.message || "Failed to start adjustment run")
                 setIsSaving(false)
                 return
+            }
+
+            if (scenarioUsage) {
+                setScenarioUsage({
+                    ...scenarioUsage,
+                    used: scenarioUsage.used + 1,
+                    remaining: scenarioUsage.remaining === null ? null : Math.max(0, scenarioUsage.remaining - 1),
+                })
             }
 
             setScenarioRunStatus({
@@ -712,10 +749,17 @@ export const ForecastEditor = () => {
                     <h1 className="text-3xl font-bold text-foreground">Forecast Editor</h1>
                     <p className="text-muted-foreground mt-1">Review forecast values, apply adjustments, and rerun selected SKU-location scenarios with run lineage.</p>
                 </div>
-                <Card>
-                    <CardContent className="flex flex-wrap items-center justify-between gap-3 p-4">
+                <Card className="gap-2 py-0">
+                    <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4">
                         <div className="flex flex-wrap items-center gap-2">
                             <ForecastRunSelector runs={runs} value={selectedRunId} onValueChange={setSelectedRunId} />
+                            <Badge variant="outline">
+                                {scenarioUsage
+                                    ? scenarioUsage.limit === null
+                                        ? `${scenarioUsage.used} scenario runs this month · Unlimited`
+                                        : `${scenarioUsage.used}/${scenarioUsage.limit} scenario runs this month`
+                                    : "Scenario run usage unavailable"}
+                            </Badge>
                             <Badge variant="outline">Run created {formatRunTimestamp(selectedRun?.createdAt)}</Badge>
                             {currentItem ? <Badge variant="secondary">{currentItem.sku} · {currentItem.store}</Badge> : null}
                         </div>
@@ -727,10 +771,10 @@ export const ForecastEditor = () => {
                     </CardContent>
                 </Card>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Baseline Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(baselineHorizonTotal).toLocaleString()}</p></CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Adjusted Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(adjustedHorizonTotal).toLocaleString()}</p></CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Scenario Delta</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(totalAdjustmentDelta).toLocaleString()}</p></CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardTitle className="text-sm">Approval State</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{isApproved ? "Approved" : "Pending"}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Baseline Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(baselineHorizonTotal).toLocaleString()}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Adjusted Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(adjustedHorizonTotal).toLocaleString()}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Scenario Delta</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(totalAdjustmentDelta).toLocaleString()}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Approval State</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{isApproved ? "Approved" : "Pending"}</p></CardContent></Card>
                 </div>
                 <div className="rounded-md border bg-background">
                     <ForecastEditorControlsRow
@@ -745,7 +789,7 @@ export const ForecastEditor = () => {
                         onNextSku={onNextSku}
                         onSave={() => setShowConfirm(true)}
                         isSaving={isSaving}
-                        disableSave={labelToFrequency(aggregationType) !== baseFrequency}
+                        disableSave={labelToFrequency(aggregationType) !== baseFrequency || dirtyCount === 0 || scenarioLimitReached}
                         onExport={handleExport}
                         isApproved={isApproved}
                         onToggleApproval={() => {
@@ -782,7 +826,7 @@ export const ForecastEditor = () => {
                                 handleKeyPress(e, row.metricKey, period)
                             }}
                             isLoading={isLoading}
-                            editableMetrics={labelToFrequency(aggregationType) === baseFrequency ? EDITABLE_METRICS : []}
+                            editableCellKeys={editableCellKeys}
                         />
                     </div>
                 </div>

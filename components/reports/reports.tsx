@@ -87,7 +87,11 @@ const parseSummary = (summary: RunItem["summary"]) => {
 }
 
 const getObject = (value: unknown) => (typeof value === "object" && value ? (value as Record<string, unknown>) : null)
-const toNumber = (value: unknown): number | null => (typeof value === "number" && Number.isFinite(value) ? value : null)
+const toNumber = (value: unknown): number | null => {
+    if (value === null || value === undefined || value === "") return null
+    const parsed = typeof value === "number" ? value : Number(value)
+    return Number.isFinite(parsed) ? parsed : null
+}
 
 const safeDate = (value?: string | null) => {
     if (!value) return "-"
@@ -206,7 +210,27 @@ export const ReportsPage = () => {
             if (!res.ok) throw new Error(`API error (${res.status})`)
             const payload = await res.json()
             const items = (payload?.items ?? []) as RunItem[]
-            setRows(items.map(getRunRow))
+            const runIdsToHydrate = new Set(
+                items
+                    .filter((item) => item.status === "DONE" && !parseSummary(item.summary))
+                    .slice(0, 20)
+                    .map((item) => item.runId)
+            )
+            const hydratedItems = await Promise.all(
+                items.map(async (item) => {
+                    if (!runIdsToHydrate.has(item.runId)) return item
+                    try {
+                        const summaryRes = await fetch(`/api/get-report-summary?runId=${encodeURIComponent(item.runId)}`, { cache: "no-store" })
+                        if (!summaryRes.ok) return item
+                        const summaryPayload = await summaryRes.json()
+                        const summary = parseSummary(summaryPayload)
+                        return summary ? { ...item, summary } : item
+                    } catch {
+                        return item
+                    }
+                })
+            )
+            setRows(hydratedItems.map(getRunRow))
         } catch (e) {
             setRows([])
             setError(e instanceof Error ? e.message : "Failed to load reports")
@@ -465,12 +489,12 @@ export const ReportsPage = () => {
                 </div>
 
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-6">
-                    <Card><CardHeader className="pb-2"><CardDescription>Runs</CardDescription><CardTitle>{stats.runCount}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{formatPercent(stats.successRate)} success rate</CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardDescription>Accuracy Index</CardDescription><CardTitle>{formatPercent(stats.averageAccuracy)}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Average across matched runs</CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardDescription>sMAPE</CardDescription><CardTitle>{formatPercent(stats.averageSmape)}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Lower is better</CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardDescription>Scenarios</CardDescription><CardTitle>{stats.scenarioCount}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Edited child runs</CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardDescription>High Error Series</CardDescription><CardTitle>{stats.highErrorSeries}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Per-series sMAPE at or above 30%</CardContent></Card>
-                    <Card><CardHeader className="pb-2"><CardDescription>Assumption Impact</CardDescription><CardTitle>{stats.assumptionsAffected}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{formatNumber(stats.assumptionDelta)} units changed</CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardDescription>Runs</CardDescription><CardTitle>{stats.runCount}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{formatPercent(stats.successRate)} success rate</CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardDescription>Accuracy Index</CardDescription><CardTitle>{formatPercent(stats.averageAccuracy)}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Average across matched runs</CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardDescription>sMAPE</CardDescription><CardTitle>{formatPercent(stats.averageSmape)}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Lower is better</CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardDescription>Scenarios</CardDescription><CardTitle>{stats.scenarioCount}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Edited child runs</CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardDescription>High Error Series</CardDescription><CardTitle>{stats.highErrorSeries}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">Per-series sMAPE at or above 30%</CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardDescription>Assumption Impact</CardDescription><CardTitle>{stats.assumptionsAffected}</CardTitle></CardHeader><CardContent className="text-xs text-muted-foreground">{formatNumber(stats.assumptionDelta)} units changed</CardContent></Card>
                 </div>
 
                 <div className="rounded-lg border p-4 space-y-3">

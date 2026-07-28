@@ -5,6 +5,7 @@ import { getAuthenticatedApiContext } from "@/lib/server-auth";
 import { appendDataSourceAudit } from "@/lib/data-source-audit";
 import { getTenantsTableName, resolveAwsRegion, writeTenantRecord } from "@/lib/data-sources";
 import { consumeTenantRateLimit } from "@/lib/tenant-rate-limit";
+import { consumeScenarioRun } from "@/lib/scenario-run-usage";
 import {
     buildRestrictionErrorPayload,
     isQuarantineUploadKey,
@@ -121,6 +122,20 @@ export async function POST(req: Request) {
             });
         }
         await persistTenantRecord();
+
+        if (adjustmentsKey) {
+            const scenarioUsage = consumeScenarioRun({ tenantRecord, plan });
+            if (!scenarioUsage.allowed) {
+                return rejectRequest({
+                    code: "SCENARIO_RUN_LIMIT_REACHED",
+                    error: `This workspace has used all ${scenarioUsage.usage.limit} scenario runs for ${scenarioUsage.usage.monthKey}.`,
+                    details: scenarioUsage.usage,
+                    auditType: "scenario_run_limit_reached",
+                    status: 429,
+                });
+            }
+            await persistTenantRecord();
+        }
     }
 
     if (!tenantId || !isTenantScopedRawKey(tenantId, requestedS3Key)) {

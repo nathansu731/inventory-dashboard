@@ -46,7 +46,7 @@ const chartConfig = {
 
 export function ChartAreaInteractive() {
   const isMobile = useIsMobile() === true
-  const [timeRange, setTimeRange] = React.useState("90d")
+  const [timeRange, setTimeRange] = React.useState("30d")
   const [chartData, setChartData] = React.useState<{ date: string; forecast: number; upper80: number }[]>([])
   const [isLoading, setIsLoading] = React.useState(false)
 
@@ -97,16 +97,24 @@ export function ChartAreaInteractive() {
   }, [])
 
   const referenceDateValue = chartData.length ? chartData[chartData.length - 1].date : null
+  const rangeOptions = React.useMemo(() => {
+    const horizon = chartData.length
+    if (horizon <= 0) return []
+    const options = [{ value: `${Math.min(30, horizon)}d`, label: `Last ${Math.min(30, horizon)} days` }]
+    if (horizon > 7) options.push({ value: "7d", label: "Last 7 days" })
+    return options
+  }, [chartData.length])
+
+  React.useEffect(() => {
+    if (rangeOptions.length && !rangeOptions.some((option) => option.value === timeRange)) {
+      setTimeRange(rangeOptions[0].value)
+    }
+  }, [rangeOptions, timeRange])
 
   const filteredData = chartData.filter((item) => {
     const date = new Date(item.date)
     const referenceDate = referenceDateValue ? new Date(referenceDateValue) : new Date()
-    let daysToSubtract = 90
-    if (timeRange === "30d") {
-      daysToSubtract = 30
-    } else if (timeRange === "7d") {
-      daysToSubtract = 7
-    }
+    const daysToSubtract = Number.parseInt(timeRange, 10) || chartData.length
     const startDate = new Date(referenceDate)
     startDate.setDate(startDate.getDate() - daysToSubtract)
     return date >= startDate
@@ -130,9 +138,7 @@ export function ChartAreaInteractive() {
             variant="outline"
             className="hidden *:data-[slot=toggle-group-item]:!px-4 @[767px]/card:flex"
           >
-            <ToggleGroupItem value="90d">Last 3 months</ToggleGroupItem>
-            <ToggleGroupItem value="30d">Last 30 days</ToggleGroupItem>
-            <ToggleGroupItem value="7d">Last 7 days</ToggleGroupItem>
+            {rangeOptions.map((option) => <ToggleGroupItem key={option.value} value={option.value}>{option.label}</ToggleGroupItem>)}
           </ToggleGroup>
           <Select value={timeRange} onValueChange={setTimeRange}>
             <SelectTrigger
@@ -140,18 +146,10 @@ export function ChartAreaInteractive() {
               size="sm"
               aria-label="Select a value"
             >
-              <SelectValue placeholder="Last 3 months" />
+              <SelectValue placeholder="Forecast horizon" />
             </SelectTrigger>
             <SelectContent className="rounded-xl">
-              <SelectItem value="90d" className="rounded-lg">
-                Last 3 months
-              </SelectItem>
-              <SelectItem value="30d" className="rounded-lg">
-                Last 30 days
-              </SelectItem>
-              <SelectItem value="7d" className="rounded-lg">
-                Last 7 days
-              </SelectItem>
+              {rangeOptions.map((option) => <SelectItem key={option.value} value={option.value} className="rounded-lg">{option.label}</SelectItem>)}
             </SelectContent>
           </Select>
         </CardAction>

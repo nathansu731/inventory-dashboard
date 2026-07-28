@@ -116,7 +116,7 @@ export const SavedReportsTable = ({
                                                 {report.criteria.searchText || "Any query"} · {dateRangeLabel(report.criteria.dateFrom, report.criteria.dateTo)}
                                             </div>
                                         </TableCell>
-                                        <TableCell className="text-right">{report.snapshot?.runCount ?? "-"}</TableCell>
+                                        <TableCell className="text-right">{report.snapshot ? report.snapshot.runCount : "Not captured"}</TableCell>
                                         <TableCell className="text-right">{report.snapshot?.scenarioCount ?? "-"}</TableCell>
                                         <TableCell className="text-right">{percent(report.snapshot?.averageAccuracy)}</TableCell>
                                         <TableCell className="text-right">{percent(report.snapshot?.averageSmape)}</TableCell>
