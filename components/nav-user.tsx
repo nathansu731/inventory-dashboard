@@ -13,6 +13,7 @@ import {
 import Link from "next/link"
 import { useProfile } from "@/hooks/use-profile"
 import { getSubscriptionAccessState } from "@/lib/subscription-state"
+import { submitLogout } from "@/components/logout/logout-button"
 
 import {
   Avatar,
@@ -160,11 +161,14 @@ export function NavUser({
               )}
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem asChild>
-              <Link href="/api/auth/logout">
-                <LogOut />
-                Log out
-              </Link>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                submitLogout()
+              }}
+            >
+              <LogOut />
+              Log out
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

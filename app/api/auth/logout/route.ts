@@ -6,6 +6,7 @@ const clearAuthCookies = (response: NextResponse) => {
         httpOnly: true,
         secure: process.env.NODE_ENV === "production",
         path: "/",
+        sameSite: "lax" as const,
         maxAge: 0,
     };
 
@@ -38,7 +39,7 @@ const buildHostedLogoutUrl = (req: NextRequest) => {
     return `${cognito.logoutEndpoint}?${params.toString()}`;
 };
 
-export async function GET(req: NextRequest) {
+const logout = async (req: NextRequest) => {
     const hostedLogoutUrl = buildHostedLogoutUrl(req);
     const response = hostedLogoutUrl
         ? NextResponse.redirect(hostedLogoutUrl)
@@ -48,6 +49,11 @@ export async function GET(req: NextRequest) {
     return response;
 }
 
+// Logout changes session state and must never run from a Next.js Link prefetch.
+export async function GET() {
+    return NextResponse.json({ error: "method_not_allowed" }, { status: 405, headers: { Allow: "POST" } });
+}
+
 export async function POST(req: NextRequest) {
-    return GET(req);
+    return logout(req);
 }
