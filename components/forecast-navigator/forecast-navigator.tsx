@@ -338,7 +338,7 @@ export const ForecastNavigator = () => {
           ) : null}
         </div>
 
-        <Card className="gap-2 py-0">
+        <Card className="gap-2 py-3">
           <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4">
             <div className="flex flex-wrap items-center gap-2">
               <ForecastRunSelector runs={runs} value={selectedRunId} onValueChange={setSelectedRunId} />

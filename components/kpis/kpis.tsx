@@ -601,7 +601,7 @@ export const Kpis = () => {
                 ) : (
                     <>
                         <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-7">
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader>
                                     <CardTitle className="text-sm">
                                         <MetricTooltip label="Forecast Accuracy Index" formula="Accuracy index = 100 - sMAPE" />
@@ -611,7 +611,7 @@ export const Kpis = () => {
                                     <p className="text-2xl font-bold">{formatPercent(stats.accuracyIndex)}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader>
                                     <CardTitle className="text-sm">
                                         <MetricTooltip label="Forecast Error (sMAPE)" formula="sMAPE = mean(2 * |Forecast - Demand| / (|Forecast| + |Demand|)) * 100" />
@@ -621,35 +621,35 @@ export const Kpis = () => {
                                     <p className="text-2xl font-bold">{formatPercent(stats.smape)}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader><CardTitle className="text-sm">Revenue Outlook</CardTitle></CardHeader>
                                 <CardContent className="mt-auto">
                                     <p className="text-2xl font-bold">{compactNumber(stats.revenueOutlook)}</p>
                                     <p className="text-xs text-muted-foreground">Growth {formatPercent(stats.growthRate)}</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader><CardTitle className="text-sm">Demand At Risk</CardTitle></CardHeader>
                                 <CardContent className="mt-auto">
                                     <p className="text-2xl font-bold">{compactNumber(stats.demandAtRisk)}</p>
                                     <p className="text-xs text-muted-foreground">30-day demand on exposed series</p>
                                 </CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader><CardTitle className="text-sm">A-Class At Risk</CardTitle></CardHeader>
                                 <CardContent className="mt-auto"><p className="text-2xl font-bold">{stats.aClassAtRisk}</p></CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader><CardTitle className="text-sm">Stockout In 7 Days</CardTitle></CardHeader>
                                 <CardContent className="mt-auto"><p className="text-2xl font-bold">{stats.stockoutIn7Days}</p></CardContent>
                             </Card>
-                            <Card className="flex h-full flex-col gap-2 py-2">
+                            <Card className="flex h-full flex-col gap-0 py-3">
                                 <CardHeader><CardTitle className="text-sm">Override Candidates</CardTitle></CardHeader>
                                 <CardContent className="mt-auto"><p className="text-2xl font-bold">{stats.overrideCandidates}</p></CardContent>
                             </Card>
                         </div>
 
-                        <Card className="gap-2 py-0">
+                        <Card className="gap-2 py-3">
                             <CardContent className="flex flex-wrap items-center gap-2 px-3 text-xs text-muted-foreground">
                                 <Badge variant="outline">Model: {(reportSummary?.runConfig?.executedModel || latestAndPrev.latestModel || "-").toUpperCase()}</Badge>
                                 <Badge variant="outline">Mode: {(reportSummary?.runConfig?.executedMode || reportSummary?.validation?.selectedModel?.mode || "-").toUpperCase()}</Badge>

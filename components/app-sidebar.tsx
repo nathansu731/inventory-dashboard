@@ -1,11 +1,7 @@
 "use client"
 
-import * as React from "react"
 import {
-  AudioWaveform,
   ChartNoAxesGantt,
-  Command,
-  GalleryVerticalEnd,
   TrendingUpDown,
   LayoutDashboard, FileChartColumn, Warehouse, Grid2x2Plus, CreditCard,
 } from "lucide-react"
@@ -26,23 +22,6 @@ import { useProfile } from "@/hooks/use-profile"
 import { getSubscriptionAccessState } from "@/lib/subscription-state"
 
 const data = {
-  teams: [
-    {
-      name: "ARK Dashboard",
-      logo: GalleryVerticalEnd,
-      plan: "Enterprise",
-    },
-    {
-      name: "Professional Workspace",
-      logo: AudioWaveform,
-      plan: "Professional",
-    },
-    {
-      name: "Launch Workspace",
-      logo: Command,
-      plan: "Launch",
-    },
-  ],
   navMain: [
     {
       title: "Overview",
@@ -107,6 +86,7 @@ const data = {
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { profile } = useProfile()
+  const companyName = typeof profile?.company_name === "string" ? profile.company_name : null
   const accessState = getSubscriptionAccessState({
     plan: profile?.tenant_plan ?? profile?.["custom:plan"],
     tenantStatus: profile?.effective_tenant_status ?? profile?.tenant_status,
@@ -127,7 +107,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   return (
     <Sidebar collapsible="icon" {...props}>
       <SidebarHeader>
-        <TeamSwitcher teams={data.teams} />
+        <TeamSwitcher companyName={companyName} />
       </SidebarHeader>
       <SidebarContent>
         <NavMain items={navItems} />

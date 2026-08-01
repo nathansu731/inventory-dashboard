@@ -1,4 +1,3 @@
-import { ScrollArea } from "@/components/ui/scroll-area"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import type React from "react"
 
@@ -42,7 +41,7 @@ export const ForecastEditorMainContentRight = ({
             <div className="border-b bg-muted/50 px-4 py-3">
                 <h2 className="font-medium text-foreground">Forecast Values</h2>
             </div>
-            <ScrollArea className="h-[calc(100vh-180px)]">
+            <div className="overflow-x-auto">
                 <div className="min-w-[800px]">
                     <Table>
                         <TableHeader className="sticky top-0 bg-background">
@@ -117,7 +116,7 @@ export const ForecastEditorMainContentRight = ({
                         </TableBody>
                     </Table>
                 </div>
-            </ScrollArea>
+            </div>
         </div>
     )
 }

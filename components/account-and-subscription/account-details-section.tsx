@@ -5,6 +5,7 @@ import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Settings} from "lucide-react";
 import {Badge} from "@/components/ui/badge";
 import {Button} from "@/components/ui/button";
+import {Input} from "@/components/ui/input";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { useProfile } from "@/hooks/use-profile";
@@ -27,11 +28,15 @@ export const AccountDetailsSection = () => {
     const [nextBillingDate, setNextBillingDate] = useState<string>("--")
     const [billingStatus, setBillingStatus] = useState<string>("--")
     const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null)
+    const [companyName, setCompanyName] = useState("")
+    const [companyNameMessage, setCompanyNameMessage] = useState<string | null>(null)
+    const [isSavingCompanyName, setIsSavingCompanyName] = useState(false)
     const givenName = typeof profile?.given_name === "string" ? profile.given_name : ""
     const familyName = typeof profile?.family_name === "string" ? profile.family_name : ""
     const name = [givenName, familyName].filter(Boolean).join(" ")
         || (typeof profile?.name === "string" ? profile.name : "--")
     const email = typeof profile?.email === "string" ? profile.email : "--"
+    const savedCompanyName = typeof profile?.company_name === "string" ? profile.company_name : ""
     const memberSince = typeof profile?.iat === "number" ? formatDate(profile.iat) : "--"
     const planRaw =
         typeof profile?.["custom:plan"] === "string"
@@ -61,6 +66,37 @@ export const AccountDetailsSection = () => {
         trialEndMs,
         upgradeHref,
     } = accessState
+
+    useEffect(() => {
+        setCompanyName(savedCompanyName)
+    }, [savedCompanyName])
+
+    const saveCompanyName = async () => {
+        const normalizedCompanyName = companyName.trim().replace(/\s+/g, " ")
+        if (normalizedCompanyName === savedCompanyName) return
+
+        setIsSavingCompanyName(true)
+        setCompanyNameMessage(null)
+        try {
+            const response = await fetch("/api/account/company-name", {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ companyName: normalizedCompanyName }),
+            })
+            if (!response.ok) {
+                const payload = (await response.json().catch(() => null)) as { error?: string } | null
+                throw new Error(payload?.error ?? "failed_to_save_company_name")
+            }
+
+            setCompanyName(normalizedCompanyName)
+            setCompanyNameMessage(normalizedCompanyName ? "Company name saved." : "Company name cleared.")
+            window.dispatchEvent(new Event("tenant-profile-updated"))
+        } catch {
+            setCompanyNameMessage("Unable to save the company name. Please try again.")
+        } finally {
+            setIsSavingCompanyName(false)
+        }
+    }
 
     useEffect(() => {
         const loadUsage = async () => {
@@ -146,6 +182,38 @@ export const AccountDetailsSection = () => {
                             <p>
                                 <span className="font-medium">Email:</span> {email}
                             </p>
+                            <div className="space-y-1 pt-2">
+                                <label htmlFor="company-name" className="font-medium">Company name</label>
+                                <div className="flex items-center gap-2">
+                                    <Input
+                                        id="company-name"
+                                        value={companyName}
+                                        onChange={(event) => setCompanyName(event.target.value)}
+                                        onBlur={() => void saveCompanyName()}
+                                        onKeyDown={(event) => {
+                                            if (event.key === "Enter") {
+                                                event.preventDefault()
+                                                void saveCompanyName()
+                                            }
+                                        }}
+                                        maxLength={120}
+                                        placeholder="Enter company name"
+                                        disabled={isSavingCompanyName}
+                                    />
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => void saveCompanyName()}
+                                        disabled={isSavingCompanyName || companyName.trim().replace(/\s+/g, " ") === savedCompanyName}
+                                    >
+                                        {isSavingCompanyName ? "Saving..." : "Save"}
+                                    </Button>
+                                </div>
+                                {companyNameMessage && (
+                                    <p className="text-xs text-muted-foreground" role="status">{companyNameMessage}</p>
+                                )}
+                            </div>
                             <p>
                                 <span className="font-medium">Member since:</span> {memberSince}
                             </p>

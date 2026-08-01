@@ -552,6 +552,8 @@ export const ForecastEditor = () => {
     }, [adjustments.forecastAdjustment, currentItem, monthColumns])
 
     const totalAdjustmentDelta = adjustedHorizonTotal - baselineHorizonTotal
+    const formatHorizonTotal = (value: number) =>
+        Number.isFinite(value) ? Math.round(value).toLocaleString() : "--"
 
     const handleCellClick = (metricKey: string, period: string, value: number) => {
         const cellKey = `${metricKey}:${period}`
@@ -749,7 +751,7 @@ export const ForecastEditor = () => {
                     <h1 className="text-3xl font-bold text-foreground">Forecast Editor</h1>
                     <p className="text-muted-foreground mt-1">Review forecast values, apply adjustments, and rerun selected SKU-location scenarios with run lineage.</p>
                 </div>
-                <Card className="gap-2 py-0">
+                <Card className="gap-2 py-3">
                     <CardContent className="flex flex-wrap items-center justify-between gap-3 px-4">
                         <div className="flex flex-wrap items-center gap-2">
                             <ForecastRunSelector runs={runs} value={selectedRunId} onValueChange={setSelectedRunId} />
@@ -771,9 +773,9 @@ export const ForecastEditor = () => {
                     </CardContent>
                 </Card>
                 <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Baseline Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(baselineHorizonTotal).toLocaleString()}</p></CardContent></Card>
-                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Adjusted Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(adjustedHorizonTotal).toLocaleString()}</p></CardContent></Card>
-                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Scenario Delta</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{Math.round(totalAdjustmentDelta).toLocaleString()}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Baseline Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{formatHorizonTotal(baselineHorizonTotal)}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Adjusted Horizon</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{formatHorizonTotal(adjustedHorizonTotal)}</p></CardContent></Card>
+                    <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Scenario Delta</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{formatHorizonTotal(totalAdjustmentDelta)}</p></CardContent></Card>
                     <Card className="gap-2 py-2"><CardHeader><CardTitle className="text-sm">Approval State</CardTitle></CardHeader><CardContent><p className="text-2xl font-bold">{isApproved ? "Approved" : "Pending"}</p></CardContent></Card>
                 </div>
                 <div className="rounded-md border bg-background">

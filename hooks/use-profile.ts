@@ -16,6 +16,7 @@ export type UserProfile = Record<string, unknown> & {
     trial_ends_at?: string | null;
     trial_days_left?: number | null;
     access_restricted?: boolean;
+    company_name?: string | null;
 };
 
 type UseProfileState = {
@@ -34,6 +35,7 @@ export const useProfile = (): UseProfileState => {
         const controller = new AbortController();
 
         const loadProfile = async () => {
+            setError(null);
             try {
                 const response = await fetch("/api/auth/me", {
                     signal: controller.signal,
@@ -60,10 +62,15 @@ export const useProfile = (): UseProfileState => {
         };
 
         void loadProfile();
+        const refreshProfile = () => {
+            void loadProfile();
+        };
+        window.addEventListener("tenant-profile-updated", refreshProfile);
 
         return () => {
             isMounted = false;
             controller.abort();
+            window.removeEventListener("tenant-profile-updated", refreshProfile);
         };
     }, []);
 

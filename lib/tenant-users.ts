@@ -25,6 +25,7 @@ export type TenantUserRecord = {
 
 export type TenantRecord = Record<string, unknown> & {
   tenantId: string
+  companyName?: string
   users?: Record<string, unknown>
 }
 

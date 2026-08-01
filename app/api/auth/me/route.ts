@@ -38,6 +38,7 @@ export async function GET() {
         let tenantPlan: string | null = null;
         let tenantStatus: string | null = null;
         let trialEndsAt: string | null = null;
+        let companyName: string | null = null;
 
         const tokenCtx = getTokenUserContext(idToken);
         const tableName = getTenantsTableName();
@@ -51,6 +52,7 @@ export async function GET() {
                 tenantPlan = typeof tenantRecord.plan === "string" ? tenantRecord.plan : null;
                 tenantStatus = typeof tenantRecord.status === "string" ? tenantRecord.status : null;
                 trialEndsAt = typeof tenantRecord.trialEndsAt === "string" ? tenantRecord.trialEndsAt : null;
+                companyName = typeof tenantRecord.companyName === "string" ? tenantRecord.companyName.trim() || null : null;
             }
         }
 
@@ -66,6 +68,7 @@ export async function GET() {
                 profile: {
                     ...profile,
                     app_role: appRole,
+                    company_name: companyName,
                     tenant_plan: tenantPlan,
                     tenant_status: tenantStatus,
                     effective_tenant_status: accessState.effectiveStatus || tenantStatus,

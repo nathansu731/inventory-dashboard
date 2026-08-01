@@ -111,6 +111,9 @@ export function ChartAreaInteractive() {
     }
   }, [rangeOptions, timeRange])
 
+  const selectedRangeDays = Number.parseInt(timeRange, 10) || 30
+  const selectedRangeLabel = `last ${selectedRangeDays} day${selectedRangeDays === 1 ? "" : "s"}`
+
   const filteredData = chartData.filter((item) => {
     const date = new Date(item.date)
     const referenceDate = referenceDateValue ? new Date(referenceDateValue) : new Date()
@@ -126,9 +129,9 @@ export function ChartAreaInteractive() {
         <CardTitle>Total Forecast</CardTitle>
         <CardDescription>
           <span className="hidden @[540px]/card:block">
-            Forecast total for the last 3 months
+            Forecast total for the {selectedRangeLabel}
           </span>
-          <span className="@[540px]/card:hidden">Forecast (last 3 months)</span>
+          <span className="@[540px]/card:hidden">Forecast ({selectedRangeLabel})</span>
         </CardDescription>
         <CardAction>
           <ToggleGroup

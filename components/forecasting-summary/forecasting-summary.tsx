@@ -244,7 +244,7 @@ export const ForecastingSummary = () => {
           </div>
         </div>
 
-        <Card className="gap-2 border-slate-200 bg-slate-50/70 py-0">
+        <Card className="gap-2 border-slate-200 bg-slate-50/70 py-3">
           <CardContent className="grid gap-3 px-4 md:grid-cols-2 xl:grid-cols-5">
             <div>
               <div className="text-xs text-muted-foreground">Created</div>
